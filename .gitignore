@@ -1,0 +1,25 @@
+.DS_Store
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Build/test output
+dist/
+build/
+coverage/
+
+# Generated voice-test artifacts
+voice-test/request_audio/
+voice-test/response_audio/
+voice-test/routerai_outputs/
+*.pcm
+*.wav
+

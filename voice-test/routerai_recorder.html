@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RouterAI Audio Console</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f4f6f8;
+        color: #17202a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      main {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+
+      header,
+      section {
+        background: #fff;
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(20, 34, 55, 0.07);
+      }
+
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 28px;
+        line-height: 1.1;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+
+      h3 {
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+
+      p,
+      label,
+      .muted {
+        color: #5d6978;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      textarea,
+      input,
+      select {
+        width: 100%;
+        border: 1px solid #c5cfdb;
+        border-radius: 6px;
+        padding: 10px 11px;
+        font: inherit;
+        background: #fff;
+        color: inherit;
+      }
+
+      textarea {
+        min-height: 130px;
+        resize: vertical;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid #1f6feb;
+        border-radius: 6px;
+        background: #1f6feb;
+        color: #fff;
+        padding: 10px 14px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #fff;
+        color: #1f6feb;
+      }
+
+      button.danger {
+        border-color: #c93232;
+        background: #c93232;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      audio {
+        width: 100%;
+      }
+
+      pre {
+        margin: 0;
+        min-height: 160px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 12px;
+        border-radius: 6px;
+        background: #101722;
+        color: #d9e7f7;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+      }
+
+      details {
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 750;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .meter {
+        width: min(260px, 100%);
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #d9e0ea;
+      }
+
+      .meter span {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: #2da44e;
+        transition: width 80ms linear;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #eef3f8;
+        color: #324152;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      @media (max-width: 820px) {
+        body {
+          padding: 14px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background: #10141b;
+          color: #edf3fa;
+        }
+
+        header,
+        section {
+          background: #171d26;
+          border-color: #303a49;
+          box-shadow: none;
+        }
+
+        p,
+        label,
+        .muted {
+          color: #a9b5c4;
+        }
+
+        textarea,
+        input,
+        select,
+        button.secondary {
+          background: #10141b;
+          color: #edf3fa;
+          border-color: #3a4657;
+        }
+
+        .pill {
+          background: #243041;
+          color: #d9e7f7;
+        }
+
+        details {
+          border-color: #303a49;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="stack">
+          <h1>RouterAI Audio Console</h1>
+          <p>Models come from <code>routerai_models.json</code>. Request audio and response audio are stored separately.</p>
+        </div>
+        <div class="row">
+          <span id="keyStatus" class="pill">Checking key...</span>
+          <button id="refresh" class="secondary">Refresh</button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <section class="stack">
+          <h2>Record Audio</h2>
+          <label>
+            Recording name
+            <input id="recordingName" value="test-audio" />
+          </label>
+          <div class="row">
+            <button id="start">Start</button>
+            <button id="stop" class="danger" disabled>Stop and save</button>
+            <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+          </div>
+          <audio id="recordingPreview" controls></audio>
+          <p id="recordStatus" class="muted">Ready.</p>
+        </section>
+
+        <section class="stack">
+          <h2>Text Voiceover</h2>
+          <label>
+            TTS model
+            <select id="ttsModel"></select>
+          </label>
+          <label>
+            Voice
+            <select id="voice"></select>
+          </label>
+          <label>
+            Language hint
+            <input id="ttsLanguage" value="auto" placeholder="auto, Russian, English, ru, en" />
+          </label>
+          <label>
+            Max output tokens
+            <input id="ttsMaxTokens" type="number" min="1" step="1" value="120" />
+          </label>
+          <label>
+            System prompt
+            <textarea id="ttsSystemPrompt">You are a text-to-speech voiceover engine. Speak exactly the user's text verbatim. Do not answer, rewrite, summarize, translate, add introductions, or add closing remarks.</textarea>
+          </label>
+          <label>
+            Text to voice over exactly
+            <textarea id="ttsText">Скажите коротко: тест синтеза речи RouterAI.</textarea>
+          </label>
+          <button id="sendTts">Generate voiceover</button>
+          <audio id="ttsOutput" controls></audio>
+        </section>
+
+        <section class="stack">
+          <h2>Speech To Text</h2>
+          <label>
+            Audio file
+            <select id="audioSelect"></select>
+          </label>
+          <audio id="selectedAudio" controls></audio>
+          <p id="audioInfo" class="muted">No recording selected.</p>
+          <label>
+            STT model
+            <select id="sttModel"></select>
+          </label>
+          <label>
+            Audio language hint
+            <input id="sttLanguage" value="auto" placeholder="auto, Russian, English, ru, en" />
+          </label>
+          <label>
+            Max output tokens
+            <input id="sttMaxTokens" type="number" min="1" step="1" value="300" />
+          </label>
+          <label>
+            STT instruction
+            <textarea id="sttPrompt">Transcribe this audio exactly. Return only the transcript text.</textarea>
+          </label>
+          <button id="sendStt">Send STT request</button>
+          <div class="stack">
+            <h3>Transcript</h3>
+            <pre id="transcript"></pre>
+          </div>
+        </section>
+      </div>
+
+      <section class="stack">
+        <h2>Last Response</h2>
+        <div class="stack">
+          <h3>Content</h3>
+          <pre id="responseContent"></pre>
+        </div>
+        <details>
+          <summary>Full body</summary>
+          <pre id="response"></pre>
+        </details>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const state = {
+        models: null,
+        recordings: [],
+      };
+
+      let audioContext;
+      let source;
+      let processor;
+      let stream;
+      let samples = [];
+      let sampleRate = 48000;
+      let animationId;
+      let analyser;
+      let levelData;
+
+      function optionText(model) {
+        return `${model.name || model.id} (${model.id})`;
+      }
+
+      function setResponse(value) {
+        $("response").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function setResult(content, body) {
+        $("responseContent").textContent = content || "";
+        setResponse(body);
+      }
+
+      function fillSelect(select, items, getValue, getLabel) {
+        select.innerHTML = "";
+        for (const item of items) {
+          const option = document.createElement("option");
+          option.value = getValue(item);
+          option.textContent = getLabel(item);
+          select.appendChild(option);
+        }
+      }
+
+      function encodeWav(channelSamples, rate) {
+        const length = channelSamples.length;
+        const buffer = new ArrayBuffer(44 + length * 2);
+        const view = new DataView(buffer);
+
+        function writeString(offset, value) {
+          for (let i = 0; i < value.length; i += 1) {
+            view.setUint8(offset + i, value.charCodeAt(i));
+          }
+        }
+
+        writeString(0, "RIFF");
+        view.setUint32(4, 36 + length * 2, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, rate, true);
+        view.setUint32(28, rate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, "data");
+        view.setUint32(40, length * 2, true);
+
+        let offset = 44;
+        for (let i = 0; i < length; i += 1, offset += 2) {
+          const sample = Math.max(-1, Math.min(1, channelSamples[i]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        }
+
+        return new Blob([view], { type: "audio/wav" });
+      }
+
+      function updateMeter() {
+        if (!analyser) return;
+        analyser.getByteTimeDomainData(levelData);
+        let peak = 0;
+        for (const value of levelData) {
+          peak = Math.max(peak, Math.abs(value - 128));
+        }
+        $("meter").style.width = `${Math.min(100, peak * 1.6)}%`;
+        animationId = requestAnimationFrame(updateMeter);
+      }
+
+      async function apiJson(url, options) {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `Request failed: ${response.status}`);
+        }
+        return data;
+      }
+
+      async function loadModels() {
+        state.models = await apiJson("/models");
+        fillSelect($("ttsModel"), state.models.tts, (m) => m.id, optionText);
+        fillSelect($("sttModel"), state.models.stt, (m) => m.id, optionText);
+        fillSelect($("voice"), state.models.voices, (v) => v, (v) => v);
+      }
+
+      async function loadRecordings() {
+        state.recordings = await apiJson("/recordings");
+        fillSelect(
+          $("audioSelect"),
+          state.recordings,
+          (r) => r.id,
+          (r) => `${r.source === "response" ? "Response" : "Request"} · ${r.name} (${Math.round(r.bytes / 1024)} KB)`
+        );
+        updateSelectedAudio();
+      }
+
+      async function refreshStatus() {
+        const status = await apiJson("/status");
+        $("keyStatus").textContent = status.hasApiKey ? "API key loaded" : "API key missing";
+        await loadRecordings();
+      }
+
+      function updateSelectedAudio() {
+        const name = $("audioSelect").value;
+        const recording = state.recordings.find((item) => item.name === name);
+        if (!recording) {
+          $("selectedAudio").removeAttribute("src");
+          $("audioInfo").textContent = "No recording selected.";
+          return;
+        }
+        $("selectedAudio").src = recording.url;
+        $("audioInfo").textContent = `${recording.source === "response" ? "Response audio" : "Request audio"} · modified ${recording.modified}, ${recording.bytes} bytes.`;
+      }
+
+      $("start").addEventListener("click", async () => {
+        samples = [];
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new AudioContext();
+        sampleRate = audioContext.sampleRate;
+        source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        levelData = new Uint8Array(analyser.frequencyBinCount);
+        processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+        processor.onaudioprocess = (event) => {
+          samples.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+        };
+
+        source.connect(analyser);
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+        updateMeter();
+
+        $("start").disabled = true;
+        $("stop").disabled = false;
+        $("recordStatus").textContent = "Recording...";
+      });
+
+      $("stop").addEventListener("click", async () => {
+        $("stop").disabled = true;
+        $("recordStatus").textContent = "Saving...";
+        cancelAnimationFrame(animationId);
+        $("meter").style.width = "0%";
+
+        processor.disconnect();
+        source.disconnect();
+        stream.getTracks().forEach((track) => track.stop());
+        await audioContext.close();
+
+        const totalLength = samples.reduce((sum, chunk) => sum + chunk.length, 0);
+        const merged = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of samples) {
+          merged.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        const wav = encodeWav(merged, sampleRate);
+        $("recordingPreview").src = URL.createObjectURL(wav);
+
+        const name = encodeURIComponent($("recordingName").value || "recording");
+        const response = await apiJson(`/recordings?name=${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "audio/wav" },
+          body: wav,
+        });
+
+        $("recordStatus").textContent = `Saved ${response.name}`;
+        $("start").disabled = false;
+        await loadRecordings();
+        $("audioSelect").value = response.id;
+        updateSelectedAudio();
+      });
+
+      $("audioSelect").addEventListener("change", updateSelectedAudio);
+
+      $("sendTts").addEventListener("click", async () => {
+        $("sendTts").disabled = true;
+        setResult("Sending TTS request...", "");
+        try {
+          const result = await apiJson("/routerai/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: $("ttsModel").value,
+              voice: $("voice").value,
+              text: $("ttsText").value,
+              systemPrompt: $("ttsSystemPrompt").value,
+              language: $("ttsLanguage").value,
+              maxTokens: $("ttsMaxTokens").value,
+            }),
+          });
+          $("ttsOutput").src = result.files.wavUrl;
+          setResult(result.text || "(No text content returned)", result);
+          await loadRecordings();
+          $("audioSelect").value = result.files.wavRef;
+          updateSelectedAudio();
+        } catch (error) {
+          setResult(error.message, error.message);
+        } finally {
+          $("sendTts").disabled = false;
+        }
+      });
+
+      $("sendStt").addEventListener("click", async () => {
+        $("sendStt").disabled = true;
+        $("transcript").textContent = "";
+        setResult("Sending STT request...", "");
+        try {
+          const result = await apiJson("/routerai/stt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: $("sttModel").value,
+              audioFile: $("audioSelect").value,
+              prompt: $("sttPrompt").value,
+              language: $("sttLanguage").value,
+              maxTokens: $("sttMaxTokens").value,
+            }),
+          });
+          $("transcript").textContent = result.transcript || "(No transcript extracted)";
+          setResult(result.transcript || "(No transcript extracted)", result);
+        } catch (error) {
+          setResult(error.message, error.message);
+        } finally {
+          $("sendStt").disabled = false;
+        }
+      });
+
+      $("refresh").addEventListener("click", refreshStatus);
+
+      (async function boot() {
+        try {
+          await loadModels();
+          await refreshStatus();
+        } catch (error) {
+          setResult(error.message, error.message);
+        }
+      })();
+    </script>
+  </body>
+</html>
