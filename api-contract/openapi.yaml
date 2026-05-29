@@ -1,0 +1,3433 @@
+openapi: 3.1.0
+info:
+  title: FinDoctor Client API
+  version: 0.1.0
+  summary: Client-facing API for financial accounts, ledger transactions, assets, liabilities, goals, tags, and analytics.
+  license:
+    name: Proprietary
+    url: https://findoctor.example/legal/api-license
+  description: |
+    FinDoctor exposes user-owned financial data as explicit CRUD resources and keeps reference/admin data separate.
+
+    Transfers are modeled as business objects connected to two underlying ledger transactions:
+    one debit transaction on the source account and one credit transaction on the destination account.
+    Creating, updating, or deleting a transfer must happen transactionally with those ledger rows.
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://api.findoctor.example
+    description: Production placeholder
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Registration, login, token refresh, and session revocation.
+  - name: Current User
+    description: Current authenticated user profile and preferences.
+  - name: Reference Data
+    description: Shared catalogs such as types, categories, and merchants.
+  - name: Financial Institutions
+    description: Banks, brokers, exchanges, lenders, and wallet providers.
+  - name: Accounts
+    description: User-owned financial accounts and balances.
+  - name: Transactions
+    description: Real ledger entries for income, expenses, and transfer legs.
+  - name: Transfers
+    description: Business transfers connected to underlying ledger transactions.
+  - name: Recurring Transactions
+    description: Expected repeating income, expense, transfer, and liability-payment patterns.
+  - name: Assets
+    description: User-owned assets used in net-worth calculations.
+  - name: Liabilities
+    description: User debts, loans, credit obligations, and their current state.
+  - name: Liability Payments
+    description: Actual debt payments linked to transaction rows.
+  - name: Goals
+    description: User financial goals and progress tracking.
+  - name: Tags
+    description: User-defined transaction labels.
+  - name: Analytics
+    description: Read models, snapshots, dashboard summaries, and derived series.
+  - name: AI Chat
+    description: Text and voice conversational AI with optional audio responses.
+  - name: Imports
+    description: Idempotent data ingestion workflows.
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      operationId: refreshSession
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: Refreshed session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current session
+      operationId: logoutUser
+      responses:
+        "204":
+          description: Session revoked
+
+  /ai/chat/messages:
+    post:
+      tags: [AI Chat]
+      summary: Send a text or encoded-audio AI chat message
+      description: |
+        Sends a user message to the financial assistant. The message may contain text,
+        audio encoded as base64, or both. The response can include text, audio, or both.
+      operationId: createAiChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatRequest"
+      responses:
+        "200":
+          description: AI assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /ai/chat/audio:
+    post:
+      tags: [AI Chat]
+      summary: Send an audio AI chat message
+      description: Uploads an audio file directly and receives text, audio, or text plus audio.
+      operationId: createAiVoiceChatMessage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/AiVoiceChatMultipartRequest"
+      responses:
+        "200":
+          description: AI assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /ai/chat/conversations:
+    get:
+      tags: [AI Chat]
+      summary: List AI chat conversations
+      operationId: listAiChatConversations
+      parameters:
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/PageSizeQuery"
+      responses:
+        "200":
+          description: Conversation summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatConversationPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      tags: [AI Chat]
+      summary: Create AI chat conversation
+      operationId: createAiChatConversation
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatConversationCreate"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatConversation"
+
+  /ai/chat/conversations/{conversationId}:
+    get:
+      tags: [AI Chat]
+      summary: Get AI chat conversation
+      operationId: getAiChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatConversation"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [AI Chat]
+      summary: Delete AI chat conversation
+      operationId: deleteAiChatConversation
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      responses:
+        "204":
+          description: Conversation deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /me:
+    get:
+      tags: [Current User]
+      summary: Get current user profile
+      operationId: getCurrentUser
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      tags: [Current User]
+      summary: Update current user profile
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /reference/account-types:
+    get:
+      tags: [Reference Data]
+      summary: List account types
+      operationId: listAccountTypes
+      responses:
+        "200":
+          description: Account type catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountTypeList"
+
+  /reference/asset-types:
+    get:
+      tags: [Reference Data]
+      summary: List asset types
+      operationId: listAssetTypes
+      responses:
+        "200":
+          description: Asset type catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetTypeList"
+
+  /reference/liability-types:
+    get:
+      tags: [Reference Data]
+      summary: List liability types
+      operationId: listLiabilityTypes
+      responses:
+        "200":
+          description: Liability type catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityTypeList"
+
+  /reference/provider-types:
+    get:
+      tags: [Reference Data]
+      summary: List financial provider roles
+      operationId: listProviderTypes
+      responses:
+        "200":
+          description: Provider type catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderTypeList"
+
+  /reference/categories:
+    get:
+      tags: [Reference Data]
+      summary: List transaction categories
+      operationId: listCategories
+      parameters:
+        - $ref: "#/components/parameters/CategoryTypeQuery"
+        - $ref: "#/components/parameters/ParentIdQuery"
+      responses:
+        "200":
+          description: Category tree or filtered category list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryList"
+    post:
+      tags: [Reference Data]
+      summary: Create transaction category
+      description: Categories are global in the current schema. If per-user categories are needed, add `user_id` before exposing this broadly.
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreate"
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /reference/categories/{categoryId}:
+    get:
+      tags: [Reference Data]
+      summary: Get transaction category
+      operationId: getCategory
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Reference Data]
+      summary: Update transaction category
+      operationId: updateCategory
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Reference Data]
+      summary: Delete transaction category
+      operationId: deleteCategory
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "204":
+          description: Category deleted
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /merchants:
+    get:
+      tags: [Reference Data]
+      summary: Search merchants
+      operationId: listMerchants
+      parameters:
+        - $ref: "#/components/parameters/SearchQuery"
+        - name: country
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+        - name: riskLevel
+          in: query
+          schema:
+            $ref: "#/components/schemas/RiskLevel"
+      responses:
+        "200":
+          description: Matching merchants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MerchantList"
+    post:
+      tags: [Reference Data]
+      summary: Create or suggest merchant
+      operationId: createMerchant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MerchantCreate"
+      responses:
+        "201":
+          description: Created merchant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /merchants/{merchantId}:
+    get:
+      tags: [Reference Data]
+      summary: Get merchant
+      operationId: getMerchant
+      parameters:
+        - $ref: "#/components/parameters/MerchantId"
+      responses:
+        "200":
+          description: Merchant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Reference Data]
+      summary: Update merchant
+      operationId: updateMerchant
+      parameters:
+        - $ref: "#/components/parameters/MerchantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MerchantUpdate"
+      responses:
+        "200":
+          description: Updated merchant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+    delete:
+      tags: [Reference Data]
+      summary: Delete merchant
+      operationId: deleteMerchant
+      parameters:
+        - $ref: "#/components/parameters/MerchantId"
+      responses:
+        "204":
+          description: Merchant deleted
+
+  /financial-institutions:
+    get:
+      tags: [Financial Institutions]
+      summary: Search financial institutions
+      operationId: listFinancialInstitutions
+      parameters:
+        - $ref: "#/components/parameters/SearchQuery"
+        - name: country
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 country code.
+        - name: providerTypeCode
+          in: query
+          schema:
+            type: string
+          description: Filter institutions by provider role code.
+        - name: activeOnly
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: Matching institutions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialInstitutionList"
+    post:
+      tags: [Financial Institutions]
+      summary: Suggest or create a financial institution
+      description: Client-facing creation can be moderated server-side; admin implementations may publish directly.
+      operationId: createFinancialInstitution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialInstitutionCreate"
+      responses:
+        "201":
+          description: Created institution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialInstitution"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /financial-institutions/{institutionId}:
+    get:
+      tags: [Financial Institutions]
+      summary: Get financial institution
+      operationId: getFinancialInstitution
+      parameters:
+        - $ref: "#/components/parameters/InstitutionId"
+      responses:
+        "200":
+          description: Institution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialInstitution"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Financial Institutions]
+      summary: Update financial institution metadata
+      operationId: updateFinancialInstitution
+      parameters:
+        - $ref: "#/components/parameters/InstitutionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialInstitutionUpdate"
+      responses:
+        "200":
+          description: Updated institution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialInstitution"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts
+      operationId: listAccounts
+      parameters:
+        - $ref: "#/components/parameters/ActiveQuery"
+        - name: accountTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: institutionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: currency
+          in: query
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+      responses:
+        "200":
+          description: User accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountList"
+    post:
+      tags: [Accounts]
+      summary: Create account
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountCreate"
+      responses:
+        "201":
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /accounts/{accountId}:
+    get:
+      tags: [Accounts]
+      summary: Get account
+      operationId: getAccount
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Accounts]
+      summary: Update account
+      operationId: updateAccount
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdate"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Accounts]
+      summary: Archive account
+      description: Accounts with ledger history should generally be archived by setting `isActive=false`.
+      operationId: deleteAccount
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      responses:
+        "204":
+          description: Account archived
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: List transactions
+      operationId: listTransactions
+      parameters:
+        - $ref: "#/components/parameters/DateTimeFromQuery"
+        - $ref: "#/components/parameters/DateTimeToQuery"
+        - name: accountId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionType"
+        - name: merchantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: recurringTransactionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tagId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/PageSizeQuery"
+      responses:
+        "200":
+          description: Paginated transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+    post:
+      tags: [Transactions]
+      summary: Create transaction
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionCreate"
+      responses:
+        "201":
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /transactions/import:
+    post:
+      tags: [Imports, Transactions]
+      summary: Import transactions idempotently
+      operationId: importTransactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionImportRequest"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionImportResult"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /transactions/{transactionId}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction
+      operationId: getTransaction
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Transactions]
+      summary: Update transaction
+      operationId: updateTransaction
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionUpdate"
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Transactions]
+      summary: Delete transaction
+      operationId: deleteTransaction
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "204":
+          description: Transaction deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /transactions/{transactionId}/tags:
+    get:
+      tags: [Transactions, Tags]
+      summary: List transaction tags
+      operationId: listTransactionTags
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "200":
+          description: Transaction tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagList"
+    put:
+      tags: [Transactions, Tags]
+      summary: Replace all tags on a transaction
+      operationId: replaceTransactionTags
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tagIds]
+              properties:
+                tagIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  uniqueItems: true
+      responses:
+        "200":
+          description: Updated transaction tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagList"
+
+  /transactions/{transactionId}/tags/{tagId}:
+    post:
+      tags: [Transactions, Tags]
+      summary: Attach tag to transaction
+      operationId: addTransactionTag
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+        - $ref: "#/components/parameters/TagId"
+      responses:
+        "204":
+          description: Tag attached
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Transactions, Tags]
+      summary: Detach tag from transaction
+      operationId: removeTransactionTag
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+        - $ref: "#/components/parameters/TagId"
+      responses:
+        "204":
+          description: Tag detached
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /transfers:
+    get:
+      tags: [Transfers]
+      summary: List transfers
+      operationId: listTransfers
+      parameters:
+        - $ref: "#/components/parameters/DateTimeFromQuery"
+        - $ref: "#/components/parameters/DateTimeToQuery"
+        - name: accountId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Match either source or destination account.
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/PageSizeQuery"
+      responses:
+        "200":
+          description: Paginated transfers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferPage"
+    post:
+      tags: [Transfers]
+      summary: Create transfer and underlying transactions
+      description: |
+        Creates one transfer row and two linked transaction rows in a single database transaction.
+        The source transaction is an expense-like transfer debit; the destination transaction is an income-like transfer credit.
+      operationId: createTransfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCreate"
+      responses:
+        "201":
+          description: Created transfer with ledger transaction links
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /transfers/{transferId}:
+    get:
+      tags: [Transfers]
+      summary: Get transfer
+      operationId: getTransfer
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "200":
+          description: Transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Transfers]
+      summary: Update transfer and underlying transactions
+      description: Updates the transfer row and synchronized amount, currency, datetime, account, and description fields on linked ledger transactions.
+      operationId: updateTransfer
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferUpdate"
+      responses:
+        "200":
+          description: Updated transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Transfers]
+      summary: Delete transfer and underlying transactions
+      description: Deletes or reverses the transfer and both linked ledger transactions transactionally.
+      operationId: deleteTransfer
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "204":
+          description: Transfer and linked transaction rows deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recurring-transactions:
+    get:
+      tags: [Recurring Transactions]
+      summary: List recurring transaction patterns
+      operationId: listRecurringTransactions
+      parameters:
+        - $ref: "#/components/parameters/ActiveQuery"
+        - name: accountId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: liabilityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: nextPaymentBefore
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Recurring transaction patterns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransactionList"
+    post:
+      tags: [Recurring Transactions]
+      summary: Create recurring transaction pattern
+      operationId: createRecurringTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecurringTransactionCreate"
+      responses:
+        "201":
+          description: Created recurring pattern
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransaction"
+
+  /recurring-transactions/{recurringTransactionId}:
+    get:
+      tags: [Recurring Transactions]
+      summary: Get recurring transaction pattern
+      operationId: getRecurringTransaction
+      parameters:
+        - $ref: "#/components/parameters/RecurringTransactionId"
+      responses:
+        "200":
+          description: Recurring pattern
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransaction"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Recurring Transactions]
+      summary: Update recurring transaction pattern
+      operationId: updateRecurringTransaction
+      parameters:
+        - $ref: "#/components/parameters/RecurringTransactionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecurringTransactionUpdate"
+      responses:
+        "200":
+          description: Updated recurring pattern
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransaction"
+    delete:
+      tags: [Recurring Transactions]
+      summary: Deactivate recurring transaction pattern
+      operationId: deleteRecurringTransaction
+      parameters:
+        - $ref: "#/components/parameters/RecurringTransactionId"
+      responses:
+        "204":
+          description: Recurring pattern deactivated
+
+  /assets:
+    get:
+      tags: [Assets]
+      summary: List assets
+      operationId: listAssets
+      parameters:
+        - name: assetTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetList"
+    post:
+      tags: [Assets]
+      summary: Create asset
+      operationId: createAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetCreate"
+      responses:
+        "201":
+          description: Created asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{assetId}:
+    get:
+      tags: [Assets]
+      summary: Get asset
+      operationId: getAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Assets]
+      summary: Update asset
+      operationId: updateAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetUpdate"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    delete:
+      tags: [Assets]
+      summary: Delete asset
+      operationId: deleteAsset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: Asset deleted
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /liabilities:
+    get:
+      tags: [Liabilities]
+      summary: List liabilities
+      operationId: listLiabilities
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/LiabilityStatus"
+        - name: liabilityTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User liabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityList"
+    post:
+      tags: [Liabilities]
+      summary: Create liability
+      operationId: createLiability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiabilityCreate"
+      responses:
+        "201":
+          description: Created liability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liability"
+
+  /liabilities/{liabilityId}:
+    get:
+      tags: [Liabilities]
+      summary: Get liability
+      operationId: getLiability
+      parameters:
+        - $ref: "#/components/parameters/LiabilityId"
+      responses:
+        "200":
+          description: Liability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liability"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Liabilities]
+      summary: Update liability
+      operationId: updateLiability
+      parameters:
+        - $ref: "#/components/parameters/LiabilityId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiabilityUpdate"
+      responses:
+        "200":
+          description: Updated liability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liability"
+    delete:
+      tags: [Liabilities]
+      summary: Close or delete liability
+      operationId: deleteLiability
+      parameters:
+        - $ref: "#/components/parameters/LiabilityId"
+      responses:
+        "204":
+          description: Liability closed or deleted
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /liability-payments:
+    get:
+      tags: [Liability Payments]
+      summary: List liability payments
+      operationId: listLiabilityPayments
+      parameters:
+        - name: liabilityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Liability payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityPaymentList"
+    post:
+      tags: [Liability Payments]
+      summary: Create liability payment and linked transaction
+      description: Creates the expense transaction if `transactionId` is omitted, then links it to the liability payment.
+      operationId: createLiabilityPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiabilityPaymentCreate"
+      responses:
+        "201":
+          description: Created liability payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityPayment"
+
+  /liability-payments/{liabilityPaymentId}:
+    get:
+      tags: [Liability Payments]
+      summary: Get liability payment
+      operationId: getLiabilityPayment
+      parameters:
+        - $ref: "#/components/parameters/LiabilityPaymentId"
+      responses:
+        "200":
+          description: Liability payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityPayment"
+    patch:
+      tags: [Liability Payments]
+      summary: Update liability payment
+      operationId: updateLiabilityPayment
+      parameters:
+        - $ref: "#/components/parameters/LiabilityPaymentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiabilityPaymentUpdate"
+      responses:
+        "200":
+          description: Updated liability payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityPayment"
+    delete:
+      tags: [Liability Payments]
+      summary: Delete liability payment
+      operationId: deleteLiabilityPayment
+      parameters:
+        - $ref: "#/components/parameters/LiabilityPaymentId"
+      responses:
+        "204":
+          description: Liability payment deleted
+
+  /goals:
+    get:
+      tags: [Goals]
+      summary: List financial goals
+      operationId: listGoals
+      responses:
+        "200":
+          description: User goals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialGoalList"
+    post:
+      tags: [Goals]
+      summary: Create financial goal
+      operationId: createGoal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialGoalCreate"
+      responses:
+        "201":
+          description: Created goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialGoal"
+
+  /goals/{goalId}:
+    get:
+      tags: [Goals]
+      summary: Get financial goal
+      operationId: getGoal
+      parameters:
+        - $ref: "#/components/parameters/GoalId"
+      responses:
+        "200":
+          description: Goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialGoal"
+    patch:
+      tags: [Goals]
+      summary: Update financial goal
+      operationId: updateGoal
+      parameters:
+        - $ref: "#/components/parameters/GoalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialGoalUpdate"
+      responses:
+        "200":
+          description: Updated goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialGoal"
+    delete:
+      tags: [Goals]
+      summary: Delete financial goal
+      operationId: deleteGoal
+      parameters:
+        - $ref: "#/components/parameters/GoalId"
+      responses:
+        "204":
+          description: Goal deleted
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: List user tags
+      operationId: listTags
+      responses:
+        "200":
+          description: User tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagList"
+    post:
+      tags: [Tags]
+      summary: Create tag
+      operationId: createTag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagCreate"
+      responses:
+        "201":
+          description: Created tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tags/{tagId}:
+    get:
+      tags: [Tags]
+      summary: Get tag
+      operationId: getTag
+      parameters:
+        - $ref: "#/components/parameters/TagId"
+      responses:
+        "200":
+          description: Tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+    patch:
+      tags: [Tags]
+      summary: Update tag
+      operationId: updateTag
+      parameters:
+        - $ref: "#/components/parameters/TagId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagUpdate"
+      responses:
+        "200":
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+    delete:
+      tags: [Tags]
+      summary: Delete tag
+      operationId: deleteTag
+      parameters:
+        - $ref: "#/components/parameters/TagId"
+      responses:
+        "204":
+          description: Tag deleted
+
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Get dashboard summary
+      operationId: getDashboardSummary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /analytics/snapshots:
+    get:
+      tags: [Analytics]
+      summary: List daily financial snapshots
+      operationId: listDailyFinancialSnapshots
+      parameters:
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Daily snapshots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyFinancialSnapshotList"
+
+  /analytics/snapshots/recalculate:
+    post:
+      tags: [Analytics]
+      summary: Queue snapshot recalculation
+      operationId: recalculateDailyFinancialSnapshots
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from, to]
+              properties:
+                from:
+                  type: string
+                  format: date
+                to:
+                  type: string
+                  format: date
+      responses:
+        "202":
+          description: Recalculation queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+
+  /analytics/cash-flow:
+    get:
+      tags: [Analytics]
+      summary: Get cash-flow summary
+      operationId: getCashFlow
+      parameters:
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: month
+      responses:
+        "200":
+          description: Cash-flow series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowSeries"
+
+  /analytics/net-worth:
+    get:
+      tags: [Analytics]
+      summary: Get net-worth series
+      operationId: getNetWorth
+      parameters:
+        - $ref: "#/components/parameters/DateFromQuery"
+        - $ref: "#/components/parameters/DateToQuery"
+      responses:
+        "200":
+          description: Net-worth series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetWorthSeries"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CategoryTypeQuery:
+      name: type
+      in: query
+      schema:
+        $ref: "#/components/schemas/CategoryType"
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DateFromQuery:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateToQuery:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTimeFromQuery:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date-time
+    DateTimeToQuery:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date-time
+    GoalId:
+      name: goalId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InstitutionId:
+      name: institutionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LiabilityId:
+      name: liabilityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LiabilityPaymentId:
+      name: liabilityPaymentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MerchantId:
+      name: merchantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ParentIdQuery:
+      name: parentId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    PageQuery:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeQuery:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 250
+        default: 50
+    RecurringTransactionId:
+      name: recurringTransactionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SearchQuery:
+      name: q
+      in: query
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TransferId:
+      name: transferId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ActiveQuery:
+      name: isActive
+      in: query
+      schema:
+        type: boolean
+
+  responses:
+    Unauthorized:
+      description: Authentication failed or token is missing
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with current resource state or uniqueness constraints
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+
+  schemas:
+    AiAudioFormat:
+      type: string
+      enum: [wav, mp3, opus, webm, m4a, flac, pcm16]
+    AiAudioPayload:
+      type: object
+      required: [contentType]
+      properties:
+        contentType:
+          type: string
+          examples: [audio/mpeg, audio/wav, audio/webm]
+        format:
+          oneOf:
+            - $ref: "#/components/schemas/AiAudioFormat"
+            - type: "null"
+        base64:
+          type: [string, "null"]
+          contentEncoding: base64
+          description: Inline audio bytes. Present when the client requested inline audio.
+        url:
+          type: [string, "null"]
+          format: uri
+          description: Temporary URL for downloading generated audio.
+        durationMs:
+          type: [integer, "null"]
+          minimum: 0
+    AiChatConversation:
+      type: object
+      required: [id, userId, title, createdAt, updatedAt, messages]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiChatMessage"
+    AiChatConversationCreate:
+      type: object
+      properties:
+        title:
+          type: [string, "null"]
+          maxLength: 200
+    AiChatConversationPage:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiChatConversationSummary"
+        meta:
+          $ref: "#/components/schemas/PageMeta"
+    AiChatConversationSummary:
+      type: object
+      required: [id, title, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: [string, "null"]
+        lastMessagePreview:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AiChatMessage:
+      type: object
+      required: [id, role, createdAt, content]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant, system, tool]
+        createdAt:
+          type: string
+          format: date-time
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiChatMessagePart"
+        metadata:
+          type: object
+          additionalProperties: true
+    AiChatMessagePart:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [text, audio]
+        text:
+          type: [string, "null"]
+        audio:
+          oneOf:
+            - $ref: "#/components/schemas/AiAudioPayload"
+            - type: "null"
+    AiChatRequest:
+      type: object
+      required: [input]
+      properties:
+        conversationId:
+          type: [string, "null"]
+          format: uuid
+          description: Existing conversation to continue. Omit to start a new conversation.
+        title:
+          type: [string, "null"]
+          maxLength: 200
+          description: Optional title when starting a new conversation.
+        input:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AiChatUserInputPart"
+        responseModalities:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          default: [text]
+          items:
+            $ref: "#/components/schemas/AiResponseModality"
+        audioResponse:
+          $ref: "#/components/schemas/AiAudioResponseOptions"
+        context:
+          $ref: "#/components/schemas/AiFinancialContextOptions"
+    AiChatResponse:
+      type: object
+      required: [conversationId, userMessageId, assistantMessageId, output]
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        userMessageId:
+          type: string
+          format: uuid
+        assistantMessageId:
+          type: string
+          format: uuid
+        output:
+          type: object
+          required: [text]
+          properties:
+            text:
+              type: [string, "null"]
+              description: Assistant answer text. Present when text output is requested or when audio is transcribed.
+            audio:
+              oneOf:
+                - $ref: "#/components/schemas/AiAudioPayload"
+                - type: "null"
+            transcript:
+              type: [string, "null"]
+              description: Transcript of the user's audio input when audio was provided.
+        toolResults:
+          type: array
+          description: Optional structured outputs from financial data lookups used by the assistant.
+          items:
+            $ref: "#/components/schemas/AiToolResult"
+        usage:
+          $ref: "#/components/schemas/AiUsage"
+    AiChatUserInputPart:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [text, audio]
+        text:
+          type: [string, "null"]
+          minLength: 1
+          description: Required when type is `text`.
+        audio:
+          oneOf:
+            - $ref: "#/components/schemas/AiAudioPayload"
+            - type: "null"
+          description: Required when type is `audio`; use base64 for this JSON endpoint.
+    AiAudioResponseOptions:
+      type: object
+      properties:
+        voice:
+          type: [string, "null"]
+          examples: [alloy, sage, ash, coral, echo]
+        format:
+          $ref: "#/components/schemas/AiAudioFormat"
+        delivery:
+          type: string
+          enum: [inline_base64, temporary_url]
+          default: temporary_url
+    AiFinancialContextOptions:
+      type: object
+      properties:
+        includeAccounts:
+          type: boolean
+          default: true
+        includeTransactions:
+          type: boolean
+          default: true
+        includeAssets:
+          type: boolean
+          default: true
+        includeLiabilities:
+          type: boolean
+          default: true
+        includeGoals:
+          type: boolean
+          default: true
+        dateFrom:
+          type: [string, "null"]
+          format: date
+        dateTo:
+          type: [string, "null"]
+          format: date
+    AiResponseModality:
+      type: string
+      enum: [text, audio]
+    AiToolResult:
+      type: object
+      required: [name, result]
+      properties:
+        name:
+          type: string
+          examples: [cash_flow_summary, net_worth_snapshot, upcoming_recurring_transactions]
+        result:
+          type: object
+          additionalProperties: true
+    AiUsage:
+      type: object
+      properties:
+        inputTokens:
+          type: [integer, "null"]
+          minimum: 0
+        outputTokens:
+          type: [integer, "null"]
+          minimum: 0
+        audioInputSeconds:
+          type: [number, "null"]
+          minimum: 0
+        audioOutputSeconds:
+          type: [number, "null"]
+          minimum: 0
+    AiVoiceChatMultipartRequest:
+      type: object
+      required: [audio]
+      properties:
+        conversationId:
+          type: [string, "null"]
+          format: uuid
+        title:
+          type: [string, "null"]
+          maxLength: 200
+        prompt:
+          type: [string, "null"]
+          description: Optional text instruction sent with the audio.
+        audio:
+          type: string
+          format: binary
+        audioFormat:
+          $ref: "#/components/schemas/AiAudioFormat"
+        responseModalities:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          default: [text]
+          items:
+            $ref: "#/components/schemas/AiResponseModality"
+        audioResponseVoice:
+          type: [string, "null"]
+        audioResponseFormat:
+          $ref: "#/components/schemas/AiAudioFormat"
+        audioResponseDelivery:
+          type: string
+          enum: [inline_base64, temporary_url]
+          default: temporary_url
+
+    Account:
+      allOf:
+        - $ref: "#/components/schemas/AccountCreate"
+        - type: object
+          required: [id, userId, balance, isActive, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            balance:
+              $ref: "#/components/schemas/MoneyAmount"
+            isActive:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AccountCreate:
+      type: object
+      required: [accountTypeId, name, currency]
+      properties:
+        accountTypeId:
+          type: string
+          format: uuid
+        institutionId:
+          type: [string, "null"]
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        institutionName:
+          type: [string, "null"]
+          maxLength: 200
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        openingBalance:
+          $ref: "#/components/schemas/MoneyAmount"
+    AccountUpdate:
+      type: object
+      properties:
+        accountTypeId:
+          type: string
+          format: uuid
+        institutionId:
+          type: [string, "null"]
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        institutionName:
+          type: [string, "null"]
+          maxLength: 200
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        balance:
+          $ref: "#/components/schemas/MoneyAmount"
+        isActive:
+          type: boolean
+    AccountList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Account"
+
+    AccountType:
+      allOf:
+        - $ref: "#/components/schemas/ReferenceCode"
+    AccountTypeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountType"
+
+    Asset:
+      allOf:
+        - $ref: "#/components/schemas/AssetCreate"
+        - type: object
+          required: [id, userId, estimatedValue, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            estimatedValue:
+              $ref: "#/components/schemas/MoneyAmount"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AssetCreate:
+      type: object
+      required: [assetTypeId, name, estimatedValue, currency]
+      properties:
+        assetTypeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        estimatedValue:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        purchasePrice:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        purchaseDate:
+          type: [string, "null"]
+          format: date
+        monthlyCost:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+    AssetUpdate:
+      type: object
+      properties:
+        assetTypeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        estimatedValue:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        purchasePrice:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        purchaseDate:
+          type: [string, "null"]
+          format: date
+        monthlyCost:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+    AssetList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+    AssetType:
+      allOf:
+        - $ref: "#/components/schemas/ReferenceCode"
+    AssetTypeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetType"
+
+    AuthSession:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          const: Bearer
+        expiresIn:
+          type: integer
+          minimum: 1
+        user:
+          $ref: "#/components/schemas/User"
+
+    CashFlowPoint:
+      type: object
+      required: [periodStart, income, expenses, net]
+      properties:
+        periodStart:
+          type: string
+          format: date
+        income:
+          $ref: "#/components/schemas/MoneyAmount"
+        expenses:
+          $ref: "#/components/schemas/MoneyAmount"
+        net:
+          $ref: "#/components/schemas/MoneyAmount"
+    CashFlowSeries:
+      type: object
+      required: [currency, items]
+      properties:
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashFlowPoint"
+
+    Category:
+      type: object
+      required: [id, type, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        parentId:
+          type: [string, "null"]
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+    CategoryCreate:
+      type: object
+      required: [type, name]
+      properties:
+        parentId:
+          type: [string, "null"]
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: [string, "null"]
+    CategoryUpdate:
+      type: object
+      properties:
+        parentId:
+          type: [string, "null"]
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CategoryType"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: [string, "null"]
+    CategoryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+    CategoryType:
+      type: string
+      enum: [income, expense]
+
+    CurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: "^[A-Z]{3}$"
+      examples: [USD, EUR, RUB]
+
+    DailyFinancialSnapshot:
+      type: object
+      required: [id, userId, snapshotDate, totalCash, totalAssets, totalLiabilities, netWorth, monthlyIncome, monthlyExpenses]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        snapshotDate:
+          type: string
+          format: date
+        totalCash:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalAssets:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalLiabilities:
+          $ref: "#/components/schemas/MoneyAmount"
+        netWorth:
+          $ref: "#/components/schemas/MoneyAmount"
+        monthlyIncome:
+          $ref: "#/components/schemas/MoneyAmount"
+        monthlyExpenses:
+          $ref: "#/components/schemas/MoneyAmount"
+        savingsRate:
+          type: [number, "null"]
+    DailyFinancialSnapshotList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyFinancialSnapshot"
+
+    DashboardSummary:
+      type: object
+      required: [currency, totalCash, totalAssets, totalLiabilities, netWorth, monthlyIncome, monthlyExpenses, savingsRate]
+      properties:
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        totalCash:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalAssets:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalLiabilities:
+          $ref: "#/components/schemas/MoneyAmount"
+        netWorth:
+          $ref: "#/components/schemas/MoneyAmount"
+        monthlyIncome:
+          $ref: "#/components/schemas/MoneyAmount"
+        monthlyExpenses:
+          $ref: "#/components/schemas/MoneyAmount"
+        savingsRate:
+          type: [number, "null"]
+        upcomingRecurringTransactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecurringTransaction"
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+    ValidationError:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+
+    FinancialGoal:
+      allOf:
+        - $ref: "#/components/schemas/FinancialGoalCreate"
+        - type: object
+          required: [id, userId, currentAmount, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            currentAmount:
+              $ref: "#/components/schemas/MoneyAmount"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    FinancialGoalCreate:
+      type: object
+      required: [name, targetAmount]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        targetAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currentAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        deadline:
+          type: [string, "null"]
+          format: date
+        priority:
+          type: [integer, "null"]
+    FinancialGoalUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        targetAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currentAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        deadline:
+          type: [string, "null"]
+          format: date
+        priority:
+          type: [integer, "null"]
+    FinancialGoalList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialGoal"
+
+    FinancialInstitution:
+      allOf:
+        - $ref: "#/components/schemas/FinancialInstitutionCreate"
+        - type: object
+          required: [id, riskLevel, isActive, providerTypeIds]
+          properties:
+            id:
+              type: string
+              format: uuid
+            riskLevel:
+              $ref: "#/components/schemas/RiskLevel"
+            isActive:
+              type: boolean
+            providerTypeIds:
+              type: array
+              items:
+                type: string
+                format: uuid
+    FinancialInstitutionCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        country:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 2
+        websiteUrl:
+          type: [string, "null"]
+          format: uri
+        logoUrl:
+          type: [string, "null"]
+          format: uri
+        integrationKey:
+          type: [string, "null"]
+        providerTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+    FinancialInstitutionUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        country:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 2
+        websiteUrl:
+          type: [string, "null"]
+          format: uri
+        logoUrl:
+          type: [string, "null"]
+          format: uri
+        integrationKey:
+          type: [string, "null"]
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+        isActive:
+          type: boolean
+        providerTypeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+    FinancialInstitutionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialInstitution"
+
+    InterestType:
+      type: string
+      enum: [fixed, variable, promotional, none]
+
+    JobAccepted:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued]
+
+    Liability:
+      allOf:
+        - $ref: "#/components/schemas/LiabilityCreate"
+        - type: object
+          required: [id, userId, currentBalance, status, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            currentBalance:
+              $ref: "#/components/schemas/MoneyAmount"
+            status:
+              $ref: "#/components/schemas/LiabilityStatus"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    LiabilityCreate:
+      type: object
+      required: [liabilityTypeId, name, currentBalance, currency]
+      properties:
+        liabilityTypeId:
+          type: string
+          format: uuid
+        linkedAccountId:
+          type: [string, "null"]
+          format: uuid
+        collateralAssetId:
+          type: [string, "null"]
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        creditorInstitutionId:
+          type: [string, "null"]
+          format: uuid
+        creditorName:
+          type: [string, "null"]
+        originalAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currentBalance:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        interestRate:
+          type: [number, "null"]
+        interestType:
+          oneOf:
+            - $ref: "#/components/schemas/InterestType"
+            - type: "null"
+        minimumPaymentAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        regularPaymentAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        paymentDueDay:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 31
+        startDate:
+          type: [string, "null"]
+          format: date
+        maturityDate:
+          type: [string, "null"]
+          format: date
+    LiabilityUpdate:
+      type: object
+      properties:
+        liabilityTypeId:
+          type: string
+          format: uuid
+        linkedAccountId:
+          type: [string, "null"]
+          format: uuid
+        collateralAssetId:
+          type: [string, "null"]
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        creditorInstitutionId:
+          type: [string, "null"]
+          format: uuid
+        creditorName:
+          type: [string, "null"]
+        originalAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currentBalance:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        interestRate:
+          type: [number, "null"]
+        interestType:
+          oneOf:
+            - $ref: "#/components/schemas/InterestType"
+            - type: "null"
+        minimumPaymentAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        regularPaymentAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        paymentDueDay:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 31
+        startDate:
+          type: [string, "null"]
+          format: date
+        maturityDate:
+          type: [string, "null"]
+          format: date
+        status:
+          $ref: "#/components/schemas/LiabilityStatus"
+    LiabilityList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Liability"
+    LiabilityStatus:
+      type: string
+      enum: [active, paid_off, defaulted, refinanced, closed]
+    LiabilityType:
+      allOf:
+        - $ref: "#/components/schemas/ReferenceCode"
+        - type: object
+          required: [isSecured]
+          properties:
+            isSecured:
+              type: boolean
+    LiabilityTypeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiabilityType"
+
+    LiabilityPayment:
+      allOf:
+        - $ref: "#/components/schemas/LiabilityPaymentCreate"
+        - type: object
+          required: [id, userId, transactionId, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            transactionId:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+    LiabilityPaymentCreate:
+      type: object
+      required: [liabilityId, accountId, paymentDate, totalAmount, currency]
+      properties:
+        liabilityId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+          description: Account used for the underlying expense transaction when transactionId is omitted.
+        transactionId:
+          type: [string, "null"]
+          format: uuid
+          description: Existing transaction to attach to this liability payment.
+        recurringTransactionId:
+          type: [string, "null"]
+          format: uuid
+        paymentDate:
+          type: string
+          format: date
+        totalAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        principalAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        interestAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        feeAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        balanceAfterPayment:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+    LiabilityPaymentUpdate:
+      type: object
+      properties:
+        recurringTransactionId:
+          type: [string, "null"]
+          format: uuid
+        paymentDate:
+          type: string
+          format: date
+        totalAmount:
+          $ref: "#/components/schemas/MoneyAmount"
+        principalAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        interestAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        feeAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        balanceAfterPayment:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+    LiabilityPaymentList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiabilityPayment"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    Merchant:
+      type: object
+      required: [id, name, riskLevel]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        category:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+    MerchantCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 2
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+    MerchantUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 2
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+    MerchantList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Merchant"
+
+    MoneyAmount:
+      type: string
+      pattern: "^-?\\d+(\\.\\d{1,8})?$"
+      description: Decimal amount encoded as a string to avoid floating point loss.
+      examples: ["1250.00"]
+    MoneyAmountNullable:
+      type: [string, "null"]
+      pattern: "^-?\\d+(\\.\\d{1,8})?$"
+
+    NetWorthPoint:
+      type: object
+      required: [date, totalCash, totalAssets, totalLiabilities, netWorth]
+      properties:
+        date:
+          type: string
+          format: date
+        totalCash:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalAssets:
+          $ref: "#/components/schemas/MoneyAmount"
+        totalLiabilities:
+          $ref: "#/components/schemas/MoneyAmount"
+        netWorth:
+          $ref: "#/components/schemas/MoneyAmount"
+    NetWorthSeries:
+      type: object
+      required: [currency, items]
+      properties:
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/NetWorthPoint"
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    ProviderType:
+      allOf:
+        - $ref: "#/components/schemas/ReferenceCode"
+    ProviderTypeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderType"
+
+    RecurringFrequency:
+      type: string
+      enum: [daily, weekly, monthly, yearly]
+    RecurringOperationType:
+      type: string
+      enum: [income, expense, transfer, liability_payment]
+    RecurringTransaction:
+      allOf:
+        - $ref: "#/components/schemas/RecurringTransactionCreate"
+        - type: object
+          required: [id, userId, autoGenerated, isActive]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            autoGenerated:
+              type: boolean
+            confidenceScore:
+              type: [number, "null"]
+            isActive:
+              type: boolean
+    RecurringTransactionCreate:
+      type: object
+      required: [accountId, operationType, name, frequency]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+        liabilityId:
+          type: [string, "null"]
+          format: uuid
+        operationType:
+          $ref: "#/components/schemas/RecurringOperationType"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expectedAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currency:
+          oneOf:
+            - $ref: "#/components/schemas/CurrencyCode"
+            - type: "null"
+        frequency:
+          $ref: "#/components/schemas/RecurringFrequency"
+        intervalCount:
+          type: integer
+          minimum: 1
+          default: 1
+        dayOfMonth:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 31
+        startDate:
+          type: [string, "null"]
+          format: date
+        endDate:
+          type: [string, "null"]
+          format: date
+        nextPaymentDate:
+          type: [string, "null"]
+          format: date
+    RecurringTransactionUpdate:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+        liabilityId:
+          type: [string, "null"]
+          format: uuid
+        operationType:
+          $ref: "#/components/schemas/RecurringOperationType"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expectedAmount:
+          $ref: "#/components/schemas/MoneyAmountNullable"
+        currency:
+          oneOf:
+            - $ref: "#/components/schemas/CurrencyCode"
+            - type: "null"
+        frequency:
+          $ref: "#/components/schemas/RecurringFrequency"
+        intervalCount:
+          type: integer
+          minimum: 1
+        dayOfMonth:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 31
+        startDate:
+          type: [string, "null"]
+          format: date
+        endDate:
+          type: [string, "null"]
+          format: date
+        nextPaymentDate:
+          type: [string, "null"]
+          format: date
+        isActive:
+          type: boolean
+    RecurringTransactionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecurringTransaction"
+
+    ReferenceCode:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+
+    RegisterRequest:
+      type: object
+      required: [email, password, baseCurrency, timezone]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        phone:
+          type: [string, "null"]
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+        baseCurrency:
+          $ref: "#/components/schemas/CurrencyCode"
+        timezone:
+          type: string
+          examples: [Europe/Moscow]
+
+    RiskLevel:
+      type: string
+      enum: [low, medium, high, unknown]
+
+    Tag:
+      type: object
+      required: [id, userId, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+    TagCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+    TagUpdate:
+      allOf:
+        - $ref: "#/components/schemas/TagCreate"
+    TagList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+
+    Transaction:
+      allOf:
+        - $ref: "#/components/schemas/TransactionCreate"
+        - type: object
+          required: [id, userId, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            transferId:
+              type: [string, "null"]
+              format: uuid
+              description: Present when this ledger row belongs to a transfer.
+            transferLeg:
+              type: [string, "null"]
+              enum: [debit, credit, null]
+            createdAt:
+              type: string
+              format: date-time
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/Tag"
+    TransactionCreate:
+      type: object
+      required: [accountId, type, amount, currency, transactionDatetime]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        amount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        transactionDatetime:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        merchantId:
+          type: [string, "null"]
+          format: uuid
+        merchantName:
+          type: [string, "null"]
+        geoLocation:
+          type: [string, "null"]
+        recurringTransactionId:
+          type: [string, "null"]
+          format: uuid
+        externalId:
+          type: [string, "null"]
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+    TransactionImportItem:
+      allOf:
+        - $ref: "#/components/schemas/TransactionCreate"
+      required: [accountId, type, amount, currency, transactionDatetime, externalId]
+    TransactionImportRequest:
+      type: object
+      required: [items]
+      properties:
+        source:
+          type: [string, "null"]
+          description: Optional import source label, such as a bank integration key.
+        items:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/TransactionImportItem"
+    TransactionImportResult:
+      type: object
+      required: [createdCount, skippedDuplicateCount, failedCount, items]
+      properties:
+        createdCount:
+          type: integer
+        skippedDuplicateCount:
+          type: integer
+        failedCount:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [created, duplicate, failed]
+              transactionId:
+                type: [string, "null"]
+                format: uuid
+              externalId:
+                type: [string, "null"]
+              error:
+                type: [string, "null"]
+    TransactionPage:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        meta:
+          $ref: "#/components/schemas/PageMeta"
+    TransactionType:
+      type: string
+      enum: [income, expense, transfer]
+    TransactionUpdate:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        amount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        transactionDatetime:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        merchantId:
+          type: [string, "null"]
+          format: uuid
+        merchantName:
+          type: [string, "null"]
+        geoLocation:
+          type: [string, "null"]
+        recurringTransactionId:
+          type: [string, "null"]
+          format: uuid
+        externalId:
+          type: [string, "null"]
+
+    Transfer:
+      allOf:
+        - $ref: "#/components/schemas/TransferCreate"
+        - type: object
+          required: [id, userId, fromTransactionId, toTransactionId]
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            fromTransactionId:
+              type: string
+              format: uuid
+              description: Underlying source-account ledger transaction.
+            toTransactionId:
+              type: string
+              format: uuid
+              description: Underlying destination-account ledger transaction.
+            fromTransaction:
+              $ref: "#/components/schemas/Transaction"
+            toTransaction:
+              $ref: "#/components/schemas/Transaction"
+    TransferCreate:
+      type: object
+      required: [fromAccountId, toAccountId, amount, currency, transactionDatetime]
+      properties:
+        fromAccountId:
+          type: string
+          format: uuid
+        toAccountId:
+          type: string
+          format: uuid
+        amount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        transactionDatetime:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+          description: Optional category applied to both underlying transfer transactions.
+        externalId:
+          type: [string, "null"]
+          description: Optional idempotency key for imported transfer creation.
+    TransferUpdate:
+      type: object
+      properties:
+        fromAccountId:
+          type: string
+          format: uuid
+        toAccountId:
+          type: string
+          format: uuid
+        amount:
+          $ref: "#/components/schemas/MoneyAmount"
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        transactionDatetime:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+    TransferPage:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+        meta:
+          $ref: "#/components/schemas/PageMeta"
+
+    User:
+      type: object
+      required: [id, email, baseCurrency, timezone, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        phone:
+          type: [string, "null"]
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+        baseCurrency:
+          $ref: "#/components/schemas/CurrencyCode"
+        timezone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UserUpdate:
+      type: object
+      properties:
+        phone:
+          type: [string, "null"]
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        country:
+          type: [string, "null"]
+        baseCurrency:
+          $ref: "#/components/schemas/CurrencyCode"
+        timezone:
+          type: string
