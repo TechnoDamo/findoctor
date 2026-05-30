@@ -2,7 +2,13 @@ SHELL := /bin/bash
 UV ?= $(shell command -v uv 2>/dev/null || echo /Users/damir/.langflow/uv/uv)
 
 ROOT_DIR := ..
-ENV_FILE := $(ROOT_DIR)/.env
+ROOT_ENV_FILE := $(ROOT_DIR)/.env
+ENV_FILE := .env
+
+ifneq (,$(wildcard $(ROOT_ENV_FILE)))
+include $(ROOT_ENV_FILE)
+export
+endif
 
 ifneq (,$(wildcard $(ENV_FILE)))
 include $(ENV_FILE)
