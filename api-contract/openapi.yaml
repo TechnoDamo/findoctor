@@ -1950,6 +1950,9 @@ components:
         assistantMessageId:
           type: string
           format: uuid
+        requestText:
+          type: [string, "null"]
+          description: STT-decoded text of the user's audio input. Present when audio was sent in the request. The frontend should use this text as the user message content instead of a placeholder like "голосовое сообщение".
         output:
           type: object
           required: [text]
@@ -1961,9 +1964,6 @@ components:
               oneOf:
                 - $ref: "#/components/schemas/AiAudioPayload"
                 - type: "null"
-            transcript:
-              type: [string, "null"]
-              description: Transcript of the user's audio input when audio was provided.
         toolResults:
           type: array
           description: Optional structured outputs from financial data lookups used by the assistant.

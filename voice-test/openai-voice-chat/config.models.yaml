@@ -1,0 +1,51 @@
+providers:
+  openai_compatible:
+    base_url_env: OPENAI_COMPAT_BASE_URL
+    api_key_env: OPENAI_COMPAT_API_KEY
+
+defaults:
+  llm: google/gemini-2.5-flash
+  stt: google/gemini-2.5-flash
+  tts: openai/gpt-audio-mini
+  voice: echo
+  audio_format: wav
+
+llm_models:
+  - id: google/gemini-2.5-flash
+    name: Gemini 2.5 Flash
+  - id: google/gemini-2.5-flash-lite
+    name: Gemini 2.5 Flash Lite
+  - id: openai/gpt-audio-mini
+    name: OpenAI GPT Audio Mini
+  - id: openai/gpt-audio
+    name: OpenAI GPT Audio
+
+stt_models:
+  - id: google/gemini-2.5-flash
+    name: Gemini 2.5 Flash
+  - id: openai/gpt-audio-mini
+    name: OpenAI GPT Audio Mini
+  - id: openai/gpt-audio
+    name: OpenAI GPT Audio
+  - id: mistralai/voxtral-small-24b-2507
+    name: Mistral Voxtral Small
+
+tts_models:
+  - id: openai/gpt-audio-mini
+    name: OpenAI GPT Audio Mini
+  - id: openai/gpt-audio
+    name: OpenAI GPT Audio
+
+voices:
+  - alloy
+  - ash
+  - ballad
+  - coral
+  - echo
+  - fable
+  - onyx
+  - nova
+  - sage
+  - shimmer
+  - verse
+

@@ -1,0 +1,4 @@
+Transcribe the user's audio exactly.
+Preserve the original language.
+Do not translate.
+Return only the transcript text.

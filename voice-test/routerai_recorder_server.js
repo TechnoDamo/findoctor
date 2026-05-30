@@ -6,6 +6,7 @@ const port = Number(process.env.PORT || 8787);
 const root = process.cwd();
 const baseUrl = process.env.ROUTERAI_BASE_URL || "https://routerai.ru/api/v1";
 const apiKey = process.env.ROUTERAI_API_KEY || "";
+const sileroBaseUrl = process.env.SILERO_BASE_URL || "http://localhost:8790";
 
 const indexPath = path.join(root, "routerai_recorder.html");
 const modelsPath = path.join(root, "routerai_models.json");
@@ -265,6 +266,40 @@ async function callRouterAi(payload, stream = false) {
   return response.json();
 }
 
+async function callSileroJson(pathname, payload) {
+  const response = await fetch(`${sileroBaseUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Silero API ${response.status}: ${detail}`);
+  }
+
+  return response.json();
+}
+
+async function callSileroAudio(pathname, payload) {
+  const response = await fetch(`${sileroBaseUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Silero API ${response.status}: ${detail}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
 function applyTokenLimit(payload, maxTokens) {
   const parsed = Number(maxTokens);
   if (Number.isFinite(parsed) && parsed > 0) {
@@ -281,7 +316,14 @@ function languageInstruction(language) {
   return `Use ${value} as the target language.`;
 }
 
-async function runTts({ model, voice, text, systemPrompt, language, maxTokens }) {
+async function runTts(input) {
+  if (input.provider === "silero") {
+    return runSileroTts(input);
+  }
+  return runOpenAiCompatibleTts(input);
+}
+
+async function runOpenAiCompatibleTts({ model, voice, text, systemPrompt, language, maxTokens }) {
   const languageHint = languageInstruction(language);
   const defaultSystemPrompt = [
     "You are a text-to-speech voiceover engine. Speak exactly the user's text verbatim.",
@@ -347,8 +389,10 @@ async function runTts({ model, voice, text, systemPrompt, language, maxTokens })
 
   return {
     model,
+    provider: "openai-compatible",
     voice,
     text: textParts.join(""),
+    requestBody: payload,
     audioBytes: pcm.length,
     files: {
       sse: sseFile,
@@ -360,7 +404,42 @@ async function runTts({ model, voice, text, systemPrompt, language, maxTokens })
   };
 }
 
-async function runStt({ model, audioFile, prompt, language, maxTokens }) {
+async function runSileroTts({ model, voice, text, sampleRate, ssml }) {
+  const payload = {
+    model,
+    speaker: voice,
+    text,
+    sample_rate: Number(sampleRate) || 48000,
+    ssml: Boolean(ssml),
+  };
+  const wav = await callSileroAudio("/tts", payload);
+  const baseName = `${timestamp()}_silero_${slug(model)}_${safeName(voice || "speaker", "speaker")}`;
+  const wavFile = `${baseName}.wav`;
+  fs.writeFileSync(path.join(responseAudioDir, wavFile), wav);
+
+  return {
+    model,
+    provider: "silero",
+    voice,
+    text,
+    requestBody: payload,
+    audioBytes: wav.length,
+    files: {
+      wav: wavFile,
+      wavRef: `response:${wavFile}`,
+      wavUrl: `/response-audio/${encodeURIComponent(wavFile)}`,
+    },
+  };
+}
+
+async function runStt(input) {
+  if (input.provider === "silero") {
+    return runSileroStt(input);
+  }
+  return runOpenAiCompatibleStt(input);
+}
+
+async function runOpenAiCompatibleStt({ model, audioFile, prompt, language, maxTokens }) {
   const { source, name, fullPath } = resolveAudioRef(audioFile);
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Audio file not found: ${audioFile}`);
@@ -401,9 +480,64 @@ async function runStt({ model, audioFile, prompt, language, maxTokens }) {
 
   return {
     model,
+    provider: "openai-compatible",
     audioFile: name,
     audioSource: source,
     transcript: extractText(responseJson),
+    requestBody: {
+      ...payload,
+      messages: payload.messages.map((message) => ({
+        ...message,
+        content: message.content.map((part) =>
+          part.type === "input_audio"
+            ? {
+                ...part,
+                input_audio: {
+                  ...part.input_audio,
+                  data: `[base64 audio omitted: ${part.input_audio.data.length} chars]`,
+                },
+              }
+            : part
+        ),
+      })),
+    },
+    response: responseJson,
+    files: {
+      json: jsonFile,
+    },
+  };
+}
+
+async function runSileroStt({ model, audioFile, language, version, format }) {
+  const { source, name, fullPath } = resolveAudioRef(audioFile);
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Audio file not found: ${audioFile}`);
+  }
+
+  const payload = {
+    model,
+    language,
+    version,
+    format,
+    audio: fs.readFileSync(fullPath).toString("base64"),
+    audio_format: audioFormat(name),
+  };
+  const responseJson = await callSileroJson("/stt", payload);
+  const transcript = responseJson.transcript || responseJson.text || "";
+  const baseName = `${timestamp()}_silero_${slug(model)}_${safeName(name, "audio")}`;
+  const jsonFile = `${baseName}.json`;
+  fs.writeFileSync(path.join(outputsDir, jsonFile), JSON.stringify(responseJson, null, 2));
+
+  return {
+    model,
+    provider: "silero",
+    audioFile: name,
+    audioSource: source,
+    transcript,
+    requestBody: {
+      ...payload,
+      audio: `[base64 audio omitted: ${payload.audio.length} chars]`,
+    },
     response: responseJson,
     files: {
       json: jsonFile,
@@ -458,6 +592,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, {
         server: `http://localhost:${port}`,
         hasApiKey: Boolean(apiKey),
+        sileroBaseUrl,
         modelFile: "routerai_models.json",
         requestAudioDir: "request_audio",
         responseAudioDir: "response_audio",

@@ -1,0 +1,468 @@
+// Financial analysis platform database schema
+// Source document: db/descriptions.md
+
+Project findoctor {
+  database_type: 'PostgreSQL'
+  Note: 'Schema for accounts, transactions, recurring payments, assets, liabilities, goals, tags, and daily financial analytics.'
+}
+
+Enum category_type {
+  income
+  expense
+}
+
+Enum transaction_type {
+  income
+  expense
+  transfer
+}
+
+Enum transfer_leg {
+  debit
+  credit
+}
+
+Enum recurring_operation_type {
+  income
+  expense
+  transfer
+  liability_payment
+}
+
+Enum recurring_frequency {
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+Enum risk_level {
+  low
+  medium
+  high
+  unknown
+}
+
+Enum interest_type {
+  fixed
+  variable
+  promotional
+  none
+}
+
+Enum liability_status {
+  active
+  paid_off
+  defaulted
+  refinanced
+  closed
+}
+
+Table users {
+  id uuid [pk]
+  email varchar [not null, unique]
+  phone varchar
+  password_hash varchar [not null]
+  first_name varchar
+  last_name varchar
+  country varchar
+  base_currency varchar [not null]
+  timezone varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Platform users. Root owner for user financial data.'
+}
+
+Table account_types {
+  id uuid [pk]
+  code varchar [not null, unique]
+  name varchar [not null]
+  description text
+
+  Note: 'Reference table for account kinds: debit card, credit card, cash, crypto wallet, brokerage account, and similar.'
+}
+
+Table provider_types {
+  id uuid [pk]
+  code varchar [not null, unique]
+  name varchar [not null]
+  description text
+
+  Note: 'Reference table for provider roles. One institution may have several roles.'
+}
+
+Table financial_institutions {
+  id uuid [pk]
+  name varchar [not null]
+  country varchar
+  website_url varchar
+  logo_url varchar
+  integration_key varchar
+  risk_level risk_level [not null, default: 'unknown']
+  is_active boolean [not null, default: true]
+
+  indexes {
+    (name, country) [unique]
+    integration_key
+  }
+
+  Note: 'Banks, brokers, card issuers, crypto exchanges, wallet providers, payment providers, and lenders.'
+}
+
+Table financial_institution_provider_types {
+  financial_institution_id uuid [not null]
+  provider_type_id uuid [not null]
+
+  indexes {
+    (financial_institution_id, provider_type_id) [pk]
+  }
+
+  Note: 'Many-to-many link between institutions and their provider roles.'
+}
+
+Table liability_types {
+  id uuid [pk]
+  code varchar [not null, unique]
+  name varchar [not null]
+  description text
+  is_secured boolean [not null, default: false]
+
+  Note: 'Reference table for debt and obligation types.'
+}
+
+Table asset_types {
+  id uuid [pk]
+  code varchar [not null, unique]
+  name varchar [not null]
+  description text
+
+  Note: 'Reference table for asset types used in net worth analytics.'
+}
+
+Table accounts {
+  id uuid [pk]
+  user_id uuid [not null]
+  account_type_id uuid [not null]
+  institution_id uuid
+  name varchar [not null]
+  institution_name varchar
+  currency varchar [not null]
+  balance decimal [not null, default: 0]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+    account_type_id
+    institution_id
+  }
+
+  Note: 'Financial accounts: bank accounts, cards, cash, brokerage accounts, crypto wallets, and similar.'
+}
+
+Table categories {
+  id uuid [pk]
+  parent_id uuid
+  type category_type [not null]
+  name varchar [not null]
+  description text
+
+  indexes {
+    parent_id
+    (type, name)
+  }
+
+  Note: 'Unified hierarchical category tree for income and expense transactions.'
+}
+
+Table merchants {
+  id uuid [pk]
+  name varchar [not null]
+  category varchar
+  country varchar
+  risk_level risk_level [not null, default: 'unknown']
+
+  indexes {
+    (name, country)
+  }
+
+  Note: 'Normalized merchants and service providers for transaction analytics and auto-categorization.'
+}
+
+Table transactions {
+  id uuid [pk]
+  user_id uuid [not null]
+  account_id uuid [not null]
+  category_id uuid
+  type transaction_type [not null]
+  amount decimal [not null]
+  currency varchar [not null]
+  transaction_datetime timestamp [not null]
+  description text
+  merchant_id uuid
+  merchant_name varchar
+  geo_location varchar
+  recurring_transaction_id uuid
+  transfer_id uuid
+  transfer_leg transfer_leg
+  external_id varchar
+  created_at timestamp [not null]
+
+  indexes {
+    user_id
+    account_id
+    category_id
+    merchant_id
+    recurring_transaction_id
+    transfer_id
+    transaction_datetime
+    (account_id, external_id) [unique]
+    (transfer_id, transfer_leg) [unique]
+  }
+
+  Note: 'Main cash-flow ledger. Real income, expense, and transfer events belong here. Transfer rows are linked to the owning transfer business object through transfer_id and marked as debit or credit through transfer_leg.'
+}
+
+Table recurring_transactions {
+  id uuid [pk]
+  user_id uuid [not null]
+  account_id uuid [not null]
+  category_id uuid
+  liability_id uuid
+  operation_type recurring_operation_type [not null]
+  name varchar [not null]
+  expected_amount decimal
+  currency varchar
+  frequency recurring_frequency [not null]
+  interval_count integer [not null, default: 1]
+  day_of_month integer
+  start_date date
+  end_date date
+  next_payment_date date
+  auto_generated boolean [not null, default: false]
+  confidence_score decimal
+  is_active boolean [not null, default: true]
+
+  indexes {
+    user_id
+    account_id
+    category_id
+    liability_id
+    next_payment_date
+  }
+
+  Note: 'Recurring patterns, not actual transactions. Liability payment schedules point to liabilities.'
+}
+
+Table transfers {
+  id uuid [pk]
+  user_id uuid [not null]
+  from_account_id uuid [not null]
+  to_account_id uuid [not null]
+  amount decimal [not null]
+  currency varchar [not null]
+  transaction_datetime timestamp [not null]
+  description text
+
+  indexes {
+    user_id
+    from_account_id
+    to_account_id
+    transaction_datetime
+  }
+
+  Note: 'Business entity for moving money between user-owned accounts.'
+}
+
+Table assets {
+  id uuid [pk]
+  user_id uuid [not null]
+  asset_type_id uuid [not null]
+  name varchar [not null]
+  estimated_value decimal [not null, default: 0]
+  currency varchar [not null]
+  purchase_price decimal
+  purchase_date date
+  monthly_cost decimal
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+    asset_type_id
+  }
+
+  Note: 'User-owned assets and property for net worth calculation.'
+}
+
+Table liabilities {
+  id uuid [pk]
+  user_id uuid [not null]
+  liability_type_id uuid [not null]
+  linked_account_id uuid
+  collateral_asset_id uuid
+  name varchar [not null]
+  creditor_institution_id uuid
+  creditor_name varchar
+  original_amount decimal
+  current_balance decimal [not null, default: 0]
+  currency varchar [not null]
+  interest_rate decimal
+  interest_type interest_type
+  minimum_payment_amount decimal
+  regular_payment_amount decimal
+  payment_due_day integer
+  start_date date
+  maturity_date date
+  status liability_status [not null, default: 'active']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+    liability_type_id
+    linked_account_id
+    collateral_asset_id
+    creditor_institution_id
+    status
+  }
+
+  Note: 'Debt objects and their current state. Payments and schedules are modeled separately.'
+}
+
+Table liability_payments {
+  id uuid [pk]
+  user_id uuid [not null]
+  liability_id uuid [not null]
+  transaction_id uuid [not null]
+  recurring_transaction_id uuid
+  payment_date date [not null]
+  total_amount decimal [not null]
+  principal_amount decimal
+  interest_amount decimal
+  fee_amount decimal
+  currency varchar [not null]
+  balance_after_payment decimal
+  created_at timestamp [not null]
+
+  indexes {
+    user_id
+    liability_id
+    transaction_id [unique]
+    recurring_transaction_id
+    payment_date
+  }
+
+  Note: 'Actual liability payments with principal, interest, and fee split.'
+}
+
+Table financial_goals {
+  id uuid [pk]
+  user_id uuid [not null]
+  name varchar [not null]
+  target_amount decimal [not null]
+  current_amount decimal [not null, default: 0]
+  deadline date
+  priority integer
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+    deadline
+    priority
+  }
+
+  Note: 'User financial goals such as saving, debt payoff, purchase planning, and emergency funds.'
+}
+
+Table tags {
+  id uuid [pk]
+  user_id uuid [not null]
+  name varchar [not null]
+
+  indexes {
+    (user_id, name) [unique]
+  }
+
+  Note: 'User-defined transaction tags.'
+}
+
+Table transaction_tags {
+  transaction_id uuid [not null]
+  tag_id uuid [not null]
+
+  indexes {
+    (transaction_id, tag_id) [pk]
+  }
+
+  Note: 'Many-to-many link between transactions and user-defined tags.'
+}
+
+Table daily_financial_snapshots {
+  id uuid [pk]
+  user_id uuid [not null]
+  snapshot_date date [not null]
+  total_cash decimal [not null, default: 0]
+  total_assets decimal [not null, default: 0]
+  total_liabilities decimal [not null, default: 0]
+  net_worth decimal [not null, default: 0]
+  monthly_income decimal [not null, default: 0]
+  monthly_expenses decimal [not null, default: 0]
+  savings_rate decimal
+
+  indexes {
+    (user_id, snapshot_date) [unique]
+  }
+
+  Note: 'Derived daily financial snapshots for charts, reporting, forecasting, and AI analysis.'
+}
+
+Ref: financial_institution_provider_types.financial_institution_id > financial_institutions.id
+Ref: financial_institution_provider_types.provider_type_id > provider_types.id
+
+Ref: accounts.user_id > users.id
+Ref: accounts.account_type_id > account_types.id
+Ref: accounts.institution_id > financial_institutions.id
+
+Ref: categories.parent_id > categories.id
+
+Ref: transactions.user_id > users.id
+Ref: transactions.account_id > accounts.id
+Ref: transactions.category_id > categories.id
+Ref: transactions.merchant_id > merchants.id
+Ref: transactions.recurring_transaction_id > recurring_transactions.id
+Ref: transactions.transfer_id > transfers.id
+
+Ref: recurring_transactions.user_id > users.id
+Ref: recurring_transactions.account_id > accounts.id
+Ref: recurring_transactions.category_id > categories.id
+Ref: recurring_transactions.liability_id > liabilities.id
+
+Ref: transfers.user_id > users.id
+Ref: transfers.from_account_id > accounts.id
+Ref: transfers.to_account_id > accounts.id
+
+Ref: assets.user_id > users.id
+Ref: assets.asset_type_id > asset_types.id
+
+Ref: liabilities.user_id > users.id
+Ref: liabilities.liability_type_id > liability_types.id
+Ref: liabilities.linked_account_id > accounts.id
+Ref: liabilities.collateral_asset_id > assets.id
+Ref: liabilities.creditor_institution_id > financial_institutions.id
+
+Ref: liability_payments.user_id > users.id
+Ref: liability_payments.liability_id > liabilities.id
+Ref: liability_payments.transaction_id > transactions.id
+Ref: liability_payments.recurring_transaction_id > recurring_transactions.id
+
+Ref: financial_goals.user_id > users.id
+
+Ref: tags.user_id > users.id
+Ref: transaction_tags.transaction_id > transactions.id
+Ref: transaction_tags.tag_id > tags.id
+
+Ref: daily_financial_snapshots.user_id > users.id

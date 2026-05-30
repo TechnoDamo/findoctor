@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FinDoctor Voice Chat</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>FinDoctor Chat</h1>
+          <p id="status">Loading config...</p>
+        </div>
+        <button id="voiceMode" class="icon-button" title="Voice mode">Voice</button>
+      </header>
+
+      <section id="messages" class="messages" aria-live="polite"></section>
+
+      <footer class="composer">
+        <textarea id="input" placeholder="Ask something..." rows="1"></textarea>
+        <button id="record" class="secondary" title="Tap to record">Record</button>
+        <button id="send">Send</button>
+      </footer>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+
