@@ -1,0 +1,24 @@
+services:
+  - type: web
+    runtime: node
+    name: findoctor-frontend
+    rootDir: frontend
+    branch: dev
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_DEFAULT_LOCALE
+        value: ru
+      - key: NEXT_PUBLIC_DEFAULT_CURRENCY
+        value: RUB
+      - key: NEXT_PUBLIC_DEFAULT_TIMEZONE
+        value: Europe/Moscow
+      - key: NEXT_PUBLIC_ACCESS_TOKEN_KEY
+        value: access_token
+      - key: NEXT_PUBLIC_REFRESH_TOKEN_KEY
+        value: refresh_token
