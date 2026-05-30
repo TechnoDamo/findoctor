@@ -59,7 +59,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <a href="/dashboard/liabilities" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Обязательства</a>
             <a href="/dashboard/goals" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Цели</a>
             <a href="/dashboard/analytics" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Аналитика</a>
-            <a href="/dashboard/ai-chat" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">AI-ассистент</a>
+            <a href="/dashboard/chat" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Чат</a>
             <a href="/dashboard/profile" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Профиль</a>
           </nav>
         </div>
