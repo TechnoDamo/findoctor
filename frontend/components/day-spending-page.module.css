@@ -1,0 +1,263 @@
+.page {
+  min-height: 100dvh;
+  width: 100%;
+  background: #fdfdfd;
+  color: #444444;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+}
+
+.content {
+  width: min(100%, 402px);
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 77px) clamp(16px, 5.7vw, 23px) calc(40px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.summaryCard {
+  width: 100%;
+  height: 161px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 16px 25px 18px;
+  box-sizing: border-box;
+}
+
+.summaryLabel {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #949090;
+}
+
+.summaryValue {
+  margin: 6px 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: #444444;
+}
+
+.summaryValue strong {
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.summaryValue span {
+  font-size: 24px;
+  line-height: 1;
+  color: #444444;
+}
+
+.summaryDivider {
+  width: 100%;
+  height: 1px;
+  margin: 15px 0 13px;
+  background: #d9d9d9;
+}
+
+.reminderCard {
+  margin-top: 22px;
+  width: 100%;
+  height: 66px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 21px 0 25px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reminderText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #444444;
+}
+
+.toggleButton {
+  width: 45px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #d9d9d9;
+  padding: 1px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.toggleButtonEnabled {
+  width: 45px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #f29d9d;
+  padding: 1px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.toggleThumb,
+.toggleThumbEnabled {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #aeaeae;
+}
+
+.toggleThumbEnabled {
+  transform: translateX(20px);
+}
+
+.recommendationsSection {
+  margin-top: 35px;
+}
+
+.recommendationsTitle {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.14;
+  font-weight: 700;
+  color: #333333;
+}
+
+.recommendationsCard {
+  margin-top: 17px;
+  width: 100%;
+  height: 218px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 24px 20px;
+  box-sizing: border-box;
+}
+
+.recommendationsText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #444444;
+  max-width: 306px;
+}
+
+.backdrop {
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.sheet {
+  width: min(100%, 402px);
+  min-height: 381px;
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  background: #ffffff;
+  padding: 0 19px calc(24px + env(safe-area-inset-bottom));
+  max-height: min(92dvh, 867px);
+}
+
+.sheetHandle {
+  width: 87px;
+  height: 7px;
+  margin: 9px auto 23px;
+  border-radius: 999px;
+  background: #d9d9d9;
+}
+
+.sheetTitle {
+  margin: 0 0 22px;
+  text-align: left;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #444444;
+}
+
+.fieldPillButton {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 22px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fieldPillButton + .fieldPillButton {
+  margin-top: 16px;
+}
+
+.fieldPillButton:active {
+  background: #ebebeb;
+}
+
+.fieldLabel {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
+  color: #949090;
+}
+
+.fieldValue {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.textFieldsCard {
+  margin-top: 34px;
+  width: 100%;
+  height: 112px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 17px 28px 16px;
+  box-sizing: border-box;
+}
+
+.fieldDivider {
+  width: 100%;
+  height: 1px;
+  background: #d9d9d9;
+  margin: 16px 0 15px;
+}
+
+.textInput {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #444444;
+}
+
+.textInput::placeholder {
+  color: #949090;
+}
+
+@media (max-width: 374px) {
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .reminderCard {
+    padding-right: 16px;
+  }
+}

@@ -1,0 +1,567 @@
+.page {
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #fdfdfd;
+  color: #444444;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.content {
+  width: 100%;
+  max-width: 402px;
+  min-height: 876px;
+  margin: 0 auto;
+  padding: 77px 23px 40px;
+}
+
+.headerTitle {
+  color: #444444;
+  line-height: 0.92;
+}
+
+.scoreCard {
+  margin-top: 11px;
+  width: 100%;
+  height: 85px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 15px 15px 13px;
+}
+
+.scoreTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #444444;
+}
+
+.progressBar {
+  position: relative;
+  margin-top: 10px;
+  width: 321px;
+  max-width: 100%;
+  height: 26px;
+  border-radius: 13px;
+  background: linear-gradient(90deg, #c9ffc2 0%, #fee39a 46.6346%, #ffa7a7 100%);
+}
+
+.progressMarker {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  transform: translate(-50%, -50%);
+  color: #444444;
+}
+
+.markerTriangle {
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid #444444;
+}
+
+.markerValue {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.recommendationCard {
+  margin-top: 21px;
+  width: 100%;
+  min-height: 153px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 17px 13px 11px 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendationText {
+  margin: 0;
+  max-width: 300px;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #000000;
+}
+
+.chatButton {
+  margin-top: auto;
+  margin-left: auto;
+  width: 183px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.chatButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.calculateCreditButton {
+  margin-top: 33px;
+  width: 100%;
+  height: 66px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  color: #444444;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0 19px 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.calculateCreditButton:active {
+  background: #e8e8e8;
+  transform: scale(0.99);
+  filter: brightness(0.97);
+}
+
+.creditsSection {
+  margin-top: 47px;
+}
+
+.creditsHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.creditsTitle {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.addCreditButton {
+  width: 49px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: #ffa7a7;
+  color: #444444;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.addCreditButton:active {
+  background: #f39f9f;
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+.creditCard {
+  margin-top: 17px;
+  width: 100%;
+  min-height: 112px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 18px 18px 16px;
+  color: #444444;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.creditCard:active {
+  background: #e8e8e8;
+  transform: scale(0.99);
+  filter: brightness(0.97);
+}
+
+.creditTopRow,
+.creditBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.creditBank,
+.creditAmount,
+.creditPayment,
+.creditLeftMonths {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.creditBank,
+.creditAmountValue,
+.creditPaymentValue {
+  font-weight: 700;
+  color: #444444;
+}
+
+.creditAmount {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.creditAmountUnit,
+.creditPaymentUnit,
+.creditLeftMonths {
+  color: #949090;
+  font-weight: 500;
+}
+
+.creditDivider {
+  margin: 13px 0 12px;
+  height: 1px;
+  width: 100%;
+  background: #dadada;
+}
+
+.creditPayment {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.modalBackdrop {
+  background: rgba(20, 20, 20, 0.45);
+}
+
+.modalSheet {
+  background: #ffffff;
+  border: none;
+  border-radius: 18px 18px 0 0;
+  min-height: 220px;
+  padding: 6px 22px calc(18px + env(safe-area-inset-bottom));
+}
+
+.modalHandle {
+  width: 86px;
+  height: 8px;
+  margin: 0 auto 24px;
+  background: #d4d4d6;
+}
+
+.modalTitle {
+  margin: 0 0 14px;
+  text-align: left;
+  font-size: 24px;
+  line-height: 1.08;
+  font-weight: 700;
+  color: #444444;
+}
+
+.modalDescription {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #4b4b4b;
+}
+
+.modalCloseButton {
+  margin-top: 20px;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: #ffa7a7;
+  color: #444444;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.modalCloseButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.creditSheetBackdrop {
+  background: rgba(0, 0, 0, 0.43);
+}
+
+.creditSheet {
+  width: min(100%, 402px);
+  min-height: 641px;
+  max-height: calc(100dvh - 233px);
+  background: #ffffff;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  padding: 14px 19px calc(24px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.creditSheetHandle {
+  width: 86px;
+  height: 8px;
+  border-radius: 999px;
+  background: #d9d9d9;
+  margin: 0 auto 32px;
+}
+
+.sheetTitle {
+  margin: 0 0 31px;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #444444;
+}
+
+.resultSheetTitle {
+  margin-bottom: 17px;
+}
+
+.creditForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputGroupCard {
+  width: 100%;
+  height: 244px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 19px 28px 18px;
+  box-sizing: border-box;
+}
+
+.inputRow {
+  width: 100%;
+  height: 51px;
+  border: 0;
+  border-bottom: 1px solid #d9d9d9;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #444444;
+  outline: none;
+}
+
+.inputRow:last-child {
+  border-bottom: 0;
+}
+
+.inputRow::placeholder {
+  color: #949090;
+}
+
+.errorStack {
+  min-height: 26px;
+  margin-top: 8px;
+}
+
+.fieldError {
+  margin: 4px 4px 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: #d66b6b;
+}
+
+.selectPillField {
+  margin-top: 12px;
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
+.selectPillField + .selectPillField {
+  margin-top: 20px;
+}
+
+.selectPill {
+  width: 100%;
+  height: 66px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 46px 0 24px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: #949090;
+  appearance: none;
+  outline: none;
+}
+
+.selectPillSelected {
+  color: #444444;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 22px;
+  top: 23px;
+  color: #444444;
+  pointer-events: none;
+}
+
+.calculateButton {
+  width: 183px;
+  height: 40px;
+  margin: 24px 13px 0 auto;
+  border: 0;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.calculateButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.resultCard {
+  width: 100%;
+  min-height: 516px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 20px 13px 15px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.riskDot {
+  width: 51px;
+  height: 51px;
+  border-radius: 50%;
+  background: #ffd564;
+  flex: 0 0 auto;
+}
+
+.riskSafe {
+  background: #8bbf78;
+}
+
+.riskCaution {
+  background: #ffd564;
+}
+
+.riskDanger {
+  background: #d66b6b;
+}
+
+.resultStatus {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.resultMetrics {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resultMetricRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.25;
+  color: #646464;
+}
+
+.resultMetricRow strong {
+  font-size: 16px;
+  line-height: 1.25;
+  color: #444444;
+  font-weight: 700;
+  text-align: right;
+}
+
+.resultRecommendation {
+  margin: 20px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #444444;
+}
+
+.detailsButton {
+  width: 183px;
+  height: 40px;
+  margin-top: auto;
+  margin-left: auto;
+  border: 0;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.detailsButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+@media (max-width: 390px) {
+  .content {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .progressBar {
+    width: 100%;
+  }
+}

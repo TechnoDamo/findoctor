@@ -1,0 +1,1057 @@
+.financeScreen {
+  --finance-color-bg: #fdfdfd;
+  --finance-color-text: #444444;
+  --finance-color-muted: #8f8f8f;
+  --finance-color-card: #e9e9e9;
+  --finance-color-card-strong: #f3f3f3;
+  --finance-color-pill: #ffffff;
+  --finance-color-divider: #d1d1d3;
+  --finance-color-accent: #ffa7a7;
+  --finance-color-accent-active: #f39f9f;
+  --finance-color-accent-text: #444444;
+  --finance-color-danger: #ff5c5c;
+  --finance-color-press-bg: #cfcfd1;
+
+  --finance-screen-max: 356px;
+  --finance-space-screen-x: 23px;
+  --finance-space-screen-top: 30px;
+  --finance-space-screen-bottom: 22px;
+  --finance-space-block: 14px;
+  --finance-space-row-y: 11px;
+  --finance-space-row-x: 16px;
+
+  --finance-radius-card: 24px;
+  --finance-radius-pill: 999px;
+  --finance-size-circle: 42px;
+  --finance-size-pill: 39px;
+
+  min-height: 100dvh;
+  background: var(--finance-color-bg);
+  color: var(--finance-color-text);
+  padding: calc(env(safe-area-inset-top) + var(--finance-space-screen-top)) var(--finance-space-screen-x)
+    calc(env(safe-area-inset-bottom) + var(--finance-space-screen-bottom));
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.contentWrap {
+  width: 100%;
+  max-width: var(--finance-screen-max);
+  margin: 0 auto;
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--finance-space-screen-top) - var(--finance-space-screen-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  margin-bottom: 27px;
+}
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #333333;
+}
+
+.headerRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.circleAction {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--finance-color-card, #e9e9e9);
+  display: grid;
+  place-items: center;
+  color: var(--finance-color-text, #444444);
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.circleActionButton {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.circleAction:active {
+  background: #dcdcdc;
+  transform: scale(0.97);
+  filter: brightness(0.94);
+}
+
+.summaryCard {
+  background: var(--finance-color-card);
+  border-radius: var(--finance-radius-card);
+  box-shadow: 0 4px 12px rgba(68, 68, 68, 0.07);
+  padding: 14px 15px 14px;
+  margin-bottom: 16px;
+}
+
+.summaryCaption {
+  margin: 0;
+  font-size: 16px;
+  color: var(--finance-color-muted);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.summaryMainRow {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.summaryDelta {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.summaryDelta strong {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.summaryDelta span {
+  font-size: 17px;
+  color: #8e8e8e;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pointsPill,
+.amountPill,
+.balancePill {
+  border-radius: var(--finance-radius-pill);
+  background: var(--finance-color-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.pointsPill {
+  min-width: 118px;
+  height: 37px;
+  gap: 3px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.pointsPill strong {
+  color: var(--finance-color-danger);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.pointsPill span {
+  color: #8e8e8e;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.balanceCaption {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #8e8e8e;
+  font-weight: 500;
+}
+
+.summaryBottomRow {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.amountPill {
+  min-width: 118px;
+  height: 37px;
+  padding: 0 12px;
+  color: #5f5f5f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.balancePill {
+  min-width: 128px;
+  height: 37px;
+  padding: 0 12px;
+  color: #5f5f5f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dailySpendButton,
+.consultantButton,
+.detailBackLink {
+  background: var(--finance-color-accent);
+  color: var(--finance-color-accent-text);
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.dailySpendButton {
+  width: 126px;
+  min-height: 54px;
+  border-radius: 16px;
+  padding: 8px 13px;
+  font-size: 16px;
+  line-height: 1.05;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.dailySpendButton:active,
+.consultantButton:active,
+.detailBackLink:active {
+  background: var(--finance-color-accent-active);
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.listCard {
+  border-radius: var(--finance-radius-card);
+  background: var(--finance-color-card-strong);
+  overflow: hidden;
+  margin-bottom: var(--finance-space-block);
+}
+
+.listItem {
+  position: relative;
+}
+
+.listItem + .listItem::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--finance-space-row-x);
+  right: var(--finance-space-row-x);
+  height: 1px;
+  background: var(--finance-color-divider);
+}
+
+.rowButton {
+  width: 100%;
+  padding: var(--finance-space-row-y) var(--finance-space-row-x);
+  border: none;
+  background: transparent;
+  color: var(--finance-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.rowButton:active {
+  background: var(--finance-color-press-bg);
+  filter: brightness(0.98);
+}
+
+.rowLeft,
+.rowRight {
+  display: inline-flex;
+  align-items: center;
+}
+
+.rowLeft {
+  gap: 10px;
+}
+
+.rowRight {
+  gap: 7px;
+  color: #555555;
+}
+
+.rowIcon,
+.rowIconWrap {
+  width: 27px;
+  height: 27px;
+}
+
+.rowIconWrap {
+  display: grid;
+  place-items: center;
+}
+
+.rowLabel {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.consultantButton {
+  margin: auto auto 0;
+  width: 218px;
+  min-height: 66px;
+  border-radius: 18px;
+  font-size: 18px;
+  line-height: 1.05;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-height: 820px) {
+  .financeScreen {
+    --finance-space-screen-top: 20px;
+    --finance-space-screen-bottom: 14px;
+    --finance-space-block: 10px;
+    --finance-space-row-y: 9px;
+  }
+
+  .summaryCard {
+    padding: 12px 14px;
+    margin-bottom: 27px;
+  }
+
+  .summaryDelta strong {
+    font-size: 24px;
+  }
+
+  .summaryDelta span {
+    font-size: 17px;
+  }
+
+  .dailySpendButton {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .consultantButton {
+    min-height: 60px;
+    font-size: 17px;
+  }
+}
+
+.detailCard {
+  background: var(--finance-color-card);
+  border-radius: var(--finance-radius-card);
+  box-shadow: 0 6px 12px rgba(68, 68, 68, 0.08);
+  padding: 22px 18px;
+}
+
+.detailSubtitle {
+  margin: 0;
+  color: var(--finance-color-muted);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.detailTitle {
+  margin: 10px 0 0;
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.detailAmount {
+  margin: 14px 0 0;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.detailText {
+  margin: 14px 0 0;
+  color: #666666;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.detailBackLink {
+  margin-top: 18px;
+  min-height: 48px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+}
+
+.cushionBackground {
+  opacity: 0.54;
+}
+
+.bottomSheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.24);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20;
+}
+
+.bottomSheetModal {
+  width: min(100%, 430px);
+  min-height: 170px;
+  background: #f4f4f5;
+  border-radius: 28px 28px 0 0;
+  border: 1px solid #d8d8da;
+  border-bottom: none;
+  padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  max-height: min(92dvh, 920px);
+}
+
+.bottomSheetHandle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 10px;
+  border-radius: 99px;
+  background: #d4d4d6;
+}
+
+.bottomSheetTitle {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: #444444;
+}
+
+.cushionBackdrop {
+  background: rgba(0, 0, 0, 0.43);
+}
+
+.cushionSheet,
+.cushionModal {
+  width: min(100%, 402px);
+  min-height: 710px;
+  max-height: calc(100dvh - 164px);
+  background: #ffffff;
+  border: none;
+  border-radius: 20px 20px 0 0;
+  padding: 13px 21px calc(40px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.cushionHandle {
+  width: 86px;
+  height: 8px;
+  margin: 0 auto 22px;
+  border-radius: 999px;
+  background: #d9d9d9;
+}
+
+.cushionTitle {
+  margin: 0 0 20px;
+  text-align: left;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.amountCard {
+  width: 100%;
+  height: 64px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 14px 0 18px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.amount {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.amount strong {
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.amount span {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 400;
+  color: #949090;
+}
+
+.daysPill {
+  margin: 0;
+  width: 118px;
+  height: 40px;
+  border-radius: 999px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #444444;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.daysPill strong {
+  margin: 0 4px;
+  font-weight: 700;
+}
+
+.autoTopupCard {
+  width: 100%;
+  height: 112px;
+  margin-top: 25px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 23px 18px 18px;
+  box-sizing: border-box;
+}
+
+.autoTopupTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.autoTopupDivider {
+  width: 312px;
+  max-width: 100%;
+  height: 1px;
+  margin-top: 19px;
+  background: #d9d9d9;
+}
+
+.autoTopupValueRow {
+  margin: 18px 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.autoTopupInput {
+  border: 0;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #949090;
+  min-width: 68px;
+  width: 120px;
+}
+
+.autoTopupSuffix {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #949090;
+}
+
+.notifyCard {
+  width: 100%;
+  height: 64px;
+  margin-top: 23px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 20px 0 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notifyLabel {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.notifySwitch {
+  width: 44px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffa7a7;
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.notifySwitch::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.18s ease, right 0.18s ease;
+}
+
+.notifySwitch[data-checked="false"] {
+  background: #d9d9d9;
+}
+
+.notifySwitch[data-checked="false"]::after {
+  right: 18px;
+}
+
+.recommendationsTitle {
+  margin: 38px 0 18px;
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.recommendationCard {
+  width: 100%;
+  height: 218px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 22px 17px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendationText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #000000;
+}
+
+.detailsButton {
+  width: 183px;
+  height: 40px;
+  margin-top: auto;
+  margin-left: auto;
+  border: 0;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.detailsButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.expensesContentDimmed {
+  opacity: 0.5;
+}
+
+.expensesSummaryCard {
+  background: var(--finance-color-card);
+  border-radius: var(--finance-radius-card);
+  box-shadow: 0 4px 12px rgba(68, 68, 68, 0.07);
+  padding: 16px;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.expensesSummaryCaption {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 500;
+  color: #8f8f8f;
+}
+
+.expensesSummaryValue {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: #4a4a4a;
+}
+
+.expensesSummaryValue strong {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.expensesSummaryValue span {
+  font-size: 54px;
+  line-height: 1;
+  color: #8f8f8f;
+}
+
+.expensesIncomePill {
+  background: var(--finance-color-pill);
+  border-radius: 20px;
+  min-width: 124px;
+  min-height: 92px;
+  padding: 14px 18px;
+  text-align: center;
+}
+
+.expensesIncomeLabel {
+  margin: 0;
+  color: #747474;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.expensesIncomeValue {
+  margin: 8px 0 0;
+  color: #747474;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.expensesSection {
+  margin-bottom: 18px;
+}
+
+.expensesSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.expensesSectionTitle {
+  margin: 0;
+  color: #444444;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.expensesAddButton {
+  border: 0;
+  background: var(--finance-color-accent);
+  color: #2f2f2f;
+  width: 50px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.expensesAddButton:active {
+  background: var(--finance-color-accent-active);
+  transform: scale(0.97);
+}
+
+.expensesList {
+  display: grid;
+  gap: 14px;
+}
+
+.expenseRowCard,
+.creditCard {
+  border: 0;
+  background: #e7e7e9;
+  border-radius: 24px;
+  width: 100%;
+  color: #444444;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.expenseRowCard {
+  min-height: 66px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.expenseRowCard strong {
+  color: #333333;
+}
+
+.creditCard {
+  padding: 18px 18px 14px;
+}
+
+.creditCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.creditCardTop strong {
+  color: #3f3f3f;
+}
+
+.creditCardDivider {
+  margin-top: 14px;
+  height: 1px;
+  background: #c9c9cb;
+}
+
+.creditCardBottom {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #707070;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.creditCardBottom strong {
+  color: #3f3f3f;
+}
+
+.expensesRecommendationCard {
+  margin-top: 12px;
+  background: #e7e7e9;
+  border-radius: 24px;
+  padding: 20px 18px;
+  color: #212121;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.expensesEmptyState {
+  margin: 0;
+  border-radius: 24px;
+  background: #e7e7e9;
+  color: #6d6d6d;
+  font-size: 15px;
+  line-height: 1.35;
+  padding: 16px 18px;
+}
+
+.expensesSheetTitle {
+  margin: 0 0 22px;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 600;
+  text-align: left;
+}
+
+.expensesSheetBackdrop {
+  background: rgba(20, 20, 20, 0.45);
+}
+
+.expensesSheet {
+  background: #ffffff;
+  border: none;
+  border-radius: 18px 18px 0 0;
+  padding: 6px 22px calc(18px + env(safe-area-inset-bottom));
+}
+
+.expensesSheetHandle {
+  width: 86px;
+  height: 8px;
+  margin: 0 auto 28px;
+  background: #d4d4d6;
+}
+
+.expenseSheetForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.expenseSheetSelectRow {
+  min-height: 56px;
+  border-radius: 24px;
+  background: #e7e7e9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.expenseSheetLabel {
+  color: #939393;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.expenseSheetSelect {
+  border: 0;
+  background: transparent;
+  color: #474747;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  max-width: 58%;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+.expenseSheetInputGroup {
+  border-radius: 24px;
+  background: #e7e7e9;
+  padding: 0 20px;
+}
+
+.expenseSheetInputLabel {
+  display: block;
+  color: #939393;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  padding-top: 18px;
+}
+
+.expenseSheetInput {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px 0 0;
+  color: #454545;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1.2;
+  outline: none;
+}
+
+.expenseSheetInputDivider {
+  margin-top: 14px;
+  height: 1px;
+  background: #cbcbcd;
+}
+
+.formError {
+  margin: 2px 4px 0;
+  color: #d14c4c;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.sheetActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.sheetSaveButton,
+.sheetDeleteButton {
+  border: 0;
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.sheetSaveButton {
+  background: #ef9a9c;
+  color: #444444;
+}
+
+.sheetDeleteButton {
+  background: #e0e0e2;
+  color: #585858;
+}
+
+.sheetSaveButton:active,
+.sheetDeleteButton:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 420px) {
+  .expensesSummaryCaption {
+    font-size: 13px;
+  }
+
+  .expensesSummaryValue strong {
+    font-size: 48px;
+  }
+
+  .expensesSummaryValue span {
+    font-size: 46px;
+  }
+
+  .expensesIncomeLabel {
+    font-size: 13px;
+  }
+
+  .expensesIncomeValue {
+    font-size: 13px;
+  }
+}

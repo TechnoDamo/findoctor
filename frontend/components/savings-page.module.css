@@ -1,0 +1,359 @@
+.page {
+  min-height: 100dvh;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fdfdfd;
+  color: #444444;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.content {
+  width: 100%;
+  max-width: 402px;
+  min-height: 1400px;
+  margin: 0 auto;
+  padding: 77px 23px 60px;
+  box-sizing: border-box;
+}
+
+.pressableNeutral {
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.pressableNeutral:active {
+  background: #cfcfd1;
+  filter: brightness(0.98);
+}
+
+.goalCard {
+  height: 157px;
+  border-radius: 25px;
+  background: #e9e9e9;
+  padding: 31px 22px 30px 21px;
+  box-sizing: border-box;
+}
+
+.goalField {
+  border: 0;
+  border-bottom: 1px solid #9f9f9f;
+  background: transparent;
+  color: #838282;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: left;
+  padding: 0;
+  height: 34px;
+}
+
+.goalField:active {
+  color: #6f6f6f;
+}
+
+.goalCard > .goalField {
+  width: 313px;
+}
+
+.goalRow {
+  margin-top: 29px;
+  display: grid;
+  grid-template-columns: 179px 117px;
+  column-gap: 17px;
+}
+
+.goalFieldDate {
+  width: 179px;
+}
+
+.goalFieldAmount {
+  width: 117px;
+}
+
+.autoTopupCard {
+  width: 100%;
+  height: 112px;
+  margin-top: 25px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 22px 18px 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.autoTopupTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.autoTopupSeparator {
+  margin-top: 18px;
+  width: 312px;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.autoTopupValue {
+  margin-top: 18px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  color: #949090;
+}
+
+.progressCard {
+  position: relative;
+  width: 100%;
+  height: 87px;
+  margin-top: 25px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.progressTitle {
+  position: absolute;
+  left: 20px;
+  top: 19px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.progressTrack {
+  position: absolute;
+  left: 13px;
+  top: 46px;
+  width: 321px;
+  height: 23px;
+  border-radius: 11.5px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 178px;
+  border-radius: 11.5px;
+  background: #ffa7a7;
+}
+
+.progressValue {
+  position: absolute;
+  left: 51px;
+  top: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.recommendationsTitle {
+  margin: 37px 0 21px;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.recommendationCard {
+  width: 100%;
+  height: 232px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 21px 19px 15px 13px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendationText {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #000000;
+}
+
+.chatButton {
+  margin-top: auto;
+  margin-left: auto;
+  width: 183px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.chatButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.partnerCard {
+  width: 100%;
+  height: 106px;
+  margin-top: 24px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  overflow: hidden;
+  display: flex;
+  color: inherit;
+  text-decoration: none;
+}
+
+.partnerImageWrap {
+  width: 134px;
+  height: 106px;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 25px 0 0 25px;
+  overflow: hidden;
+}
+
+.partnerImage {
+  object-fit: cover;
+}
+
+.partnerTextArea {
+  padding: 11px 12px 0 9px;
+  display: flex;
+  flex-direction: column;
+}
+
+.partnerTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.partnerDescription {
+  margin-top: 13px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #000000;
+}
+
+.planTitle {
+  margin: 39px 0 21px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 25px;
+  color: #444444;
+}
+
+.planCard {
+  width: 100%;
+  height: 173px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  overflow: hidden;
+}
+
+.planRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 5px;
+  box-sizing: border-box;
+}
+
+.planRowDay {
+  min-height: 57px;
+}
+
+.planRowWeek {
+  min-height: 54px;
+}
+
+.planRowMonth {
+  min-height: 60px;
+}
+
+.planSeparator {
+  margin: 0 15px;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.planLabel {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  color: #444444;
+}
+
+.planBadge {
+  height: 29px;
+  border-radius: 14.5px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #444444;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.planBadgeShort {
+  width: 88px;
+}
+
+.planBadgeLong {
+  width: 91px;
+}
+
+@media (max-width: 374px) {
+  .content {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .goalField:first-child {
+    width: 100%;
+  }
+
+  .goalRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .goalFieldDate,
+  .goalFieldAmount {
+    width: 100%;
+  }
+
+  .autoTopupSeparator {
+    width: 100%;
+  }
+
+  .progressTrack {
+    width: calc(100% - 35px);
+  }
+}

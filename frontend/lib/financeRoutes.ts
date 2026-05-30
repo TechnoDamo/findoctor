@@ -1,0 +1,17 @@
+export const financeRoutes = {
+  home: "/finance",
+  profile: "/finance/profile_page",
+  achievements: "/finance/achievements_page",
+  daySpending: "/finance/day_spending_page",
+  income: "/finance/income_page",
+  expenses: "/finance/expenses_page",
+  creditTraffic: "/credit-traffic",
+  savings: "/finance/savings_page",
+  cushion: "/finance/cushion_page",
+  history: "/history",
+  consultant: "/consultant/text",
+  consultantAudio: "/consultant/audio",
+  consultantLegacy: "/finance/consultant_page",
+  consultantAudioLegacy: "/finance/consultant_audio_page",
+  financialHealth: "/finance/financial_health_page",
+} as const;
