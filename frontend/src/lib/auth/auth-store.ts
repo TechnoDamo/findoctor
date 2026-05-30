@@ -2,6 +2,20 @@ import { create } from 'zustand';
 
 export const ACCESS_TOKEN_KEY = process.env.NEXT_PUBLIC_ACCESS_TOKEN_KEY || 'access_token';
 export const REFRESH_TOKEN_KEY = process.env.NEXT_PUBLIC_REFRESH_TOKEN_KEY || 'refresh_token';
+export const USER_KEY = process.env.NEXT_PUBLIC_USER_KEY || 'findoctor_user';
+
+export type StoredUser = {
+  id: string;
+  email: string;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  country?: string | null;
+  base_currency: string;
+  timezone: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export function getStoredAccessToken() {
   if (typeof window === 'undefined') return null;
@@ -13,25 +27,44 @@ export function getStoredRefreshToken() {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
+export function getStoredUser() {
+  if (typeof window === 'undefined') return null;
+  const value = localStorage.getItem(USER_KEY);
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as StoredUser;
+  } catch {
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
+}
+
 export function storeTokens(accessToken: string, refreshToken: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
+export function storeUser(user: StoredUser) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 export function clearStoredAuth() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
-  user: unknown | null;
+  user: StoredUser | null;
   hasHydrated: boolean;
   setTokens: (accessToken: string, refreshToken: string) => void;
-  setUser: (user: unknown) => void;
+  setUser: (user: StoredUser | null) => void;
   hydrateFromStorage: () => void;
   clearAuth: () => void;
 }
@@ -45,11 +78,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
     storeTokens(accessToken, refreshToken);
     set({ accessToken, refreshToken, hasHydrated: true });
   },
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    if (user) storeUser(user);
+    set({ user });
+  },
   hydrateFromStorage: () =>
     set({
       accessToken: getStoredAccessToken(),
       refreshToken: getStoredRefreshToken(),
+      user: getStoredUser(),
       hasHydrated: true,
     }),
   clearAuth: () => {

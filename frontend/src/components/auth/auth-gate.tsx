@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useCurrentUser, useLogout } from '@/lib/api/queries/auth';
+import { useLogout } from '@/lib/api/queries/auth';
 import { getStoredAccessToken, useAuthStore } from '@/lib/auth/auth-store';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -12,8 +12,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const hydrateFromStorage = useAuthStore((state) => state.hydrateFromStorage);
   const accessToken = useAuthStore((state) => state.accessToken);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
-  const user = useAuthStore((state) => state.user as { email?: string; first_name?: string | null } | null);
+  const user = useAuthStore((state) => state.user);
   const logout = useLogout();
 
   useEffect(() => {
@@ -27,20 +26,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [hasHydrated, pathname, router]);
 
   const hasToken = Boolean(accessToken);
-  const currentUser = useCurrentUser(hasHydrated && hasToken);
-
-  useEffect(() => {
-    if (currentUser.isError) {
-      clearAuth();
-    }
-  }, [clearAuth, currentUser.isError]);
 
   const displayName = useMemo(() => {
     if (!user) return '';
     return user.first_name || user.email || '';
   }, [user]);
 
-  if (!hasHydrated || (hasToken && currentUser.isLoading)) {
+  if (!hasHydrated) {
     return (
       <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
         <div className="text-sm text-gray-500">Проверяем сессию...</div>
@@ -48,7 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!hasToken || currentUser.isError) {
+  if (!hasToken) {
     return (
       <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
         <div className="w-full max-w-md space-y-4 rounded-md border border-gray-200 bg-white p-6 text-center">

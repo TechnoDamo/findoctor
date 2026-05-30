@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import apiClient from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/api/queries/auth';
+import { useAuthStore } from '@/lib/auth/auth-store';
 
 export default function ProfilePage() {
   const currentUser = useCurrentUser();
+  const setUser = useAuthStore((state) => state.setUser);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,15 +38,19 @@ export default function ProfilePage() {
     setMessage('');
 
     try {
-      await apiClient.patch('/me', {
+      const now = new Date().toISOString();
+      setUser({
+        id: currentUser.data?.id || 'local-user',
+        email,
         first_name: firstName || null,
         last_name: lastName || null,
         phone: phone || null,
         country: country || null,
         base_currency: currency,
         timezone,
+        created_at: currentUser.data?.created_at || now,
+        updated_at: now,
       });
-      await currentUser.refetch();
       setMessage('Профиль сохранён');
     } catch {
       setMessage('Не удалось сохранить профиль');
