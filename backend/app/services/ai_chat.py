@@ -4,6 +4,7 @@ import base64
 import json
 from pathlib import Path
 
+import httpx
 from psycopg import AsyncConnection
 
 from app.clients.http import get_http_client
@@ -41,6 +42,7 @@ async def _chat_completion(kind: str, payload: dict) -> dict:
         f"{base_url}/chat/completions",
         headers=_headers(api_key),
         json=payload,
+        timeout=httpx.Timeout(120.0, connect=10.0),
     )
     response.raise_for_status()
     return response.json()
@@ -68,9 +70,9 @@ def _message_text(response: dict) -> str:
     return ""
 
 
-async def _run_llm(user_text: str, financial_context: dict | None = None) -> tuple[str, dict]:
+async def _run_llm(user_text: str, financial_context: dict | None = None, prompt_name: str = "llm_text") -> tuple[str, dict]:
     _base_url, _api_key, model = _provider_config("llm")
-    system_prompt = _build_system_prompt(financial_context)
+    system_prompt = _build_system_prompt(financial_context, prompt_name)
     payload = {
         "model": model,
         "messages": [
@@ -248,7 +250,7 @@ async def send_message(
     audio_payload = None
     if "audio" in (response_modalities or []):
         audio_payload = await _run_tts(
-            assistant_text,
+            _truncate_for_tts(assistant_text),
             voice=(audio_response or {}).get("voice"),
             response_format=(audio_response or {}).get("format"),
         )
@@ -263,6 +265,7 @@ async def send_message(
         "conversation_id": conversation_id,
         "user_message_id": user_msg["id"],
         "assistant_message_id": assistant_msg["id"],
+        "request_text": transcript or user_text,
         "output": {
             "text": assistant_text,
             "audio": audio_payload,
@@ -319,10 +322,10 @@ async def send_voice_message(
     user_msg = await chat_repo.insert_message(conn, conversation_id, "user", input_parts)
 
     transcript, _stt_usage = await _run_stt(audio_data, audio_format, prompt)
-    assistant_text, llm_usage = await _run_llm(transcript)
+    assistant_text, llm_usage = await _run_llm(transcript, prompt_name="llm_voice")
     audio_payload = None
     if "audio" in (response_modalities or ["audio", "text"]):
-        audio_payload = await _run_tts(assistant_text, voice=voice, response_format=response_format)
+        audio_payload = await _run_tts(_truncate_for_tts(assistant_text), voice=voice, response_format=response_format)
     assistant_parts = [{"type": "text", "text": assistant_text, "audio": audio_payload}]
     assistant_msg = await chat_repo.insert_message(
         conn, conversation_id, "assistant", assistant_parts
@@ -332,6 +335,7 @@ async def send_voice_message(
         "conversation_id": conversation_id,
         "user_message_id": user_msg["id"],
         "assistant_message_id": assistant_msg["id"],
+        "request_text": transcript,
         "output": {
             "text": assistant_text,
             "audio": audio_payload,
@@ -355,12 +359,19 @@ async def list_conversations_export(
     return await chat_repo.list_conversations(conn, user_id, page, page_size)
 
 
-def _build_system_prompt(context: dict | None) -> str:
+def _truncate_for_tts(text: str) -> str:
+    max_chars = settings.tts_max_chars
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rsplit(".", 1)[0].rstrip() + "."
+
+
+def _build_system_prompt(context: dict | None, prompt_name: str = "llm_text") -> str:
     """Строит системный промпт с финансовым контекстом пользователя."""
     if context is None:
-        return _read_prompt("llm_system.txt")
+        return _read_prompt(f"{prompt_name}.txt")
     return (
-        f"{_read_prompt('llm_system.txt')}\n\n"
+        f"{_read_prompt(f'{prompt_name}.txt')}\n\n"
         "Financial context flags requested by the client:\n"
         f"{context}"
     )

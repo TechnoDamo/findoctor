@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     tts_base_url: str = ""
     tts_model: str = ""
     tts_voice: str = "echo"
+    tts_max_chars: int = 300
 
     # Логирование
     log_level: str = "INFO"

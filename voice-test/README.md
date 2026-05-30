@@ -8,7 +8,7 @@ From this folder:
 
 ```bash
 cd /Users/damir/Documents/ФинДоктор/voice-test
-export ROUTERAI_API_KEY="sk-..."
+export ROUTERAI_API_KEY="sk-gY63dt1jGYJUvi19vPH9HVT9cVtQRKGo"
 node routerai_recorder_server.js
 ```
 

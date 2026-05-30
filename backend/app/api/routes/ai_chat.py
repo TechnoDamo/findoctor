@@ -42,13 +42,14 @@ async def create_voice_message(
     user: CurrentUser,
     conn: DbConnection,
     audio: UploadFile,
-    conversation_id: str | None = Form(None),
+    conversation_id: str | None = Form(None, alias="conversationId"),
     title: str | None = Form(None, max_length=200),
     prompt: str | None = Form(None),
-    response_modalities: str | None = Form(None),
-    audio_response_voice: str | None = Form(None),
-    audio_response_format: str | None = Form(None),
-    audio_response_delivery: str = Form("temporary_url"),
+    response_modalities: str | None = Form(None, alias="responseModalities"),
+    audio_format: str | None = Form(None, alias="audioFormat"),
+    audio_response_voice: str | None = Form(None, alias="audioResponseVoice"),
+    audio_response_format: str | None = Form(None, alias="audioResponseFormat"),
+    audio_response_delivery: str = Form("temporary_url", alias="audioResponseDelivery"),
 ) -> dict:
     """Отправка голосового сообщения AI-ассистенту (multipart/form-data)."""
     import base64
@@ -60,7 +61,7 @@ async def create_voice_message(
         conn=conn,
         user_id=user["id"],
         audio_data=audio_base64,
-        audio_format=audio.content_type.split("/")[-1] if audio.content_type else "webm",
+        audio_format=audio_format or (audio.content_type.split("/")[-1] if audio.content_type else "webm"),
         conversation_id=conversation_id,
         title=title,
         prompt=prompt,
