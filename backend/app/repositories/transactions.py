@@ -26,10 +26,10 @@ async def list_transactions(
     return list(rows), total_row["total"] if total_row else 0
 
 
-async def find_transaction(conn: AsyncConnection, transaction_id: str) -> dict | None:
+async def find_transaction(conn: AsyncConnection, user_id: str, transaction_id: str) -> dict | None:
     """Получение транзакции по id с тегами."""
     return await conn.fetchrow(
-        _queries["find_transaction"], {"transaction_id": transaction_id}
+        _queries["find_transaction"], {"user_id": user_id, "transaction_id": transaction_id}
     )
 
 
@@ -39,13 +39,16 @@ async def insert_transaction(conn: AsyncConnection, data: dict) -> dict:
 
 
 async def update_transaction(
-    conn: AsyncConnection, transaction_id: str, data: dict
-) -> dict:
+    conn: AsyncConnection, user_id: str, transaction_id: str, data: dict
+) -> dict | None:
     """Обновление транзакции."""
-    params = {"transaction_id": transaction_id, **data}
+    params = {"user_id": user_id, "transaction_id": transaction_id, **data}
     return await conn.fetchrow(_queries["update_transaction"], params)
 
 
-async def delete_transaction(conn: AsyncConnection, transaction_id: str) -> None:
+async def delete_transaction(conn: AsyncConnection, user_id: str, transaction_id: str) -> bool:
     """Удаление транзакции."""
-    await conn.execute(_queries["delete_transaction"], {"transaction_id": transaction_id})
+    cursor = await conn.execute(
+        _queries["delete_transaction"], {"user_id": user_id, "transaction_id": transaction_id}
+    )
+    return cursor.rowcount > 0

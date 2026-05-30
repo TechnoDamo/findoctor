@@ -63,6 +63,8 @@ class Settings(BaseSettings):
 
     # AI Chat context injection
     ai_chat_context_max_chars: int = 8000
+    ai_chat_max_tool_passes: int = 2
+    ai_chat_history_max_messages: int = 20
 
     # Recommendations / RAG / search
     recommendations_enabled: bool = False
@@ -90,10 +92,10 @@ class Settings(BaseSettings):
     graylog_host: str = "localhost"
     graylog_port: int = 12201
     graylog_facility: str = "findoctor-backend"
-    log_http_headers: bool = True
-    log_http_bodies: bool = True
-    log_response_headers: bool = True
-    log_response_bodies: bool = True
+    log_http_headers: bool = False
+    log_http_bodies: bool = False
+    log_response_headers: bool = False
+    log_response_bodies: bool = False
     log_db_writes: bool = True
 
     @property
@@ -128,6 +130,41 @@ class Settings(BaseSettings):
     def refresh_token_ttl_seconds(self) -> int:
         """Время жизни refresh-токена в секундах."""
         return self.refresh_token_ttl_days * 86400
+
+    def validate_runtime_settings(self) -> None:
+        """Fail fast on unsafe production or incomplete optional-service settings."""
+        if self.recommendations_enabled:
+            missing = [
+                name
+                for name, value in {
+                    "ragflow_api_key": self.ragflow_api_key,
+                    "ragflow_dataset_id": self.ragflow_dataset_id,
+                    "searxng_base_url": self.searxng_base_url,
+                }.items()
+                if not value
+            ]
+            if missing:
+                raise RuntimeError(
+                    "Recommendations are enabled, but required settings are missing: "
+                    + ", ".join(missing)
+                )
+
+        if self.app_env.lower() not in {"production", "prod"}:
+            return
+
+        unsafe = []
+        if self.jwt_secret_key == "change_me_in_production":
+            unsafe.append("jwt_secret_key")
+        if self.postgres_password == "change_me" and not self.database_url:
+            unsafe.append("postgres_password")
+        if self.app_debug:
+            unsafe.append("app_debug")
+        if self.log_http_headers or self.log_http_bodies or self.log_response_bodies:
+            unsafe.append("verbose_http_logging")
+        if unsafe:
+            raise RuntimeError(
+                "Unsafe production settings detected: " + ", ".join(unsafe)
+            )
 
 
 settings = Settings()

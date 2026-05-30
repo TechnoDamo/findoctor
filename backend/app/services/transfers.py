@@ -25,12 +25,10 @@ async def create_transfer(
       - Оба счёта существуют и принадлежат пользователю.
       - Счёт-источник и счёт-получатель — разные счета.
     """
-    from_account = await accounts_repo.find_account(conn, data["from_account_id"])
-    to_account = await accounts_repo.find_account(conn, data["to_account_id"])
+    from_account = await accounts_repo.find_account(conn, user_id, data["from_account_id"])
+    to_account = await accounts_repo.find_account(conn, user_id, data["to_account_id"])
 
     if from_account is None or to_account is None:
-        raise NotFoundError("Счёт не найден")
-    if from_account["user_id"] != user_id or to_account["user_id"] != user_id:
         raise NotFoundError("Счёт не найден")
     if data["from_account_id"] == data["to_account_id"]:
         raise ConflictError("Нельзя перевести средства на тот же счёт")
@@ -111,64 +109,87 @@ async def update_transfer(
 
     Если меняется счёт-источник или счёт-получатель, обновляются и транзакции.
     """
-    existing = await transfer_repo.find_transfer(conn, transfer_id)
-    if existing is None or existing["user_id"] != user_id:
+    existing = await transfer_repo.find_transfer(conn, user_id, transfer_id)
+    if existing is None:
         raise NotFoundError("Перевод не найден")
 
     from decimal import Decimal
 
     async with conn.transaction():
-        updated_transfer = await transfer_repo.update_transfer(conn, transfer_id, data)
+        if data.get("from_account_id") is not None:
+            from_account = await accounts_repo.find_account(conn, user_id, data["from_account_id"])
+            if from_account is None:
+                raise NotFoundError("Счёт не найден")
+        if data.get("to_account_id") is not None:
+            to_account = await accounts_repo.find_account(conn, user_id, data["to_account_id"])
+            if to_account is None:
+                raise NotFoundError("Счёт не найден")
+        if (data.get("from_account_id") or existing["from_account_id"]) == (
+            data.get("to_account_id") or existing["to_account_id"]
+        ):
+            raise ConflictError("Нельзя перевести средства на тот же счёт")
+
+        updated_transfer = await transfer_repo.update_transfer(conn, user_id, transfer_id, data)
+        if updated_transfer is None:
+            raise NotFoundError("Перевод не найден")
 
         if data.get("from_account_id") is not None:
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["from_transaction_id"],
                 {"account_id": data["from_account_id"]},
             )
         if data.get("to_account_id") is not None:
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["to_transaction_id"],
                 {"account_id": data["to_account_id"]},
             )
         if data.get("amount") is not None:
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["from_transaction_id"],
                 {"amount": str(-Decimal(str(data["amount"])))},
             )
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["to_transaction_id"],
                 {"amount": data["amount"]},
             )
         if data.get("currency") is not None:
             await txn_repo.update_transaction(
-                conn, existing["from_transaction_id"], {"currency": data["currency"]}
+                conn, user_id, existing["from_transaction_id"], {"currency": data["currency"]}
             )
             await txn_repo.update_transaction(
-                conn, existing["to_transaction_id"], {"currency": data["currency"]}
+                conn, user_id, existing["to_transaction_id"], {"currency": data["currency"]}
             )
         if data.get("transaction_datetime") is not None:
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["from_transaction_id"],
                 {"transaction_datetime": data["transaction_datetime"]},
             )
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["to_transaction_id"],
                 {"transaction_datetime": data["transaction_datetime"]},
             )
         if data.get("description") is not None:
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["from_transaction_id"],
                 {"description": data["description"]},
             )
             await txn_repo.update_transaction(
                 conn,
+                user_id,
                 existing["to_transaction_id"],
                 {"description": data["description"]},
             )
@@ -182,10 +203,12 @@ async def delete_transfer(
     """
     Удаление перевода и связанных транзакций в одной атомарной операции.
     """
-    existing = await transfer_repo.find_transfer(conn, transfer_id)
-    if existing is None or existing["user_id"] != user_id:
+    existing = await transfer_repo.find_transfer(conn, user_id, transfer_id)
+    if existing is None:
         raise NotFoundError("Перевод не найден")
 
     async with conn.transaction():
-        await transfer_repo.delete_transfer_transactions(conn, transfer_id)
-        await transfer_repo.delete_transfer(conn, transfer_id)
+        await transfer_repo.delete_transfer_transactions(conn, user_id, transfer_id)
+        deleted = await transfer_repo.delete_transfer(conn, user_id, transfer_id)
+        if not deleted:
+            raise NotFoundError("Перевод не найден")

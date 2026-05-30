@@ -43,16 +43,16 @@ class AiAudioResponseOptions(AiBaseModel):
 
 
 class AiFinancialContextOptions(AiBaseModel):
-    """Настройки финансового контекста."""
-    include_accounts: bool = True
-    include_transactions: bool = True
-    include_assets: bool = True
-    include_liabilities: bool = True
-    include_goals: bool = True
-    transaction_history_months: int = 3
+    """Опциональные подсказки для поиска данных. AI может их переопределить."""
+    preferred_date_from: str | None = None
+    preferred_date_to: str | None = None
     base_currency: str | None = None
-    date_from: str | None = None
-    date_to: str | None = None
+
+
+class AiToolResult(AiBaseModel):
+    """Результат выполнения одного инструмента."""
+    name: str
+    result: dict
 
 
 class AiChatRequest(AiBaseModel):
@@ -63,6 +63,7 @@ class AiChatRequest(AiBaseModel):
     response_modalities: list[str] = Field(default=["text"])
     audio_response: AiAudioResponseOptions | None = None
     context: AiFinancialContextOptions | None = None
+    agentic: bool = True
 
 
 class AiChatOutput(AiBaseModel):
@@ -88,7 +89,7 @@ class AiChatResponse(AiBaseModel):
     assistant_message_id: UUID
     request_text: str | None = None
     output: AiChatOutput
-    tool_results: list[dict] = []
+    tool_results: list[AiToolResult] = []
     usage: AiUsage | None = None
 
 

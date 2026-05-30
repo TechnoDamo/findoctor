@@ -15,7 +15,9 @@ ORDER BY payment_date DESC;
 SELECT id, user_id, liability_id, transaction_id, recurring_transaction_id,
        payment_date, total_amount, principal_amount, interest_amount,
        fee_amount, currency, balance_after_payment, created_at
-FROM liability_payments WHERE id = %(liability_payment_id)s;
+FROM liability_payments
+WHERE id = %(liability_payment_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_liability_payment
 -- Создание платежа по обязательству
@@ -41,10 +43,13 @@ UPDATE liability_payments SET
     currency = COALESCE(%(currency)s, currency),
     balance_after_payment = COALESCE(%(balance_after_payment)s::numeric, balance_after_payment)
 WHERE id = %(liability_payment_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, liability_id, transaction_id, recurring_transaction_id,
     payment_date, total_amount, principal_amount, interest_amount,
     fee_amount, currency, balance_after_payment, created_at;
 
 -- name: delete_liability_payment
 -- Удаление платежа
-DELETE FROM liability_payments WHERE id = %(liability_payment_id)s;
+DELETE FROM liability_payments
+WHERE id = %(liability_payment_id)s
+  AND user_id = %(user_id)s;

@@ -74,9 +74,9 @@ async def create_transaction(
 
 
 @router.get("/{transaction_id}", response_model=Transaction)
-async def get_transaction(transaction_id: str, conn: DbConnection) -> dict:
+async def get_transaction(transaction_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение транзакции по id."""
-    txn = await txn_repo.find_transaction(conn, transaction_id)
+    txn = await txn_repo.find_transaction(conn, user["id"], transaction_id)
     if txn is None:
         raise NotFoundError("Транзакция не найдена")
     return txn
@@ -84,24 +84,30 @@ async def get_transaction(transaction_id: str, conn: DbConnection) -> dict:
 
 @router.patch("/{transaction_id}", response_model=Transaction)
 async def update_transaction(
-    transaction_id: str, data: TransactionUpdate, conn: DbConnection
+    transaction_id: str, data: TransactionUpdate, user: CurrentUser, conn: DbConnection
 ) -> dict:
     """Обновление транзакции."""
-    return await txn_repo.update_transaction(
-        conn, transaction_id, data.model_dump()
-    )
+    txn = await txn_repo.update_transaction(conn, user["id"], transaction_id, data.model_dump())
+    if txn is None:
+        raise NotFoundError("Транзакция не найдена")
+    return txn
 
 
 @router.delete("/{transaction_id}", status_code=204)
-async def delete_transaction(transaction_id: str, conn: DbConnection) -> None:
+async def delete_transaction(transaction_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Удаление транзакции."""
-    await txn_repo.delete_transaction(conn, transaction_id)
+    deleted = await txn_repo.delete_transaction(conn, user["id"], transaction_id)
+    if not deleted:
+        raise NotFoundError("Транзакция не найдена")
 
 
 @router.get("/{transaction_id}/tags", response_model=TagList)
-async def list_transaction_tags(transaction_id: str, conn: DbConnection) -> dict:
+async def list_transaction_tags(transaction_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Список тегов транзакции."""
-    tags = await tag_repo.list_transaction_tags(conn, transaction_id)
+    txn = await txn_repo.find_transaction(conn, user["id"], transaction_id)
+    if txn is None:
+        raise NotFoundError("Транзакция не найдена")
+    tags = await tag_repo.list_transaction_tags(conn, user["id"], transaction_id)
     return {"items": tags}
 
 
@@ -109,10 +115,16 @@ async def list_transaction_tags(transaction_id: str, conn: DbConnection) -> dict
 async def replace_transaction_tags(
     transaction_id: str,
     data: TransactionTagsReplace,
+    user: CurrentUser,
     conn: DbConnection,
 ) -> dict:
     """Полная замена тегов транзакции."""
-    items = await tag_repo.replace_transaction_tags(conn, transaction_id, data.tag_ids)
+    txn = await txn_repo.find_transaction(conn, user["id"], transaction_id)
+    if txn is None:
+        raise NotFoundError("Транзакция не найдена")
+    items = await tag_repo.replace_transaction_tags(
+        conn, user["id"], transaction_id, data.tag_ids
+    )
     return {"items": items}
 
 
@@ -120,17 +132,23 @@ async def replace_transaction_tags(
 async def attach_transaction_tag(
     transaction_id: str,
     tag_id: str,
+    user: CurrentUser,
     conn: DbConnection,
 ) -> None:
     """Прикрепление тега к транзакции."""
-    await tag_repo.attach_tag(conn, transaction_id, tag_id)
+    attached = await tag_repo.attach_tag(conn, user["id"], transaction_id, tag_id)
+    if not attached:
+        raise NotFoundError("Транзакция или тег не найден")
 
 
 @router.delete("/{transaction_id}/tags/{tag_id}", status_code=204)
 async def detach_transaction_tag(
     transaction_id: str,
     tag_id: str,
+    user: CurrentUser,
     conn: DbConnection,
 ) -> None:
     """Открепление тега от транзакции."""
-    await tag_repo.detach_tag(conn, transaction_id, tag_id)
+    detached = await tag_repo.detach_tag(conn, user["id"], transaction_id, tag_id)
+    if not detached:
+        raise NotFoundError("Транзакция или тег не найден")

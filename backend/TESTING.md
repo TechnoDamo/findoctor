@@ -1,300 +1,141 @@
-# FinDoctor Backend Testing System
+# Тестирование backend
 
-## Overview
+Backend тестируется как интеграционный API-сервис: FastAPI вызывается через `httpx`, а данные пишутся в реальную PostgreSQL test DB. Это медленнее чистых unit-тестов, зато хорошо ловит ошибки миграций, SQL, авторизации и контрактов.
 
-This document describes the comprehensive testing system for the FinDoctor backend API. The system includes:
-
-1. **Enhanced test runner** with command-line flags for different endpoint groups
-2. **Comprehensive auth tests** with database verification
-3. **Makefile commands** for easy test execution
-4. **Detailed logging** with different verbosity levels
-
-## Test Architecture
-
-### Test Files Structure
-
-```
-backend/tests/
-├── conftest.py              # Test fixtures and configuration
-├── test_auth.py             # Basic authentication tests
-├── test_auth_comprehensive.py # Comprehensive auth tests with DB verification
-├── test_accounts.py         # Accounts endpoint tests
-└── (more test files as endpoints are added)
-```
-
-### Test Runner
-
-The enhanced test runner (`test_runner.py`) provides:
-- Colorized output for better readability
-- Command-line flags for testing specific endpoint groups
-- Different verbosity levels (quiet, normal, verbose, debug)
-- Database verification for auth tests
-
-## Makefile Test Commands
-
-### Basic Test Commands
-
-| Command | Description |
-|---------|-------------|
-| `make test` | Run all tests with pytest (default) |
-| `make test-auth` | Run authentication tests only |
-| `make test-accounts` | Run accounts tests only |
-| `make test-comprehensive` | Run comprehensive tests with database verification |
-| `make test-all` | Run all tests including comprehensive ones |
-
-### Advanced Test Commands
-
-| Command | Description |
-|---------|-------------|
-| `make test-verbose` | Run tests with verbose output |
-| `make test-debug` | Run tests with debug output (no capture) |
-| `make test-coverage` | Run tests with coverage report |
-
-### Test Runner Commands
-
-You can also use the enhanced test runner directly:
+## Быстрый запуск
 
 ```bash
-# Run all tests
-python test_runner.py --all
-
-# Run specific test groups
-python test_runner.py --auth --accounts
-
-# Run with verbose output
-python test_runner.py --all --verbose
-
-# Run with debug output
-python test_runner.py --all --debug
-
-# Run specific groups by name
-python test_runner.py --groups auth accounts
-
-# Run quietly
-python test_runner.py --all --quiet
+cd backend
+./.venv/bin/python -m compileall -q app tests scripts
+./.venv/bin/ruff check app tests scripts
+./.venv/bin/pytest tests/ -q
 ```
 
-## Comprehensive Auth Tests
-
-The `test_auth_comprehensive.py` file provides thorough testing of authentication endpoints with database verification:
-
-### Test Categories
-
-1. **Registration Tests**
-   - User registration with database verification
-   - Password hashing verification (not stored in plain text)
-   - Session creation verification
-   - Duplicate email handling
-
-2. **Login Tests**
-   - Successful login with session creation
-   - Failed login with wrong password
-   - Non-existent user login
-   - Session management verification
-
-3. **Token Tests**
-   - Token refresh with session invalidation
-   - Invalid token handling
-   - Token expiration verification
-
-4. **Logout Tests**
-   - Session deletion on logout
-   - Token invalidation after logout
-
-5. **Current User Tests**
-   - User data retrieval
-   - Sensitive field protection (password, hash)
-   - Database-API data consistency
-
-6. **Edge Case Tests**
-   - Invalid email format
-   - Weak password handling
-   - Various error scenarios
-
-### Database Verification
-
-Each test verifies:
-- API response correctness
-- Database state changes
-- Data integrity
-- Security measures (password hashing, token hashing)
-
-## Running Tests
-
-### Prerequisites
-
-1. **Database**: PostgreSQL must be running
-2. **Dependencies**: All Python dependencies installed
-3. **Environment**: Proper environment variables set
-
-### Quick Start
+Через Makefile:
 
 ```bash
-# Start the database
-make db-up
-
-# Apply migrations
-make migrate
-
-# Run all tests
+cd backend
 make test
-
-# Run comprehensive auth tests
-make test-comprehensive
-
-# Run tests with coverage
-make test-coverage
 ```
 
-### Test Environment
+`make test` запускает lint, compile, reset test DB и pytest.
 
-The test environment uses:
-- **Test database**: `findoctor_test` on port 5433
-- **Isolation**: Database is cleaned between tests
-- **Real PostgreSQL**: Tests run against actual PostgreSQL via Docker
+## Требования
 
-## Test Fixtures
+- PostgreSQL доступен на тестовых настройках из `tests/conftest.py`.
+- Alembic-миграции применимы к test DB.
+- Python-зависимости установлены в `.venv` или доступны через `uv`.
 
-Available fixtures in `conftest.py`:
+По умолчанию тестовая БД называется `findoctor_test`. Можно переопределить:
 
-| Fixture | Description |
-|---------|-------------|
-| `db_connection` | Clean database connection for each test |
-| `test_client` | HTTP client for API testing |
-| `register_data` | Test data for user registration |
-| `auth_headers` | Authorization headers for authenticated requests |
+```bash
+TEST_POSTGRES_DB=findoctor_test
+TEST_DATABASE_URL=postgresql+psycopg://...
+TEST_PSYCOPG_DSN=postgres://...
+```
 
-## Writing New Tests
+## Структура
 
-### Basic Test Structure
+```text
+backend/tests/
+  conftest.py                         # фикстуры, миграции, очистка БД
+  test_auth.py                        # базовый auth flow
+  test_auth_comprehensive.py          # auth + проверка состояния БД
+  test_authorization_boundaries.py    # cross-user isolation
+  test_openapi_contract.py            # parity FastAPI routes и OpenAPI YAML
+  test_smoke_e2e.py                   # полный lifecycle пользователя
+  test_recommendations.py             # recommendation planner/tools
+  test_user_data_tool.py              # внутренний finance data tool
+  ...
+```
+
+## Что покрываем
+
+- Регистрация, логин, refresh, logout.
+- Хеширование паролей и хранение refresh-token hash.
+- Защищенные endpoints и отсутствие чувствительных полей в API.
+- CRUD счетов, операций, переводов, активов, обязательств, целей, тегов.
+- Переводы как атомарная связка `transfer + debit transaction + credit transaction`.
+- Платежи по обязательствам и автоматическое создание transaction.
+- Аналитика: dashboard, cash-flow, net-worth, snapshots.
+- AI chat: сообщения, диалоги, голосовой сценарий, agentic режим.
+- OpenAPI-контракт: количество и набор операций должны совпадать с FastAPI.
+- Изоляция пользователей: чужие UUID возвращают `404`.
+
+## Команды Makefile
+
+| Команда | Назначение |
+| --- | --- |
+| `make test` | полный backend gate |
+| `make test-unit` | только pytest |
+| `make test-auth` | auth-тесты |
+| `make test-accounts` | тесты счетов |
+| `make test-comprehensive` | расширенные auth-тесты с БД-проверками |
+| `make test-coverage` | pytest с coverage report |
+| `make lint` | Ruff |
+| `make compile` | compileall |
+| `make contract-check` | только OpenAPI parity |
+
+## Фикстуры
+
+| Фикстура | Что дает |
+| --- | --- |
+| `test_client` | `httpx.AsyncClient` поверх FastAPI ASGI app |
+| `db_connection` | чистое PostgreSQL-соединение для прямых проверок |
+| `register_data` | стандартный payload регистрации |
+| `auth_headers` | bearer headers для тестового пользователя |
+
+База очищается до и после каждого теста. Справочники, засеянные миграциями, сохраняются.
+
+## Как писать новые тесты
+
+Минимальный API-тест:
 
 ```python
 import pytest
 from httpx import AsyncClient
 
-@pytest.mark.anyio
-async def test_example_endpoint(
-    test_client: AsyncClient,
-    auth_headers: dict,
-) -> None:
-    """Test description."""
-    resp = await test_client.get(
-        "/api/v1/endpoint",
-        headers=auth_headers,
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    # Add assertions
+pytestmark = pytest.mark.anyio
+
+
+async def test_endpoint(test_client: AsyncClient, auth_headers: dict) -> None:
+    response = await test_client.get("/api/v1/accounts", headers=auth_headers)
+    assert response.status_code == 200
+    assert "items" in response.json()
 ```
 
-### Test with Database Verification
+Тест с прямой проверкой БД:
 
 ```python
-import pytest
-from httpx import AsyncClient
-from psycopg import AsyncConnection
+async def test_database_state(test_client, db_connection, auth_headers):
+    response = await test_client.post("/api/v1/tags", json={"name": "важное"}, headers=auth_headers)
+    assert response.status_code == 201
 
-@pytest.mark.anyio
-async def test_with_db_verification(
-    test_client: AsyncClient,
-    db_connection: AsyncConnection,
-    auth_headers: dict,
-) -> None:
-    """Test with database verification."""
-    # API call
-    resp = await test_client.post("/api/v1/endpoint", headers=auth_headers)
-    assert resp.status_code == 201
-    
-    # Database verification
     async with db_connection.cursor() as cur:
-        await cur.execute("SELECT * FROM table WHERE condition")
+        await cur.execute("SELECT name FROM tags WHERE id = %s", (response.json()["id"],))
         row = await cur.fetchone()
-        assert row is not None
-        # Add assertions
+        assert row["name"] == "важное"
 ```
 
-## Best Practices
+## Обязательные проверки для финансовых endpoints
 
-1. **Isolation**: Each test should be independent
-2. **Verification**: Always verify both API response and database state
-3. **Cleanup**: Tests should clean up after themselves
-4. **Descriptive**: Use descriptive test names and assertions
-5. **Coverage**: Aim for high test coverage of business logic
+Для каждого нового пользовательского ресурса добавляйте:
 
-## Troubleshooting
+- happy path create/list/get/update/delete;
+- unauthorized request без bearer token;
+- cross-user test: User A создает ресурс, User B получает `404` на get/update/delete;
+- проверку OpenAPI-контракта, если меняется route surface;
+- проверку БД-инвариантов, если операция затрагивает несколько таблиц.
 
-### Common Issues
-
-1. **Database connection errors**: Ensure Docker is running and database is started
-2. **Test failures**: Check test isolation and cleanup
-3. **Import errors**: Verify dependencies are installed
-
-### Debugging Tests
+## Перед демо или PR
 
 ```bash
-# Run tests with debug output
-make test-debug
+cd backend
+./.venv/bin/pytest tests/ -q
 
-# Run specific test with more output
-uv run pytest tests/test_auth.py::test_specific_function -vvv --capture=no
-
-# Run tests with logging
-uv run pytest tests/ -v --log-level=DEBUG
+cd ../frontend
+npm audit --audit-level=moderate
+npm run build
 ```
 
-## Coverage Reports
-
-Generate coverage reports:
-
-```bash
-# Generate HTML coverage report
-make test-coverage
-
-# View coverage in terminal
-uv run pytest tests/ --cov=app --cov-report=term
-
-# Generate XML report for CI
-uv run pytest tests/ --cov=app --cov-report=xml
-```
-
-The coverage report will be available in `htmlcov/` directory.
-
-## CI/CD Integration
-
-The testing system is designed for easy CI/CD integration:
-
-```yaml
-# Example GitHub Actions workflow
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv sync --dev
-      - name: Start database
-        run: make db-up
-      - name: Run migrations
-        run: make migrate
-      - name: Run tests
-        run: make test
-      - name: Generate coverage
-        run: make test-coverage
-```
-
-## Conclusion
-
-The FinDoctor testing system provides comprehensive, reliable testing for all API endpoints. The system emphasizes:
-
-- **Thoroughness**: Complete endpoint coverage with database verification
-- **Flexibility**: Multiple ways to run tests based on needs
-- **Reliability**: Isolated tests with proper cleanup
-- **Security**: Verification of security measures (hashing, tokens)
-
-For questions or issues, refer to the test output or check the specific test files for implementation details.
+Ожидаемый здоровый результат на текущем состоянии проекта: полный backend suite проходит, npm audit не находит уязвимостей, frontend production build собирается.

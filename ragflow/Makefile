@@ -16,7 +16,8 @@ UPSTREAM_DOCKER_DIR := $(RAGFLOW_RUNTIME_DIR)/docker
 UPSTREAM_ENV        := $(UPSTREAM_DOCKER_DIR)/.env
 
 .PHONY: help init fetch configure pull up down stop start reload restart test \
-        key-create key-list key-delete ds-create ds-list ds-delete
+        key-create key-list key-delete ds-create ds-list ds-delete \
+        load-test-docs clear-dataset docs-list setup
 
 help:
 	@echo "RAGFlow — self-hosted RAG-сервис ФинДоктора"
@@ -41,8 +42,10 @@ help:
 	@echo "  start возобновляет stop-нутые контейнеры, up — создаёт заново."
 	@echo "  reload пересоздаёт контейнеры (сброс состояния), restart перезапускает на месте."
 	@echo ""
-	@echo "Быстрый старт:"
-	@echo "  make init && make fetch && make configure && make pull && make up"
+	@echo "Быстрый старт (всё одной командой):"
+	@echo "  make up && make setup           Запустить RAGFlow и настроить admin + API-ключ + датасет + модели"
+	@echo "  make load-test-docs             Загрузить 18 тестовых документов (опционально)"
+	@echo "  make test                       Проверить, что retrieval работает"
 	@echo ""
 	@echo "Управление API-ключами (требует RAGFLOW_ADMIN_EMAIL/PASSWORD):"
 	@echo "  make key-create NAME=<name>     Создать API-ключ и записать в RAGFLOW_API_KEY"
@@ -53,6 +56,14 @@ help:
 	@echo "  make ds-create NAME=<name>      Создать датасет и записать в RAGFLOW_DATASET_ID"
 	@echo "  make ds-list                    Показать все датасеты"
 	@echo "  make ds-delete ID=<dataset_id>  Удалить датасет"
+	@echo ""
+	@echo "Тестовые документы:"
+	@echo "  make load-test-docs             Загрузить тестовые документы в датасет и запустить парсинг"
+	@echo "  make clear-dataset              Удалить все документы из датасета"
+	@echo "  make docs-list                  Список документов со статусом индексации"
+	@echo ""
+	@echo "Авто-настройка:"
+	@echo "  make setup                      Полная настройка RAGFlow: admin, API-ключ, датасет, модели"
 
 # ----------------------------------------------------------------------
 # Настройка
@@ -182,3 +193,18 @@ ds-list: _admin_check
 ds-delete: _admin_check
 	@if [ -z "$${ID:-}" ]; then echo "Укажите ID=<dataset_id>"; exit 1; fi
 	@python3 scripts/ragflow_admin.py ds-delete --id="$$ID"
+
+# -- Тестовые документы --------------------------------------------------
+load-test-docs: _admin_check up
+	@bash scripts/load_test_docs.sh
+
+clear-dataset: _admin_check up
+	@bash scripts/clear_dataset.sh
+
+# -- Список документов ---------------------------------------------------
+docs-list: _api_check
+	@python3 scripts/list_docs.py
+
+# -- Полная авто-настройка -----------------------------------------------
+setup: _admin_check
+	@python3 scripts/setup_ragflow.py

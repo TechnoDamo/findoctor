@@ -20,7 +20,9 @@ SELECT id, user_id, account_id, category_id, liability_id,
        frequency, interval_count, day_of_month,
        start_date, end_date, next_payment_date,
        auto_generated, confidence_score, is_active
-FROM recurring_transactions WHERE id = %(recurring_transaction_id)s;
+FROM recurring_transactions
+WHERE id = %(recurring_transaction_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_recurring_transaction
 -- Создание регулярной операции
@@ -58,6 +60,7 @@ UPDATE recurring_transactions SET
     next_payment_date = COALESCE(%(next_payment_date)s::date, next_payment_date),
     is_active = COALESCE(%(is_active)s, is_active)
 WHERE id = %(recurring_transaction_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, account_id, category_id, liability_id,
     operation_type, name, expected_amount, currency,
     frequency, interval_count, day_of_month,
@@ -66,4 +69,6 @@ RETURNING id, user_id, account_id, category_id, liability_id,
 
 -- name: deactivate_recurring_transaction
 -- Деактивация регулярной операции
-UPDATE recurring_transactions SET is_active = false WHERE id = %(recurring_transaction_id)s;
+UPDATE recurring_transactions SET is_active = false
+WHERE id = %(recurring_transaction_id)s
+  AND user_id = %(user_id)s;

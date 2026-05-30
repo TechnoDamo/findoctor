@@ -14,7 +14,9 @@ ORDER BY name;
 -- Получение счёта по id
 SELECT id, user_id, account_type_id, institution_id, name, institution_name,
        currency, balance, is_active, created_at, updated_at
-FROM accounts WHERE id = %(account_id)s;
+FROM accounts
+WHERE id = %(account_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_account
 -- Создание нового счёта
@@ -34,10 +36,12 @@ UPDATE accounts SET
     is_active = COALESCE(%(is_active)s, is_active),
     updated_at = now()
 WHERE id = %(account_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, account_type_id, institution_id, name, institution_name, currency, balance, is_active, created_at, updated_at;
 
 -- name: archive_account
 -- Архивация счёта (вместо удаления — сохраняем историю)
 UPDATE accounts SET is_active = false, updated_at = now()
 WHERE id = %(account_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, account_type_id, institution_id, name, institution_name, currency, balance, is_active, created_at, updated_at;

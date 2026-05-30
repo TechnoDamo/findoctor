@@ -19,12 +19,12 @@ async def list_liability_payments(
 
 
 async def find_liability_payment(
-    conn: AsyncConnection, liability_payment_id: str
+    conn: AsyncConnection, user_id: str, liability_payment_id: str
 ) -> dict | None:
     """Получение платежа по id."""
     return await conn.fetchrow(
         _queries["find_liability_payment"],
-        {"liability_payment_id": liability_payment_id},
+        {"user_id": user_id, "liability_payment_id": liability_payment_id},
     )
 
 
@@ -34,20 +34,21 @@ async def insert_liability_payment(conn: AsyncConnection, data: dict) -> dict:
 
 
 async def update_liability_payment(
-    conn: AsyncConnection, liability_payment_id: str, data: dict
-) -> dict:
+    conn: AsyncConnection, user_id: str, liability_payment_id: str, data: dict
+) -> dict | None:
     """Обновление платежа."""
     return await conn.fetchrow(
         _queries["update_liability_payment"],
-        {"liability_payment_id": liability_payment_id, **data},
+        {"user_id": user_id, "liability_payment_id": liability_payment_id, **data},
     )
 
 
 async def delete_liability_payment(
-    conn: AsyncConnection, liability_payment_id: str
-) -> None:
+    conn: AsyncConnection, user_id: str, liability_payment_id: str
+) -> bool:
     """Удаление платежа."""
-    await conn.execute(
+    cursor = await conn.execute(
         _queries["delete_liability_payment"],
-        {"liability_payment_id": liability_payment_id},
+        {"user_id": user_id, "liability_payment_id": liability_payment_id},
     )
+    return cursor.rowcount > 0

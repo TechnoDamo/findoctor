@@ -31,7 +31,8 @@ SELECT
 FROM transfers tf
 LEFT JOIN transactions ft ON ft.transfer_id = tf.id AND ft.transfer_leg = 'debit'
 LEFT JOIN transactions tt ON tt.transfer_id = tf.id AND tt.transfer_leg = 'credit'
-WHERE tf.id = %(transfer_id)s;
+WHERE tf.id = %(transfer_id)s
+  AND tf.user_id = %(user_id)s;
 
 -- name: insert_transfer
 -- Создание перевода (без транзакций — они создаются отдельно в сервисе)
@@ -49,16 +50,23 @@ UPDATE transfers SET
     transaction_datetime = COALESCE(%(transaction_datetime)s, transaction_datetime),
     description = %(description)s
 WHERE id = %(transfer_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, from_account_id, to_account_id, amount, currency, transaction_datetime, description;
 
 -- name: delete_transfer
 -- Удаление перевода
-DELETE FROM transfers WHERE id = %(transfer_id)s;
+DELETE FROM transfers
+WHERE id = %(transfer_id)s
+  AND user_id = %(user_id)s;
 
 -- name: find_transfer_linked_transactions
 -- Получение ID связанных транзакций перевода
-SELECT id, transfer_leg FROM transactions WHERE transfer_id = %(transfer_id)s;
+SELECT id, transfer_leg FROM transactions
+WHERE transfer_id = %(transfer_id)s
+  AND user_id = %(user_id)s;
 
 -- name: delete_transfer_transactions
 -- Удаление связанных транзакций перевода
-DELETE FROM transactions WHERE transfer_id = %(transfer_id)s;
+DELETE FROM transactions
+WHERE transfer_id = %(transfer_id)s
+  AND user_id = %(user_id)s;

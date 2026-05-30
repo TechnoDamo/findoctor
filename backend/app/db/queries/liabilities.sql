@@ -22,7 +22,9 @@ SELECT id, user_id, liability_type_id, linked_account_id, collateral_asset_id,
        minimum_payment_amount, regular_payment_amount,
        payment_due_day, start_date, maturity_date,
        status, created_at, updated_at
-FROM liabilities WHERE id = %(liability_id)s;
+FROM liabilities
+WHERE id = %(liability_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_liability
 -- Создание обязательства
@@ -70,6 +72,7 @@ UPDATE liabilities SET
     status = COALESCE(%(status)s, status),
     updated_at = now()
 WHERE id = %(liability_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, liability_type_id, linked_account_id, collateral_asset_id,
     name, creditor_institution_id, creditor_name,
     original_amount, current_balance, currency,
@@ -82,6 +85,7 @@ RETURNING id, user_id, liability_type_id, linked_account_id, collateral_asset_id
 -- Закрытие обязательства
 UPDATE liabilities SET status = 'closed', updated_at = now()
 WHERE id = %(liability_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, liability_type_id, linked_account_id, collateral_asset_id,
     name, creditor_institution_id, creditor_name,
     original_amount, current_balance, currency,

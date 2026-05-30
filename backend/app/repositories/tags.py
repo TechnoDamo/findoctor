@@ -13,9 +13,9 @@ async def list_tags(conn: AsyncConnection, user_id: str) -> list[dict]:
     return list(rows)
 
 
-async def find_tag(conn: AsyncConnection, tag_id: str) -> dict | None:
+async def find_tag(conn: AsyncConnection, user_id: str, tag_id: str) -> dict | None:
     """Поиск тега по id."""
-    return await conn.fetchrow(_queries["find_tag"], {"tag_id": tag_id})
+    return await conn.fetchrow(_queries["find_tag"], {"user_id": user_id, "tag_id": tag_id})
 
 
 async def insert_tag(conn: AsyncConnection, user_id: str, name: str) -> dict:
@@ -25,52 +25,57 @@ async def insert_tag(conn: AsyncConnection, user_id: str, name: str) -> dict:
     )
 
 
-async def update_tag(conn: AsyncConnection, tag_id: str, name: str) -> dict:
+async def update_tag(conn: AsyncConnection, user_id: str, tag_id: str, name: str) -> dict | None:
     """Обновление тега."""
-    return await conn.fetchrow(_queries["update_tag"], {"tag_id": tag_id, "name": name})
+    return await conn.fetchrow(
+        _queries["update_tag"], {"user_id": user_id, "tag_id": tag_id, "name": name}
+    )
 
 
-async def delete_tag(conn: AsyncConnection, tag_id: str) -> None:
+async def delete_tag(conn: AsyncConnection, user_id: str, tag_id: str) -> bool:
     """Удаление тега."""
-    await conn.execute(_queries["delete_tag"], {"tag_id": tag_id})
+    cursor = await conn.execute(_queries["delete_tag"], {"user_id": user_id, "tag_id": tag_id})
+    return cursor.rowcount > 0
 
 
 async def list_transaction_tags(
-    conn: AsyncConnection, transaction_id: str
+    conn: AsyncConnection, user_id: str, transaction_id: str
 ) -> list[dict]:
     """Получение списка тегов транзакции."""
     rows = await conn.fetch(
-        _queries["list_transaction_tags"], {"transaction_id": transaction_id}
+        _queries["list_transaction_tags"], {"user_id": user_id, "transaction_id": transaction_id}
     )
     return list(rows)
 
 
 async def replace_transaction_tags(
-    conn: AsyncConnection, transaction_id: str, tag_ids: list[str]
+    conn: AsyncConnection, user_id: str, transaction_id: str, tag_ids: list[str]
 ) -> list[dict]:
     """Полная замена тегов транзакции."""
     await conn.execute(
-        _queries["delete_transaction_tags"], {"transaction_id": transaction_id}
+        _queries["delete_transaction_tags"], {"user_id": user_id, "transaction_id": transaction_id}
     )
     for tag_id in tag_ids:
         await conn.execute(
             _queries["insert_transaction_tag"],
-            {"transaction_id": transaction_id, "tag_id": tag_id},
+            {"user_id": user_id, "transaction_id": transaction_id, "tag_id": tag_id},
         )
-    return await list_transaction_tags(conn, transaction_id)
+    return await list_transaction_tags(conn, user_id, transaction_id)
 
 
-async def attach_tag(conn: AsyncConnection, transaction_id: str, tag_id: str) -> None:
+async def attach_tag(conn: AsyncConnection, user_id: str, transaction_id: str, tag_id: str) -> bool:
     """Прикрепление тега к транзакции."""
-    await conn.execute(
+    cursor = await conn.execute(
         _queries["insert_transaction_tag"],
-        {"transaction_id": transaction_id, "tag_id": tag_id},
+        {"user_id": user_id, "transaction_id": transaction_id, "tag_id": tag_id},
     )
+    return cursor.rowcount > 0
 
 
-async def detach_tag(conn: AsyncConnection, transaction_id: str, tag_id: str) -> None:
+async def detach_tag(conn: AsyncConnection, user_id: str, transaction_id: str, tag_id: str) -> bool:
     """Открепление тега от транзакции."""
-    await conn.execute(
+    cursor = await conn.execute(
         _queries["delete_transaction_tag"],
-        {"transaction_id": transaction_id, "tag_id": tag_id},
+        {"user_id": user_id, "transaction_id": transaction_id, "tag_id": tag_id},
     )
+    return cursor.rowcount > 0

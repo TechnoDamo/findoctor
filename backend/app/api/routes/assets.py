@@ -30,21 +30,26 @@ async def create_asset(data: AssetCreate, user: CurrentUser, conn: DbConnection)
 
 
 @router.get("/{asset_id}", response_model=Asset)
-async def get_asset(asset_id: str, conn: DbConnection) -> dict:
+async def get_asset(asset_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение актива."""
-    asset = await asset_repo.find_asset(conn, asset_id)
+    asset = await asset_repo.find_asset(conn, user["id"], asset_id)
     if asset is None:
         raise NotFoundError("Актив не найден")
     return asset
 
 
 @router.patch("/{asset_id}", response_model=Asset)
-async def update_asset(asset_id: str, data: AssetUpdate, conn: DbConnection) -> dict:
+async def update_asset(asset_id: str, data: AssetUpdate, user: CurrentUser, conn: DbConnection) -> dict:
     """Обновление актива."""
-    return await asset_repo.update_asset(conn, asset_id, data.model_dump())
+    asset = await asset_repo.update_asset(conn, user["id"], asset_id, data.model_dump())
+    if asset is None:
+        raise NotFoundError("Актив не найден")
+    return asset
 
 
 @router.delete("/{asset_id}", status_code=204)
-async def delete_asset(asset_id: str, conn: DbConnection) -> None:
+async def delete_asset(asset_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Удаление актива."""
-    await asset_repo.delete_asset(conn, asset_id)
+    deleted = await asset_repo.delete_asset(conn, user["id"], asset_id)
+    if not deleted:
+        raise NotFoundError("Актив не найден")

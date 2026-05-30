@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -17,6 +18,23 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 from app.settings import settings
 
 logger = structlog.get_logger("http")
+SENSITIVE_HEADER_NAMES = {
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "x-api-key",
+    "x-findoctor-password",
+}
+SENSITIVE_BODY_KEYS = {
+    "access_token",
+    "api_key",
+    "audio",
+    "base64",
+    "data",
+    "password",
+    "refresh_token",
+    "token",
+}
 
 
 class HttpLoggingMiddleware(BaseHTTPMiddleware):
@@ -107,7 +125,10 @@ def _make_receive(body: bytes) -> Callable[[], Awaitable[Message]]:
 
 
 def _headers(headers: Any) -> dict[str, str]:
-    return {key: value for key, value in headers.items()}
+    return {
+        key: "[redacted]" if key.lower() in SENSITIVE_HEADER_NAMES else value
+        for key, value in headers.items()
+    }
 
 
 def _request_target(request: Request) -> str:
@@ -122,10 +143,27 @@ def _body(body: bytes, content_type: str | None) -> dict[str, Any]:
         return {"encoding": "utf-8", "content": ""}
 
     try:
-        return {"encoding": "utf-8", "content": body.decode("utf-8")}
+        text = body.decode("utf-8")
     except UnicodeDecodeError:
         return {
             "encoding": "base64",
             "content_type": content_type,
             "content": base64.b64encode(body).decode("ascii"),
         }
+    if content_type and "json" in content_type.lower():
+        try:
+            return {"encoding": "json", "content": _redact_json(json.loads(text))}
+        except json.JSONDecodeError:
+            pass
+    return {"encoding": "utf-8", "content": text}
+
+
+def _redact_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "[redacted]" if key.lower() in SENSITIVE_BODY_KEYS else _redact_json(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_json(item) for item in value]
+    return value

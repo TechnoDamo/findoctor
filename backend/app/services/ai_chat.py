@@ -84,6 +84,53 @@ async def _run_llm(user_text: str, financial_context: dict | None = None, prompt
     return _message_text(response), response.get("usage") or {}
 
 
+async def _build_messages_for_llm(conn: AsyncConnection, conversation_id: str) -> list[dict]:
+    """Build OpenAI-format message list from stored conversation history."""
+    if not conversation_id:
+        return []
+    try:
+        messages = await chat_repo.list_messages(conn, conversation_id)
+    except Exception:
+        return []
+    last_n = messages[-settings.ai_chat_history_max_messages:]
+    formatted: list[dict] = []
+    for msg in last_n:
+        if isinstance(msg.get("content"), list):
+            text_parts = [p.get("text") or "" for p in msg["content"] if isinstance(p, dict)]
+        else:
+            text_parts = [str(msg.get("content", ""))]
+        text = " ".join(p for p in text_parts if p)
+        if text:
+            formatted.append({"role": msg["role"], "content": text})
+    return formatted
+
+
+async def _run_agent(
+    *,
+    conn: AsyncConnection,
+    user: dict,
+    user_text: str,
+    conversation_id: str | None = None,
+    prompt_name: str = "llm_text",
+    context_defaults: dict | None = None,
+) -> tuple[str, dict, list[dict]]:
+    """Run the agentic flow (planner → tools → finalizer)."""
+    from app.services.recommendations.orchestrator import run_recommendation_flow
+
+    financial_context = json.dumps(context_defaults or {}, ensure_ascii=False)
+
+    final_text, usage, tool_results = await run_recommendation_flow(
+        conn=conn,
+        user_id=user["id"],
+        user_text=user_text,
+        financial_context=financial_context,
+        prompt_name=prompt_name,
+        conversation_id=conversation_id,
+        context_defaults=context_defaults,
+    )
+    return final_text, usage, tool_results
+
+
 async def _run_stt(audio_data: str, audio_format: str, prompt: str | None = None) -> tuple[str, dict]:
     _base_url, _api_key, model = _provider_config("stt")
     stt_prompt = _read_prompt("stt_system.txt")
@@ -219,11 +266,13 @@ async def send_message(
     audio_response: dict | None = None,
     financial_context: dict | None = None,
     context_options: dict | None = None,
+    agentic: bool = True,
 ) -> dict:
     """
     Отправка сообщения AI-ассистенту и сохранение ответа.
 
     Если conversation_id не указан — создаётся новый диалог.
+    При agentic=True используется цепочка planner → tools → finalizer.
     """
     user_id = user["id"]
 
@@ -235,7 +284,6 @@ async def send_message(
         if conversation is None or conversation["user_id"] != user_id:
             raise NotFoundError("Диалог не найден")
 
-    # Сохраняем сообщение пользователя
     user_msg = await chat_repo.insert_message(
         conn, conversation_id, "user", input_parts
     )
@@ -250,7 +298,18 @@ async def send_message(
         transcript, _stt_usage = await _run_stt(audio_data, audio_format, audio_part.get("text"))
         user_text = "\n".join(part for part in [user_text, transcript] if part).strip()
 
-    assistant_text, llm_usage = await _run_llm(user_text, financial_context)
+    if agentic:
+        assistant_text, llm_usage, tool_results = await _run_agent(
+            conn=conn,
+            user=user,
+            user_text=user_text,
+            conversation_id=conversation_id,
+            context_defaults=context_options,
+        )
+    else:
+        assistant_text, llm_usage = await _run_llm(user_text, financial_context)
+        tool_results = []
+
     audio_payload = None
     if "audio" in (response_modalities or []):
         audio_payload = await _run_tts(
@@ -259,7 +318,6 @@ async def send_message(
             response_format=(audio_response or {}).get("format"),
         )
 
-    # Сохраняем ответ ассистента
     assistant_parts = [{"type": "text", "text": assistant_text, "audio": audio_payload}]
     assistant_msg = await chat_repo.insert_message(
         conn, conversation_id, "assistant", assistant_parts
@@ -276,7 +334,8 @@ async def send_message(
             "transcript": transcript,
             "request_text": transcript or user_text,
         },
-        "tool_results": [],
+        "tool_results": [{"name": r.get("name", r.get("type", "unknown")), "result": r.get("result", r)}
+                         for r in tool_results],
         "usage": {
             "input_tokens": llm_usage.get("prompt_tokens"),
             "output_tokens": llm_usage.get("completion_tokens"),
@@ -328,7 +387,13 @@ async def send_voice_message(
     user_msg = await chat_repo.insert_message(conn, conversation_id, "user", input_parts)
 
     transcript, _stt_usage = await _run_stt(audio_data, audio_format, prompt)
-    assistant_text, llm_usage = await _run_llm(transcript, prompt_name="llm_voice")
+    assistant_text, llm_usage, tool_results = await _run_agent(
+        conn=conn,
+        user=user,
+        user_text=transcript,
+        conversation_id=conversation_id,
+        prompt_name="llm_voice",
+    )
     audio_payload = None
     if "audio" in (response_modalities or ["audio", "text"]):
         audio_payload = await _run_tts(_truncate_for_tts(assistant_text), voice=voice, response_format=response_format)
@@ -348,7 +413,8 @@ async def send_voice_message(
             "transcript": transcript,
             "request_text": transcript,
         },
-        "tool_results": [],
+        "tool_results": [{"name": r.get("name", r.get("type", "unknown")), "result": r.get("result", r)}
+                         for r in tool_results],
         "usage": {
             "input_tokens": llm_usage.get("prompt_tokens"),
             "output_tokens": llm_usage.get("completion_tokens"),

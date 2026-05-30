@@ -29,6 +29,7 @@ async def test_send_text_message_uses_contract_camel_case(
         json={
             "input": [{"type": "text", "text": "Привет"}],
             "responseModalities": ["text"],
+            "agentic": False,
         },
     )
 
@@ -75,7 +76,7 @@ async def test_send_text_message_continues_existing_camel_case_conversation(
     first = await test_client.post(
         "/api/v1/ai/chat/messages",
         headers=auth_headers,
-        json={"input": [{"type": "text", "text": "Первое"}]},
+        json={"input": [{"type": "text", "text": "Первое"}], "agentic": False},
     )
     assert first.status_code == 200, first.text
     conversation_id = first.json()["conversationId"]
@@ -86,6 +87,7 @@ async def test_send_text_message_continues_existing_camel_case_conversation(
         json={
             "conversationId": conversation_id,
             "input": [{"type": "text", "text": "Второе"}],
+            "agentic": False,
         },
     )
 

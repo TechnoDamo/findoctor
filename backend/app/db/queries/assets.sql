@@ -11,7 +11,9 @@ ORDER BY name;
 -- Получение актива по id
 SELECT id, user_id, asset_type_id, name, estimated_value, currency,
        purchase_price, purchase_date, monthly_cost, created_at, updated_at
-FROM assets WHERE id = %(asset_id)s;
+FROM assets
+WHERE id = %(asset_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_asset
 -- Создание актива
@@ -35,9 +37,12 @@ UPDATE assets SET
     monthly_cost = COALESCE(%(monthly_cost)s::numeric, monthly_cost),
     updated_at = now()
 WHERE id = %(asset_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, asset_type_id, name, estimated_value, currency,
     purchase_price, purchase_date, monthly_cost, created_at, updated_at;
 
 -- name: delete_asset
 -- Удаление актива
-DELETE FROM assets WHERE id = %(asset_id)s;
+DELETE FROM assets
+WHERE id = %(asset_id)s
+  AND user_id = %(user_id)s;

@@ -240,7 +240,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
         headers=headers,
     )
     assert transfer_resp.status_code == 201, f"Transfer: {transfer_resp.text}"
-    transfer_id = transfer_resp.json()["id"]
 
     # -------------------------------------------------------
     # 14. Create a recurring transaction
@@ -261,7 +260,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
         headers=headers,
     )
     assert rt_resp.status_code == 201, f"Recurring txn: {rt_resp.text}"
-    rt_id = rt_resp.json()["id"]
 
     # -------------------------------------------------------
     # 15. Create an asset
@@ -279,7 +277,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
         headers=headers,
     )
     assert asset_resp.status_code == 201, f"Asset: {asset_resp.text}"
-    asset_id = asset_resp.json()["id"]
 
     # -------------------------------------------------------
     # 16. Create a liability (mortgage)
@@ -317,7 +314,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
         headers=headers,
     )
     assert lp_resp.status_code == 201, f"Liability payment: {lp_resp.text}"
-    lp_id = lp_resp.json()["id"]
 
     # -------------------------------------------------------
     # 18. Create a financial goal
@@ -334,7 +330,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
         headers=headers,
     )
     assert goal_resp.status_code == 201, f"Goal: {goal_resp.text}"
-    goal_id = goal_resp.json()["id"]
 
     # -------------------------------------------------------
     # 19. Check analytics / dashboard
@@ -374,8 +369,6 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
     # -------------------------------------------------------
     # 21. AI Chat — send text message (mocked)
     # -------------------------------------------------------
-    from app.services import ai_chat as chat_service
-
     async def fake_run_llm(user_text: str, financial_context: str, prompt_name: str = "llm_text") -> tuple[str, dict]:
         return "Smoke test AI ответ", {"prompt_tokens": 10, "completion_tokens": 5}
 
@@ -390,6 +383,7 @@ async def test_full_lifecycle_smoke(test_client: AsyncClient) -> None:
             json={
                 "conversationId": conv_id,
                 "input": [{"type": "text", "text": "Привет, посчитай мой бюджет"}],
+                "agentic": False,
             },
         )
         assert chat_resp.status_code == 200, f"Chat message: {chat_resp.text}"

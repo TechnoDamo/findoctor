@@ -19,12 +19,12 @@ async def list_recurring_transactions(
 
 
 async def find_recurring_transaction(
-    conn: AsyncConnection, recurring_transaction_id: str
+    conn: AsyncConnection, user_id: str, recurring_transaction_id: str
 ) -> dict | None:
     """Получение регулярной операции по id."""
     return await conn.fetchrow(
         _queries["find_recurring_transaction"],
-        {"recurring_transaction_id": recurring_transaction_id},
+        {"user_id": user_id, "recurring_transaction_id": recurring_transaction_id},
     )
 
 
@@ -38,20 +38,21 @@ async def insert_recurring_transaction(
 
 
 async def update_recurring_transaction(
-    conn: AsyncConnection, recurring_transaction_id: str, data: dict
-) -> dict:
+    conn: AsyncConnection, user_id: str, recurring_transaction_id: str, data: dict
+) -> dict | None:
     """Обновление регулярной операции."""
     return await conn.fetchrow(
         _queries["update_recurring_transaction"],
-        {"recurring_transaction_id": recurring_transaction_id, **data},
+        {"user_id": user_id, "recurring_transaction_id": recurring_transaction_id, **data},
     )
 
 
 async def deactivate_recurring_transaction(
-    conn: AsyncConnection, recurring_transaction_id: str
-) -> None:
+    conn: AsyncConnection, user_id: str, recurring_transaction_id: str
+) -> bool:
     """Деактивация регулярной операции."""
-    await conn.execute(
+    cursor = await conn.execute(
         _queries["deactivate_recurring_transaction"],
-        {"recurring_transaction_id": recurring_transaction_id},
+        {"user_id": user_id, "recurring_transaction_id": recurring_transaction_id},
     )
+    return cursor.rowcount > 0

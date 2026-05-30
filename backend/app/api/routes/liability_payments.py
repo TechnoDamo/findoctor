@@ -40,9 +40,11 @@ async def create_liability_payment(
 
 
 @router.get("/{liability_payment_id}", response_model=LiabilityPayment)
-async def get_liability_payment(liability_payment_id: str, conn: DbConnection) -> dict:
+async def get_liability_payment(
+    liability_payment_id: str, user: CurrentUser, conn: DbConnection
+) -> dict:
     """Получение платежа."""
-    payment = await lp_repo.find_liability_payment(conn, liability_payment_id)
+    payment = await lp_repo.find_liability_payment(conn, user["id"], liability_payment_id)
     if payment is None:
         raise NotFoundError("Платёж не найден")
     return payment
@@ -50,15 +52,22 @@ async def get_liability_payment(liability_payment_id: str, conn: DbConnection) -
 
 @router.patch("/{liability_payment_id}", response_model=LiabilityPayment)
 async def update_liability_payment(
-    liability_payment_id: str, data: LiabilityPaymentUpdate, conn: DbConnection
+    liability_payment_id: str, data: LiabilityPaymentUpdate, user: CurrentUser, conn: DbConnection
 ) -> dict:
     """Обновление платежа."""
-    return await lp_repo.update_liability_payment(
-        conn, liability_payment_id, data.model_dump()
+    payment = await lp_repo.update_liability_payment(
+        conn, user["id"], liability_payment_id, data.model_dump()
     )
+    if payment is None:
+        raise NotFoundError("Платёж не найден")
+    return payment
 
 
 @router.delete("/{liability_payment_id}", status_code=204)
-async def delete_liability_payment(liability_payment_id: str, conn: DbConnection) -> None:
+async def delete_liability_payment(
+    liability_payment_id: str, user: CurrentUser, conn: DbConnection
+) -> None:
     """Удаление платежа."""
-    await lp_repo.delete_liability_payment(conn, liability_payment_id)
+    deleted = await lp_repo.delete_liability_payment(conn, user["id"], liability_payment_id)
+    if not deleted:
+        raise NotFoundError("Платёж не найден")

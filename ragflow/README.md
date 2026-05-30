@@ -24,19 +24,17 @@ Upstream-репозиторий RAGFlow клонируется в `.runtime/ragf
 ```bash
 cd ragflow
 
-make init       # создать .env из .env.example
-make fetch      # склонировать upstream RAGFlow
-make configure  # подготовить upstream docker/.env
-make pull       # скачать все Docker-образы (elasticsearch, postgres, redis, RAGFlow API и т.д.)
-make up         # запустить Docker-стек
-```
+# 1. Клонировать upstream, скачать образы, запустить
+make init && make fetch && make configure && make pull && make up
 
-После запуска откройте RAGFlow по адресу `http://localhost:9380`, создайте service account API-ключ и датасет для рекомендаций, заполните `RAGFLOW_API_KEY` и `RAGFLOW_DATASET_ID` в `ragflow/.env`.
+# 2. Авто-настройка: admin, API-ключ, датасет, модели (RouterAI)
+make setup
 
-Проверьте работу:
+# 3. Опционально: загрузить 18 тестовых документов
+make load-test-docs
 
-```bash
-make test     # health-чек + retrieval smoke test
+# 4. Проверить
+make test
 ```
 
 ## Конфигурация
@@ -194,7 +192,13 @@ make test
 
 ## API-примеры
 
-Все примеры предполагают, что переменные окружения загружены:
+Все примеры предполагают, что переменные окружения загружены. **Самый простой способ** — экспортировать всё из `.env` одной командой:
+
+```bash
+set -a && source .env && set +a
+```
+
+Или вручную:
 
 ```bash
 export RAGFLOW_BASE_URL=http://localhost:9380
@@ -215,18 +219,37 @@ curl -sS \
     "question": "Что проверить перед рекомендацией взять новый кредит?",
     "dataset_ids": ["'"$RAGFLOW_DATASET_ID"'"],
     "page": 1,
-    "page_size": 5
-  }' | python3 -m json.tool
+    "page_size": 5,
+    "similarity_threshold": 0.01,
+    "vector_similarity_weight": 1.0,
+    "top_k": 1024,
+    "keyword": false,
+    "use_kg": false,
+    "cross_languages": [],
+    "highlight": false,
+    "document_ids": [],
+    "rerank_id": ""
+  }' | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin), indent=2, ensure_ascii=False))"
 ```
 
 Параметры:
 
-| Поле | Тип | Назначение |
-|---|---|---|
-| `question` | `string` | Поисковый запрос |
-| `dataset_ids` | `string[]` | ID датасетов для поиска |
-| `page` | `int` | Номер страницы |
-| `page_size` | `int` | Чанков на страницу (backend использует 5) |
+| Поле | Тип | По умолчанию | Назначение |
+|---|---|---|---|
+| `question` | `string` | — (**обязательно**) | Поисковый запрос |
+| `dataset_ids` | `string[]` | — (**обязательно**) | ID датасетов для поиска |
+| `page` | `int` | `1` | Номер страницы |
+| `page_size` | `int` | `30` | Чанков на страницу (backend использует 5) |
+| `similarity_threshold` | `float` | `0.2` | Мин. комбинированный similarity для включения чанка. При `vector_similarity_weight=0` отключается. `0` = вернуть всё |
+| `vector_similarity_weight` | `float` | `0.3` | Вес векторного сходства (0.0–1.0). Остальная доля — keyword BM25. `1.0` = чисто векторный поиск |
+| `top_k` | `int` | `1024` | Сколько кандидатов запросить у ES/Infinity до пороговой фильтрации. Не влияет на финальное число — только на охват |
+| `keyword` | `bool` | `false` | Усилить keyword-поиск — LLM извлечёт ключевые слова из `question` и добавит их в BM25-запрос |
+| `use_kg` | `bool` | `false` | Добавить чанк из knowledge graph (если построен) |
+| `cross_languages` | `string[]` | `[]` | Кросс-языковой поиск. LLM переведёт `question` на указанные языки и добавит их в запрос. Например: `["en"]` |
+| `highlight` | `bool` | `false` | Подсветка keyword-совпадений в возвращаемых чанках (поля `highlight` и `highlighted_content`) |
+| `document_ids` | `string[]` | `[]` | Ограничить поиск конкретными документами. Пустой массив = весь датасет |
+| `rerank_id` | `string` | `""` | Rerank-модель в формате `name@factory`. Если задана — чанки переранжируются через неё вместо локального fusion. Пример: `"bge-reranker-v2-m3@HuggingFace"` |
+| `metadata_condition` | `object` | — | Фильтр по метаданным документов. Пример: `{"logic":"and","conditions":[{"field":"category","operator":"eq","value":"кредит"}]}` |
 
 ### 2. Векторный поиск (без RAG-переранжирования)
 
@@ -241,19 +264,130 @@ curl -sS \
     "question": "размер финансовой подушки безопасности",
     "page": 1,
     "size": 10,
-    "similarity_threshold": 0.2,
-    "vector_similarity_weight": 0.3
-  }' | python3 -m json.tool
+    "similarity_threshold": 0.01,
+    "vector_similarity_weight": 1.0,
+    "top_k": 1024,
+    "keyword": false,
+    "use_kg": false,
+    "doc_ids": [],
+    "cross_languages": [],
+    "rerank_id": ""
+  }' | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin), indent=2, ensure_ascii=False))"
 ```
 
 Параметры:
 
-| Поле | Тип | Назначение |
-|---|---|---|
-| `question` | `string` | Поисковый запрос |
-| `page` | `int` | Номер страницы |
-| `size` | `int` | Чанков на страницу |
-| `similarity_threshold` | `float` | Порог гибридного сходства (0.0–1.0) |
-| `vector_similarity_weight` | `float` | Вес векторного сходства (0.0–1.0), остальное — keyword |
+| Поле | Тип | По умолчанию | Назначение |
+|---|---|---|---|
+| `question` | `string` | — (**обязательно**) | Поисковый запрос |
+| `page` | `int` | `1` | Номер страницы |
+| `size` | `int` | `30` | Чанков на страницу |
+| `similarity_threshold` | `float` | `0.0` | Мин. комбинированный similarity. В отличие от `/retrieval`, здесь по умолчанию `0` — возвращает всё |
+| `vector_similarity_weight` | `float` | `0.3` | Вес векторного сходства (0.0–1.0). `1.0` = чисто векторный поиск |
+| `top_k` | `int` | `1024` | Сколько кандидатов запросить у ES до фильтрации |
+| `keyword` | `bool` | `false` | Только keyword (BM25), без эмбеддингов |
+| `use_kg` | `bool` | `false` | Использовать knowledge graph |
+| `doc_ids` | `string[]` | `[]` | Ограничить конкретными документами |
+| `cross_languages` | `string[]` | `[]` | Кросс-языковой поиск (`["ru","en"]`) |
+| `meta_data_filter` | `object` | — | Фильтр по метаданным |
+| `rerank_id` | `string` | `""` | Rerank-модель в формате `name@factory` |
 
 Отличие от `/api/v1/retrieval`: этот эндпоинт возвращает сырые чанки без RAG-переранжирования. Полезен для отладки качества индексации или когда нужно больше контроля над ранжированием.
+
+### 3. CRUD документов датасета
+
+API-ключ: через заголовок `Authorization: Bearer $RAGFLOW_API_KEY` (service account) или через cookie после логина (admin).
+
+#### Загрузка документа (файл)
+
+```bash
+curl -sS \
+  -X POST "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -F "file=@/путь/к/документу.pdf"
+```
+
+Поддерживаемые форматы: PDF, TXT, DOCX, XLSX, CSV, MD, HTML, PNG, JPG.
+
+#### Загрузка документа (веб-страница)
+
+```bash
+curl -sS \
+  -X POST "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents?type=web" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -F "name=Мой веб-документ" \
+  -F "url=https://example.com/article"
+```
+
+#### Список документов (со статусом индексации)
+
+```bash
+curl -sS \
+  "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents?page=1&page_size=20" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin), indent=2, ensure_ascii=False))"
+```
+
+Фильтр по статусу: добавьте `&status=DONE` (варианты: `unstart`, `running`, `cancel`, `DONE`, `FAIL`).
+
+#### Запуск парсинга документов
+
+```bash
+curl -sS \
+  -X POST "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents/parse" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"document_ids": ["<doc_id_1>", "<doc_id_2>"]}'
+```
+
+#### Остановка парсинга
+
+```bash
+curl -sS \
+  -X POST "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents/stop" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"document_ids": ["<doc_id>"]}'
+```
+
+#### Удаление документов
+
+```bash
+curl -sS \
+  -X DELETE "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"ids": ["<doc_id_1>", "<doc_id_2>"]}'
+```
+
+#### Скачать оригинал документа
+
+```bash
+curl -sS \
+  "$RAGFLOW_BASE_URL/api/v1/datasets/$RAGFLOW_DATASET_ID/documents/<document_id>" \
+  -H "Authorization: Bearer $RAGFLOW_API_KEY" \
+  -o документ.pdf
+```
+
+---
+
+## Загрузка тестовых документов
+
+В `samples/test-docs/` лежит 18 гиперреалистичных документов — предложения российских банков, МФО, страховых и инвестиционных компаний (Сбер, ВТБ, Альфа-Банк, Т-Банк, Райффайзен, ПСБ, Совкомбанк, Росбанк, Газпромбанк, МТС-Банк, ДОМ.РФ, МосБиржа и др.).
+
+```bash
+# Загрузить все тестовые документы в датасет и запустить парсинг
+make load-test-docs
+
+# Посмотреть статус индексации документов
+make docs-list
+
+# Удалить все документы из датасета
+make clear-dataset
+```
+
+После загрузки подождите 1-3 минуты (парсинг + индексация), затем проверьте:
+
+```bash
+make test
+```

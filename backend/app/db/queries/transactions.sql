@@ -51,6 +51,7 @@ FROM transactions t
 LEFT JOIN transaction_tags tt ON t.id = tt.transaction_id
 LEFT JOIN tags tg ON tt.tag_id = tg.id
 WHERE t.id = %(transaction_id)s
+  AND t.user_id = %(user_id)s
 GROUP BY t.id;
 
 -- name: insert_transaction
@@ -83,10 +84,13 @@ UPDATE transactions SET
     recurring_transaction_id = COALESCE(%(recurring_transaction_id)s::uuid, recurring_transaction_id),
     external_id = COALESCE(%(external_id)s::varchar, external_id)
 WHERE id = %(transaction_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, account_id, category_id, type, amount, currency,
     transaction_datetime, description, merchant_id, merchant_name, geo_location,
     recurring_transaction_id, external_id, transfer_id, transfer_leg, created_at;
 
 -- name: delete_transaction
 -- Удаление транзакции
-DELETE FROM transactions WHERE id = %(transaction_id)s;
+DELETE FROM transactions
+WHERE id = %(transaction_id)s
+  AND user_id = %(user_id)s;

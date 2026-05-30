@@ -8,7 +8,9 @@ ORDER BY COALESCE(priority, 999), deadline ASC NULLS LAST, created_at DESC;
 -- name: find_goal
 -- Получение цели по id
 SELECT id, user_id, name, target_amount, current_amount, deadline, priority, created_at, updated_at
-FROM financial_goals WHERE id = %(goal_id)s;
+FROM financial_goals
+WHERE id = %(goal_id)s
+  AND user_id = %(user_id)s;
 
 -- name: insert_goal
 -- Создание финансовой цели
@@ -26,8 +28,11 @@ UPDATE financial_goals SET
     priority = COALESCE(%(priority)s, priority),
     updated_at = now()
 WHERE id = %(goal_id)s
+  AND user_id = %(user_id)s
 RETURNING id, user_id, name, target_amount, current_amount, deadline, priority, created_at, updated_at;
 
 -- name: delete_goal
 -- Удаление цели
-DELETE FROM financial_goals WHERE id = %(goal_id)s;
+DELETE FROM financial_goals
+WHERE id = %(goal_id)s
+  AND user_id = %(user_id)s;

@@ -33,9 +33,9 @@ async def create_liability(
 
 
 @router.get("/{liability_id}", response_model=Liability)
-async def get_liability(liability_id: str, conn: DbConnection) -> dict:
+async def get_liability(liability_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение обязательства."""
-    liab = await liab_repo.find_liability(conn, liability_id)
+    liab = await liab_repo.find_liability(conn, user["id"], liability_id)
     if liab is None:
         raise NotFoundError("Обязательство не найдено")
     return liab
@@ -43,15 +43,18 @@ async def get_liability(liability_id: str, conn: DbConnection) -> dict:
 
 @router.patch("/{liability_id}", response_model=Liability)
 async def update_liability(
-    liability_id: str, data: LiabilityUpdate, conn: DbConnection
+    liability_id: str, data: LiabilityUpdate, user: CurrentUser, conn: DbConnection
 ) -> dict:
     """Обновление обязательства."""
-    return await liab_repo.update_liability(
-        conn, liability_id, data.model_dump()
-    )
+    liability = await liab_repo.update_liability(conn, user["id"], liability_id, data.model_dump())
+    if liability is None:
+        raise NotFoundError("Обязательство не найдено")
+    return liability
 
 
 @router.delete("/{liability_id}", status_code=204)
-async def close_liability(liability_id: str, conn: DbConnection) -> None:
+async def close_liability(liability_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Закрытие обязательства."""
-    await liab_repo.close_liability(conn, liability_id)
+    liability = await liab_repo.close_liability(conn, user["id"], liability_id)
+    if liability is None:
+        raise NotFoundError("Обязательство не найдено")

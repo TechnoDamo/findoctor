@@ -48,10 +48,10 @@ async def create_recurring_transaction(
 
 @router.get("/{recurring_transaction_id}", response_model=RecurringTransaction)
 async def get_recurring_transaction(
-    recurring_transaction_id: str, conn: DbConnection
+    recurring_transaction_id: str, user: CurrentUser, conn: DbConnection
 ) -> dict:
     """Получение регулярной операции по id."""
-    item = await rt_repo.find_recurring_transaction(conn, recurring_transaction_id)
+    item = await rt_repo.find_recurring_transaction(conn, user["id"], recurring_transaction_id)
     if item is None:
         raise NotFoundError("Регулярная операция не найдена")
     return item
@@ -61,17 +61,25 @@ async def get_recurring_transaction(
 async def update_recurring_transaction(
     recurring_transaction_id: str,
     data: RecurringTransactionUpdate,
+    user: CurrentUser,
     conn: DbConnection,
 ) -> dict:
     """Обновление регулярной операции."""
-    return await rt_repo.update_recurring_transaction(
-        conn, recurring_transaction_id, data.model_dump()
+    item = await rt_repo.update_recurring_transaction(
+        conn, user["id"], recurring_transaction_id, data.model_dump()
     )
+    if item is None:
+        raise NotFoundError("Регулярная операция не найдена")
+    return item
 
 
 @router.delete("/{recurring_transaction_id}", status_code=204)
 async def deactivate_recurring_transaction(
-    recurring_transaction_id: str, conn: DbConnection
+    recurring_transaction_id: str, user: CurrentUser, conn: DbConnection
 ) -> None:
     """Деактивация регулярной операции."""
-    await rt_repo.deactivate_recurring_transaction(conn, recurring_transaction_id)
+    deactivated = await rt_repo.deactivate_recurring_transaction(
+        conn, user["id"], recurring_transaction_id
+    )
+    if not deactivated:
+        raise NotFoundError("Регулярная операция не найдена")

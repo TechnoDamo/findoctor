@@ -23,15 +23,15 @@ async def create_liability_payment(
 
     Если transaction_id не указан — создаёт транзакцию-расход автоматически.
     """
-    liability = await liability_repo.find_liability(conn, data["liability_id"])
-    if liability is None or liability["user_id"] != user_id:
+    liability = await liability_repo.find_liability(conn, user_id, data["liability_id"])
+    if liability is None:
         raise NotFoundError("Обязательство не найдено")
 
     transaction_id = data.get("transaction_id")
 
     if transaction_id is None:
-        account = await accounts_repo.find_account(conn, data["account_id"])
-        if account is None or account["user_id"] != user_id:
+        account = await accounts_repo.find_account(conn, user_id, data["account_id"])
+        if account is None:
             raise NotFoundError("Счёт не найден")
 
         transaction = await txn_repo.insert_transaction(

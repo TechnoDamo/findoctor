@@ -54,9 +54,9 @@ async def create_transfer(
 
 
 @router.get("/{transfer_id}", response_model=Transfer)
-async def get_transfer(transfer_id: str, conn: DbConnection) -> dict:
+async def get_transfer(transfer_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение перевода по id."""
-    transfer = await transfer_repo.find_transfer(conn, transfer_id)
+    transfer = await transfer_repo.find_transfer(conn, user["id"], transfer_id)
     if transfer is None:
         raise NotFoundError("Перевод не найден")
     return transfer

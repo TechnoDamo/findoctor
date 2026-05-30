@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
     На остановке: закрывает пул соединений БД.
     """
     configure_logging()
+    settings.validate_runtime_settings()
     await init_pool()
     yield
     await close_pool()

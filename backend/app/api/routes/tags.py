@@ -24,21 +24,26 @@ async def create_tag(data: TagCreate, user: CurrentUser, conn: DbConnection) -> 
 
 
 @router.get("/{tag_id}", response_model=Tag)
-async def get_tag(tag_id: str, conn: DbConnection) -> dict:
+async def get_tag(tag_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение тега по id."""
-    tag = await tag_repo.find_tag(conn, tag_id)
+    tag = await tag_repo.find_tag(conn, user["id"], tag_id)
     if tag is None:
         raise NotFoundError("Тег не найден")
     return tag
 
 
 @router.patch("/{tag_id}", response_model=Tag)
-async def update_tag(tag_id: str, data: TagUpdate, conn: DbConnection) -> dict:
+async def update_tag(tag_id: str, data: TagUpdate, user: CurrentUser, conn: DbConnection) -> dict:
     """Обновление тега."""
-    return await tag_repo.update_tag(conn, tag_id, data.name)
+    tag = await tag_repo.update_tag(conn, user["id"], tag_id, data.name)
+    if tag is None:
+        raise NotFoundError("Тег не найден")
+    return tag
 
 
 @router.delete("/{tag_id}", status_code=204)
-async def delete_tag(tag_id: str, conn: DbConnection) -> None:
+async def delete_tag(tag_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Удаление тега."""
-    await tag_repo.delete_tag(conn, tag_id)
+    deleted = await tag_repo.delete_tag(conn, user["id"], tag_id)
+    if not deleted:
+        raise NotFoundError("Тег не найден")

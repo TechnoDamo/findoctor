@@ -26,9 +26,11 @@ async def list_transfers(
     return list(rows), total_row["total"] if total_row else 0
 
 
-async def find_transfer(conn: AsyncConnection, transfer_id: str) -> dict | None:
+async def find_transfer(conn: AsyncConnection, user_id: str, transfer_id: str) -> dict | None:
     """Получение перевода с полными данными связанных транзакций."""
-    return await conn.fetchrow(_queries["find_transfer"], {"transfer_id": transfer_id})
+    return await conn.fetchrow(
+        _queries["find_transfer"], {"user_id": user_id, "transfer_id": transfer_id}
+    )
 
 
 async def insert_transfer(conn: AsyncConnection, data: dict) -> dict:
@@ -37,33 +39,36 @@ async def insert_transfer(conn: AsyncConnection, data: dict) -> dict:
 
 
 async def update_transfer(
-    conn: AsyncConnection, transfer_id: str, data: dict
-) -> dict:
+    conn: AsyncConnection, user_id: str, transfer_id: str, data: dict
+) -> dict | None:
     """Обновление перевода."""
-    params = {"transfer_id": transfer_id, **data}
+    params = {"user_id": user_id, "transfer_id": transfer_id, **data}
     return await conn.fetchrow(_queries["update_transfer"], params)
 
 
-async def delete_transfer(conn: AsyncConnection, transfer_id: str) -> None:
+async def delete_transfer(conn: AsyncConnection, user_id: str, transfer_id: str) -> bool:
     """Удаление перевода."""
-    await conn.execute(_queries["delete_transfer"], {"transfer_id": transfer_id})
+    cursor = await conn.execute(
+        _queries["delete_transfer"], {"user_id": user_id, "transfer_id": transfer_id}
+    )
+    return cursor.rowcount > 0
 
 
 async def find_transfer_linked_transactions(
-    conn: AsyncConnection, transfer_id: str
+    conn: AsyncConnection, user_id: str, transfer_id: str
 ) -> list[dict]:
     """Получение связанных транзакций."""
     rows = await conn.fetch(
         _queries["find_transfer_linked_transactions"],
-        {"transfer_id": transfer_id},
+        {"user_id": user_id, "transfer_id": transfer_id},
     )
     return list(rows)
 
 
 async def delete_transfer_transactions(
-    conn: AsyncConnection, transfer_id: str
+    conn: AsyncConnection, user_id: str, transfer_id: str
 ) -> None:
     """Удаление связанных транзакций."""
     await conn.execute(
-        _queries["delete_transfer_transactions"], {"transfer_id": transfer_id}
+        _queries["delete_transfer_transactions"], {"user_id": user_id, "transfer_id": transfer_id}
     )

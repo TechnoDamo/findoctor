@@ -25,10 +25,10 @@ async def list_liabilities(
     return list(rows)
 
 
-async def find_liability(conn: AsyncConnection, liability_id: str) -> dict | None:
+async def find_liability(conn: AsyncConnection, user_id: str, liability_id: str) -> dict | None:
     """Получение обязательства по id."""
     return await conn.fetchrow(
-        _queries["find_liability"], {"liability_id": liability_id}
+        _queries["find_liability"], {"user_id": user_id, "liability_id": liability_id}
     )
 
 
@@ -38,16 +38,16 @@ async def insert_liability(conn: AsyncConnection, data: dict) -> dict:
 
 
 async def update_liability(
-    conn: AsyncConnection, liability_id: str, data: dict
-) -> dict:
+    conn: AsyncConnection, user_id: str, liability_id: str, data: dict
+) -> dict | None:
     """Обновление обязательства."""
     return await conn.fetchrow(
-        _queries["update_liability"], {"liability_id": liability_id, **data}
+        _queries["update_liability"], {"user_id": user_id, "liability_id": liability_id, **data}
     )
 
 
-async def close_liability(conn: AsyncConnection, liability_id: str) -> dict:
+async def close_liability(conn: AsyncConnection, user_id: str, liability_id: str) -> dict | None:
     """Закрытие обязательства."""
     return await conn.fetchrow(
-        _queries["close_liability"], {"liability_id": liability_id}
+        _queries["close_liability"], {"user_id": user_id, "liability_id": liability_id}
     )

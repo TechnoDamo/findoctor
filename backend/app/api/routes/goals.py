@@ -28,21 +28,26 @@ async def create_goal(
 
 
 @router.get("/{goal_id}", response_model=FinancialGoal)
-async def get_goal(goal_id: str, conn: DbConnection) -> dict:
+async def get_goal(goal_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение цели."""
-    goal = await goal_repo.find_goal(conn, goal_id)
+    goal = await goal_repo.find_goal(conn, user["id"], goal_id)
     if goal is None:
         raise NotFoundError("Цель не найдена")
     return goal
 
 
 @router.patch("/{goal_id}", response_model=FinancialGoal)
-async def update_goal(goal_id: str, data: FinancialGoalUpdate, conn: DbConnection) -> dict:
+async def update_goal(goal_id: str, data: FinancialGoalUpdate, user: CurrentUser, conn: DbConnection) -> dict:
     """Обновление цели."""
-    return await goal_repo.update_goal(conn, goal_id, data.model_dump())
+    goal = await goal_repo.update_goal(conn, user["id"], goal_id, data.model_dump())
+    if goal is None:
+        raise NotFoundError("Цель не найдена")
+    return goal
 
 
 @router.delete("/{goal_id}", status_code=204)
-async def delete_goal(goal_id: str, conn: DbConnection) -> None:
+async def delete_goal(goal_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Удаление цели."""
-    await goal_repo.delete_goal(conn, goal_id)
+    deleted = await goal_repo.delete_goal(conn, user["id"], goal_id)
+    if not deleted:
+        raise NotFoundError("Цель не найдена")

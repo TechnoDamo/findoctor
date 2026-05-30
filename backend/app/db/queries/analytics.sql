@@ -2,28 +2,74 @@
 -- Сводка финансового состояния (общая валюта пользователя)
 SELECT
     %(base_currency)s AS currency,
-    COALESCE(SUM(CASE WHEN a.is_active AND a.currency = %(base_currency)s THEN a.balance ELSE 0 END), 0)::text AS total_cash,
-    COALESCE(SUM(CASE WHEN ast.currency = %(base_currency)s THEN ast.estimated_value ELSE 0 END), 0)::text AS total_assets,
-    COALESCE(SUM(CASE WHEN l.currency = %(base_currency)s AND l.status = 'active' THEN l.current_balance ELSE 0 END), 0)::text AS total_liabilities,
-    COALESCE(
-        (SELECT COALESCE(SUM(CASE WHEN t.type = 'income' AND t.currency = %(base_currency)s THEN t.amount ELSE 0 END), 0)::text
-         FROM transactions t
-         WHERE t.user_id = %(user_id)s
-           AND t.transaction_datetime >= date_trunc('month', now())),
-        '0'
-    ) AS monthly_income,
-    COALESCE(
-        (SELECT COALESCE(SUM(CASE WHEN t.type = 'expense' AND t.currency = %(base_currency)s THEN ABS(t.amount) ELSE 0 END), 0)::text
-         FROM transactions t
-         WHERE t.user_id = %(user_id)s
-           AND t.transaction_datetime >= date_trunc('month', now())),
-        '0'
-    ) AS monthly_expenses
-FROM accounts a
-CROSS JOIN (SELECT %(user_id)s AS uid) u
-LEFT JOIN assets ast ON ast.user_id = u.uid
-LEFT JOIN liabilities l ON l.user_id = u.uid
-WHERE a.user_id = u.uid;
+    cash.total_cash::text AS total_cash,
+    assets.total_assets::text AS total_assets,
+    liabilities.total_liabilities::text AS total_liabilities,
+    (cash.total_cash + assets.total_assets - liabilities.total_liabilities)::text AS net_worth,
+    monthly.monthly_income::text AS monthly_income,
+    monthly.monthly_expenses::text AS monthly_expenses,
+    CASE
+        WHEN monthly.monthly_income > 0
+        THEN ROUND(
+            ((monthly.monthly_income - monthly.monthly_expenses) / monthly.monthly_income * 100)::numeric,
+            2
+        )::float
+        ELSE NULL
+    END AS savings_rate,
+    COALESCE(recurring.items, '[]'::json) AS upcoming_recurring_transactions
+FROM (
+    SELECT COALESCE(SUM(balance), 0) AS total_cash
+    FROM accounts
+    WHERE user_id = %(user_id)s
+      AND is_active
+      AND currency = %(base_currency)s
+) cash
+CROSS JOIN (
+    SELECT COALESCE(SUM(estimated_value), 0) AS total_assets
+    FROM assets
+    WHERE user_id = %(user_id)s
+      AND currency = %(base_currency)s
+) assets
+CROSS JOIN (
+    SELECT COALESCE(SUM(current_balance), 0) AS total_liabilities
+    FROM liabilities
+    WHERE user_id = %(user_id)s
+      AND status = 'active'
+      AND currency = %(base_currency)s
+) liabilities
+CROSS JOIN (
+    SELECT
+        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS monthly_income,
+        COALESCE(SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END), 0) AS monthly_expenses
+    FROM transactions
+    WHERE user_id = %(user_id)s
+      AND currency = %(base_currency)s
+      AND transaction_datetime >= date_trunc('month', now())
+) monthly
+CROSS JOIN (
+    SELECT COALESCE(
+        json_agg(
+            json_build_object(
+                'id', id,
+                'name', name,
+                'expected_amount', expected_amount::text,
+                'currency', currency,
+                'next_payment_date', next_payment_date
+            )
+            ORDER BY next_payment_date ASC NULLS LAST
+        ) FILTER (WHERE id IS NOT NULL),
+        '[]'::json
+    ) AS items
+    FROM (
+        SELECT id, name, expected_amount, currency, next_payment_date
+        FROM recurring_transactions
+        WHERE user_id = %(user_id)s
+          AND is_active
+          AND next_payment_date IS NOT NULL
+        ORDER BY next_payment_date ASC
+        LIMIT 5
+    ) upcoming
+) recurring;
 
 -- name: list_snapshots
 -- Список ежедневных финансовых снимков

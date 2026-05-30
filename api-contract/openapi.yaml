@@ -1937,6 +1937,10 @@ components:
           $ref: "#/components/schemas/AiAudioResponseOptions"
         context:
           $ref: "#/components/schemas/AiFinancialContextOptions"
+        agentic:
+          type: boolean
+          default: true
+          description: When true, the assistant uses planner → tools → finalizer flow to investigate user data and external sources before answering.
     AiChatResponse:
       type: object
       required: [conversationId, userMessageId, assistantMessageId, output]
@@ -2002,27 +2006,19 @@ components:
     AiFinancialContextOptions:
       type: object
       properties:
-        includeAccounts:
-          type: boolean
-          default: true
-        includeTransactions:
-          type: boolean
-          default: true
-        includeAssets:
-          type: boolean
-          default: true
-        includeLiabilities:
-          type: boolean
-          default: true
-        includeGoals:
-          type: boolean
-          default: true
-        dateFrom:
+        preferredDateFrom:
           type: [string, "null"]
           format: date
-        dateTo:
+          description: Preferred start date for data queries. The AI may override.
+        preferredDateTo:
           type: [string, "null"]
           format: date
+          description: Preferred end date for data queries. The AI may override.
+        baseCurrency:
+          type: [string, "null"]
+          minLength: 3
+          maxLength: 3
+          description: Preferred display currency (e.g. RUB, USD).
     AiResponseModality:
       type: string
       enum: [text, audio]
@@ -2032,10 +2028,12 @@ components:
       properties:
         name:
           type: string
-          examples: [cash_flow_summary, net_worth_snapshot, upcoming_recurring_transactions]
+          enum: [user_data, rag, search]
+          description: Which tool produced this result.
         result:
           type: object
           additionalProperties: true
+          description: Tool-specific result payload.
     AiUsage:
       type: object
       properties:

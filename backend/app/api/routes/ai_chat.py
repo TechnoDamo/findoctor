@@ -34,6 +34,7 @@ async def create_message(
         response_modalities=data.response_modalities,
         audio_response=data.audio_response.model_dump(exclude_none=True) if data.audio_response else None,
         context_options=data.context.model_dump(exclude_none=True) if data.context else None,
+        agentic=data.agentic,
     )
 
 

@@ -3,8 +3,56 @@
 Верни только JSON, который соответствует предоставленной схеме.
 
 Реши, нужны ли backend tools, прежде чем ассистент сможет безопасно ответить:
+- Используй user_data.queries для поиска по личным финансовым данным пользователя.
 - Используй rag.rag_requests для разрешенных знаний, уже проиндексированных во внутренней RAG-системе.
 - Используй search.search_queries, когда нужно найти новые URL из разрешенных источников.
-- Используй needed_tools: null только когда ответ можно дать без внешнего или внутреннего retrieval.
+- Используй needed_tools: null только когда ответ можно дать без дополнительного retrieval.
+
+--- user_data tool ---
+
+user_data.queries — поиск по личным финансовым данным пользователя.
+Каждый запрос в массиве queries это независимый поиск. Выполняются параллельно.
+Не запрашивай всё подряд. Один-два целевых запроса. Не выдумывай значения фильтров.
+
+Доступные домены (поле domain):
+- accounts — счета пользователя. Фильтры: is_active (bool), currency, name_search, institution_name, balance_min, balance_max.
+- transactions — доходы и расходы. Фильтры: date_from, date_to, operation_type (income/expense), category_name, merchant_name, tag_name, amount_min, amount_max, account_name, currency, description_search.
+- transfers — переводы. Фильтры: date_from, date_to, account_name, amount_min, amount_max, currency.
+- assets — активы. Фильтры: asset_type_name, name_search, value_min, value_max, currency, purchase_date_from, purchase_date_to.
+- liabilities — долги. Фильтры: status (active/repaid), liability_type_name, name_search, balance_min, balance_max, interest_rate_min, interest_rate_max, currency.
+- liability_payments — история выплат по долгам. Фильтры: date_from, date_to, liability_name, account_name, amount_min, amount_max, currency.
+- recurring_transactions — регулярные платежи. Фильтры: is_active, operation_type, name_search, amount_min, amount_max, frequency (daily/weekly/monthly/quarterly/yearly), next_payment_before, currency.
+- goals — финансовые цели. Фильтры: name_search, target_min, target_max, priority, progress_min.
+- tags — метки транзакций. Фильтры: name_search.
+- dashboard_summary — сводка финансов. Фильтры: base_currency.
+- cash_flow — денежный поток. Фильтры: date_from, date_to, group_by (day/week/month, default month).
+- net_worth — история капитала. Фильтры: date_from, date_to.
+- snapshots — ежедневные снимки. Фильтры: date_from, date_to.
+- account_types / asset_types / liability_types / provider_types — справочники типов. Фильтры: нет (возвращают полный каталог).
+- categories — категории доходов/расходов. Фильтры: type (income/expense), parent_name, name_search.
+- merchants — торговые точки. Фильтры: name_search (передаётся как q), country, risk_level.
+- financial_institutions — банки и брокеры. Фильтры: name_search (передаётся как q), country, provider_type_code, active_only (bool).
+- conversation_history — история диалога. Фильтры: conversation_id, date_from, date_to, last_n, message_text_search.
+
+aggregation (опционально, default "none"):
+- "none" — вернуть как есть
+- "sum" — сумма значений поля aggregation_field
+- "count" — количество записей
+- "avg" — среднее значений поля aggregation_field
+- "min" / "max" — минимум/максимум поля aggregation_field
+- "group_by" — сгруппировать по полю group_by_field (счётчик по группам)
+- "top_n" — топ N записей, отсортированных по sort_field (sort_order: asc/desc)
+
+limit: макс записей (1-250, default 50).
+
+Пример use:
+Для вопроса "Сколько я потратил на рестораны в июне?":
+{"domain": "transactions", "filters": {"category_name": "рестораны", "date_from": "2025-06-01", "date_to": "2025-06-30"}, "aggregation": "sum", "aggregation_field": "amount"}
+
+Для вопроса "Какие у меня счета?":
+{"domain": "accounts", "filters": {"is_active": true}, "aggregation": "none"}
+
+Для вопроса "Покажи категории расходов":
+{"domain": "categories", "filters": {"type": "expense"}, "aggregation": "none"}
 
 Делай запросы короткими и конкретными. Не выдумывай факты. Не используй Markdown.

@@ -10,7 +10,6 @@ from app.services.recommendations.source_policy import (
     is_allowed_url,
     load_allowed_hosts,
 )
-from app.settings import settings
 
 pytestmark = pytest.mark.anyio
 
@@ -128,7 +127,7 @@ async def test_ai_chat_uses_recommendation_flow_when_enabled(
     response = await test_client.post(
         "/api/v1/ai/chat/messages",
         headers=auth_headers,
-        json={"input": [{"type": "text", "text": "Дай рекомендацию"}]},
+        json={"input": [{"type": "text", "text": "Дай рекомендацию"}], "agentic": False},
     )
 
     assert response.status_code == 200, response.text

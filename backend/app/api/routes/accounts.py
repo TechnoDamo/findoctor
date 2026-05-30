@@ -40,9 +40,9 @@ async def create_account(data: AccountCreate, user: CurrentUser, conn: DbConnect
 
 
 @router.get("/{account_id}", response_model=Account)
-async def get_account(account_id: str, conn: DbConnection) -> dict:
+async def get_account(account_id: str, user: CurrentUser, conn: DbConnection) -> dict:
     """Получение счёта по id."""
-    account = await account_repo.find_account(conn, account_id)
+    account = await account_repo.find_account(conn, user["id"], account_id)
     if account is None:
         raise NotFoundError("Счёт не найден")
     return account
@@ -50,13 +50,18 @@ async def get_account(account_id: str, conn: DbConnection) -> dict:
 
 @router.patch("/{account_id}", response_model=Account)
 async def update_account(
-    account_id: str, data: AccountUpdate, conn: DbConnection
+    account_id: str, data: AccountUpdate, user: CurrentUser, conn: DbConnection
 ) -> dict:
     """Обновление счёта."""
-    return await account_repo.update_account(conn, account_id, data.model_dump())
+    account = await account_repo.update_account(conn, user["id"], account_id, data.model_dump())
+    if account is None:
+        raise NotFoundError("Счёт не найден")
+    return account
 
 
 @router.delete("/{account_id}", status_code=204)
-async def archive_account(account_id: str, conn: DbConnection) -> None:
+async def archive_account(account_id: str, user: CurrentUser, conn: DbConnection) -> None:
     """Архивация счёта."""
-    await account_repo.archive_account(conn, account_id)
+    account = await account_repo.archive_account(conn, user["id"], account_id)
+    if account is None:
+        raise NotFoundError("Счёт не найден")

@@ -3,8 +3,6 @@
 import pytest
 from httpx import AsyncClient
 
-from app.services import ai_chat as chat_service
-
 pytestmark = pytest.mark.anyio
 
 

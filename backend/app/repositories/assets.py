@@ -18,9 +18,11 @@ async def list_assets(
     return list(rows)
 
 
-async def find_asset(conn: AsyncConnection, asset_id: str) -> dict | None:
+async def find_asset(conn: AsyncConnection, user_id: str, asset_id: str) -> dict | None:
     """Получение актива по id."""
-    return await conn.fetchrow(_queries["find_asset"], {"asset_id": asset_id})
+    return await conn.fetchrow(
+        _queries["find_asset"], {"user_id": user_id, "asset_id": asset_id}
+    )
 
 
 async def insert_asset(conn: AsyncConnection, data: dict) -> dict:
@@ -28,13 +30,16 @@ async def insert_asset(conn: AsyncConnection, data: dict) -> dict:
     return await conn.fetchrow(_queries["insert_asset"], data)
 
 
-async def update_asset(conn: AsyncConnection, asset_id: str, data: dict) -> dict:
+async def update_asset(conn: AsyncConnection, user_id: str, asset_id: str, data: dict) -> dict | None:
     """Обновление актива."""
     return await conn.fetchrow(
-        _queries["update_asset"], {"asset_id": asset_id, **data}
+        _queries["update_asset"], {"user_id": user_id, "asset_id": asset_id, **data}
     )
 
 
-async def delete_asset(conn: AsyncConnection, asset_id: str) -> None:
+async def delete_asset(conn: AsyncConnection, user_id: str, asset_id: str) -> bool:
     """Удаление актива."""
-    await conn.execute(_queries["delete_asset"], {"asset_id": asset_id})
+    cursor = await conn.execute(
+        _queries["delete_asset"], {"user_id": user_id, "asset_id": asset_id}
+    )
+    return cursor.rowcount > 0

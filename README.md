@@ -222,6 +222,31 @@ make db-current
 
 Более подробная инструкция по Docker/PostgreSQL: [`db/deployment.md`](db/deployment.md).
 
+## Проверка Перед Демо
+
+Проект рассчитан на строгую проверку перед хакатонной сдачей: сначала backend gate, затем dependency/security scan frontend, затем production build.
+
+```bash
+cd backend
+./.venv/bin/python -m compileall -q app tests scripts
+./.venv/bin/ruff check app tests scripts
+./.venv/bin/pytest tests/ -q
+
+cd ../frontend
+npm audit --audit-level=moderate
+npm run build
+```
+
+Проверки закрывают:
+
+- синтаксис и импортируемость backend-кода;
+- Ruff-линтинг;
+- полный API/integration suite на PostgreSQL test DB;
+- совпадение FastAPI route surface с `api-contract/openapi.yaml`;
+- cross-user изоляцию финансовых сущностей;
+- отсутствие npm audit findings уровня moderate и выше;
+- production-сборку Next.js frontend.
+
 ## Корневой Makefile
 
 В корне проекта есть общий `Makefile` для локального, гибридного и cloud-oriented запуска.
@@ -277,7 +302,9 @@ make migrate
 | --- | --- |
 | [`api-contract/openapi.yaml`](api-contract/openapi.yaml) | Полный клиентский OpenAPI/Swagger-контракт. |
 | [`backend/STACK.md`](backend/STACK.md) | Backend-стек, правила транзакций, SQL-подход, тестирование. |
+| [`backend/TESTING.md`](backend/TESTING.md) | Backend test gate, fixtures, cross-user authorization tests и правила покрытия. |
 | [`docs/deployment.md`](docs/deployment.md) | Локальные, гибридные, fully local AI и cloud-oriented профили деплоя. |
+| [`docs/hackathon-readiness.md`](docs/hackathon-readiness.md) | Что показывать на демо, какие проверки запускать и какие границы системы честно проговаривать. |
 | [`backend/docs/recommendations.md`](backend/docs/recommendations.md) | Recommendation planner/RAG/search architecture and runtime contract. |
 | [`backend/docs/recommendation_examples.md`](backend/docs/recommendation_examples.md) | Example planner JSON and final-answer behavior. |
 | [`backend/docs/ragflow_dataset_setup.md`](backend/docs/ragflow_dataset_setup.md) | RAGFlow dataset, TEI embedding, and smoke-test setup. |
@@ -298,13 +325,15 @@ make migrate
 - FastAPI backend с основными API-группами;
 - AI chat endpoints с текстовым и голосовым сценариями;
 - опциональный recommendation/RAG/search контур;
+- user-scoped object-level доступ к пользовательским финансовым данным;
+- redaction/выключение чувствительного HTTP-логирования по умолчанию;
+- cross-user authorization тесты;
+- dependency scanner clean для frontend (`npm audit --audit-level=moderate`);
 - локальные service wrappers для vLLM, RAGFlow, SearXNG, TEI и voice-прототипов;
 - черновой фронтенд/voice playground.
 
 Следующие крупные шаги:
 
 - довести клиентский UX и dashboard flows;
-- расширить internal finance tools для рекомендаций поверх счетов, операций и goals;
-- покрыть больше продуктовых сценариев интеграционными тестами;
 - реализовать фоновые пересчеты аналитических snapshots;
 - подготовить production deployment manifests для выбранной инфраструктуры.

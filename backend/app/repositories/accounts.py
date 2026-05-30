@@ -29,9 +29,11 @@ async def list_accounts(
     return list(rows)
 
 
-async def find_account(conn: AsyncConnection, account_id: str) -> dict | None:
+async def find_account(conn: AsyncConnection, user_id: str, account_id: str) -> dict | None:
     """Получение счёта по id."""
-    return await conn.fetchrow(_queries["find_account"], {"account_id": account_id})
+    return await conn.fetchrow(
+        _queries["find_account"], {"user_id": user_id, "account_id": account_id}
+    )
 
 
 async def insert_account(conn: AsyncConnection, data: dict) -> dict:
@@ -40,12 +42,14 @@ async def insert_account(conn: AsyncConnection, data: dict) -> dict:
     return await conn.fetchrow(_queries["insert_account"], data)
 
 
-async def update_account(conn: AsyncConnection, account_id: str, data: dict) -> dict:
+async def update_account(conn: AsyncConnection, user_id: str, account_id: str, data: dict) -> dict | None:
     """Обновление счёта."""
-    params = {"account_id": account_id, **data}
+    params = {"user_id": user_id, "account_id": account_id, **data}
     return await conn.fetchrow(_queries["update_account"], params)
 
 
-async def archive_account(conn: AsyncConnection, account_id: str) -> dict:
+async def archive_account(conn: AsyncConnection, user_id: str, account_id: str) -> dict | None:
     """Архивация счёта."""
-    return await conn.fetchrow(_queries["archive_account"], {"account_id": account_id})
+    return await conn.fetchrow(
+        _queries["archive_account"], {"user_id": user_id, "account_id": account_id}
+    )

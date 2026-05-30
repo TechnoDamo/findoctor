@@ -21,6 +21,18 @@
 RECOMMENDATIONS_ENABLED=true
 ```
 
+## Production Safety Gate
+
+Backend валидирует опасные настройки при старте. В production-режиме приложение не должно запускаться, если обнаружены:
+
+- дефолтный `JWT_SECRET_KEY`;
+- дефолтный пароль БД без явного `DATABASE_URL`;
+- `APP_DEBUG=true`;
+- подробное логирование HTTP headers/bodies;
+- включенные рекомендации без обязательных RAG/search параметров.
+
+По умолчанию HTTP headers, request bodies и response bodies не логируются. Если подробное логирование временно включено для диагностики, middleware редактирует чувствительные поля: токены, пароли, cookies, API keys, audio/base64 payloads.
+
 ## Режимы Деплоя
 
 ### 1. Локальное Ядро
@@ -179,6 +191,21 @@ make backend-test-recommendations
 make recommendations-test
 make recommendations-curl
 ```
+
+Полная проверка перед демо или PR:
+
+```bash
+cd backend
+./.venv/bin/python -m compileall -q app tests scripts
+./.venv/bin/ruff check app tests scripts
+./.venv/bin/pytest tests/ -q
+
+cd ../frontend
+npm audit --audit-level=moderate
+npm run build
+```
+
+Если `npm audit` сообщает findings уровня moderate и выше, dependency lock нельзя считать готовым к сдаче.
 
 Логи:
 
