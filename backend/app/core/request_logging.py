@@ -34,13 +34,16 @@ class HttpLoggingMiddleware(BaseHTTPMiddleware):
         started_at = time.perf_counter()
         request_body = await request.body()
         request._receive = _make_receive(request_body)  # noqa: SLF001
+        request_target = _request_target(request)
 
         logger.info(
-            "http_request",
+            f"REQUEST: {request.method} {request_target}",
+            event_type="http_request",
             request_id=request_id,
             method=request.method,
             path=request.url.path,
             query=str(request.url.query),
+            target=request_target,
             client_host=request.client.host if request.client else None,
             headers=_headers(request.headers) if settings.log_http_headers else None,
             body=_body(request_body, request.headers.get("content-type"))
@@ -53,10 +56,13 @@ class HttpLoggingMiddleware(BaseHTTPMiddleware):
         except Exception:
             duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
             logger.exception(
-                "http_response_error",
+                f"RESPONSE_ERROR: {request.method} {request_target} {duration_ms}ms",
+                event_type="http_response_error",
                 request_id=request_id,
                 method=request.method,
                 path=request.url.path,
+                query=str(request.url.query),
+                target=request_target,
                 duration_ms=duration_ms,
             )
             raise
@@ -67,10 +73,13 @@ class HttpLoggingMiddleware(BaseHTTPMiddleware):
 
         duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
         logger.info(
-            "http_response",
+            f"RESPONSE: {response.status_code} {request.method} {request_target} {duration_ms}ms",
+            event_type="http_response",
             request_id=request_id,
             method=request.method,
             path=request.url.path,
+            query=str(request.url.query),
+            target=request_target,
             status_code=response.status_code,
             duration_ms=duration_ms,
             headers=_headers(response.headers) if settings.log_response_headers else None,
@@ -99,6 +108,13 @@ def _make_receive(body: bytes) -> Callable[[], Awaitable[Message]]:
 
 def _headers(headers: Any) -> dict[str, str]:
     return {key: value for key, value in headers.items()}
+
+
+def _request_target(request: Request) -> str:
+    query = str(request.url.query)
+    if query:
+        return f"{request.url.path}?{query}"
+    return request.url.path
 
 
 def _body(body: bytes, content_type: str | None) -> dict[str, Any]:
