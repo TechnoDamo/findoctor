@@ -89,5 +89,6 @@ make backend-test-recommendations
 - `backend/app/db/queries/*.sql` — user-scoped SQL.
 - `backend/tests/test_authorization_boundaries.py` — cross-user isolation.
 - `backend/app/services/recommendations/orchestrator.py` — planner/tools/finalizer.
+- `docs/architecture-uml.md` — архитектура, deployment-комбинации и sequence diagrams.
 - `backend/STACK.md` — backend engineering rules.
 - `backend/TESTING.md` — test gate и правила покрытия.

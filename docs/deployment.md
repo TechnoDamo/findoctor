@@ -35,6 +35,17 @@ Backend валидирует опасные настройки при старт
 
 ## Режимы Деплоя
 
+Все режимы делятся на две группы:
+
+- service-level запуск через существующие Makefile в `backend/`, `ragflow/`, `tei/`, `searxng/`, `vLLM/`, `graylog/`;
+- root Docker deployment через `docker-compose.yml`, который собирает и запускает PostgreSQL, backend и frontend.
+
+Backend и frontend dockerized:
+
+- [`backend/Dockerfile`](../backend/Dockerfile) — FastAPI + migrations-on-start через `RUN_MIGRATIONS=true`;
+- [`frontend/Dockerfile`](../frontend/Dockerfile) — production Next.js build;
+- [`docker-compose.yml`](../docker-compose.yml) — root compose для `postgres`, `backend`, `frontend`.
+
 ### 1. Локальное Ядро
 
 Используйте этот режим для разработки backend, базы данных и frontend без RAG/search-рекомендаций.
@@ -44,6 +55,18 @@ make init-core
 make local-up-core
 make backend-run
 ```
+
+Docker-вариант:
+
+```bash
+make deploy-local-core
+```
+
+Поднимает:
+
+- PostgreSQL container;
+- backend container;
+- frontend container.
 
 Тесты backend:
 
@@ -59,6 +82,12 @@ make backend-test
 make init-recommendations
 make pull-recommendations
 make local-up-recommendations
+```
+
+Docker-вариант приложения + локальные recommendation-сервисы:
+
+```bash
+make deploy-local-rag
 ```
 
 После запуска создайте в RAGFlow сервисный API-ключ и dataset, затем заполните:
@@ -89,12 +118,26 @@ make pull-ai-local
 make local-up-ai
 ```
 
+Docker-вариант приложения + локальный vLLM/RAG/Search/Embeddings:
+
+```bash
+make deploy-local-ai
+```
+
 Настройте backend:
 
 ```env
 LLM_BASE_URL=http://localhost:8100/v1
 LLM_MODEL=Qwen/Qwen2.5-1.5B-Instruct
 RAGFLOW_EMBEDDING_BASE_URL=http://host.docker.internal:8200/v1
+```
+
+Если backend запущен в Docker container, используйте адрес хоста Docker:
+
+```env
+LLM_BASE_URL=http://host.docker.internal:8100/v1
+RAGFLOW_BASE_URL=http://host.docker.internal:9380
+SEARXNG_BASE_URL=http://host.docker.internal:8201
 ```
 
 Конкретная LLM-модель выбирается в `vLLM/.env`.
@@ -107,6 +150,12 @@ RAGFLOW_EMBEDDING_BASE_URL=http://host.docker.internal:8200/v1
 make init-recommendations
 make pull-recommendations
 make hybrid-up-recommendations
+```
+
+Docker-вариант:
+
+```bash
+make deploy-hybrid-llm-local-rag
 ```
 
 Настройте backend:
@@ -158,6 +207,35 @@ make cloud-recommendations-check
 
 Правило безопасности: RAGFlow и SearXNG должны оставаться приватными/internal сервисами. Фронтенд никогда не должен получать их API-ключи или прямые URL.
 
+Docker-вариант:
+
+```bash
+make deploy-cloud-ai
+```
+
+В этом режиме root compose запускает только приложение и PostgreSQL, а все AI/RAG/search endpoints берутся из env.
+
+### 6. Full Local Demo
+
+Используйте для максимально автономного демо на машине с Docker и достаточными ресурсами:
+
+```bash
+make deploy-full-local
+```
+
+Поднимает:
+
+- vLLM;
+- TEI;
+- RAGFlow;
+- SearXNG;
+- Graylog;
+- PostgreSQL;
+- backend;
+- frontend.
+
+Это самый тяжелый режим. Для ноутбука без GPU обычно лучше использовать `deploy-hybrid-llm-local-rag`: LLM/STT/TTS в cloud/external API, RAG/search/embeddings локально.
+
 ## Корневые Make-Команды
 
 Инициализация:
@@ -173,11 +251,21 @@ make pull-ai-local
 Запуск:
 
 ```bash
+make compose-build
+make compose-up-core
+make compose-up-app
 make local-up-core
 make local-up-recommendations
 make local-up-ai
 make local-up
 make hybrid-up-recommendations
+make deploy-local-core
+make deploy-local-rag
+make deploy-local-ai
+make deploy-hybrid-llm-local-rag
+make deploy-cloud-ai
+make deploy-full-local
+make deploy-down
 make local-down
 ```
 
@@ -210,6 +298,7 @@ npm run build
 Логи:
 
 ```bash
+make compose-logs
 make logs-ragflow
 make logs-searxng
 make logs-tei
@@ -258,3 +347,15 @@ make local-up-recommendations
 - запустите `make logs-tei`;
 - попробуйте более легкую модель `TEI_MODEL_ID`;
 - проверьте, что RAGFlow использует `/v1` в конце TEI base URL.
+
+## UML И Sequence Диаграммы
+
+Высокоуровневые диаграммы архитектуры, продуктовых блоков и sequence flows находятся в [`docs/architecture-uml.md`](architecture-uml.md):
+
+- компонентная карта из frontend/backend/LLM/STT/TTS/RAG/search/embeddings/logging;
+- карта продуктовых блоков: кредитный светофор, финансовый диагноз, трекер накоплений, AI assistant;
+- sequence регистрации и CRUD;
+- sequence AI chat с user data tool;
+- sequence RAG/search рекомендации;
+- sequence голосового режима;
+- sequence Docker deployment.

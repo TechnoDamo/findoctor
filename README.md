@@ -304,6 +304,7 @@ make migrate
 | [`backend/STACK.md`](backend/STACK.md) | Backend-стек, правила транзакций, SQL-подход, тестирование. |
 | [`backend/TESTING.md`](backend/TESTING.md) | Backend test gate, fixtures, cross-user authorization tests и правила покрытия. |
 | [`docs/deployment.md`](docs/deployment.md) | Локальные, гибридные, fully local AI и cloud-oriented профили деплоя. |
+| [`docs/architecture-uml.md`](docs/architecture-uml.md) | Высокоуровневые UML/Mermaid диаграммы архитектуры, продуктовых блоков и sequence flows. |
 | [`docs/hackathon-readiness.md`](docs/hackathon-readiness.md) | Что показывать на демо, какие проверки запускать и какие границы системы честно проговаривать. |
 | [`backend/docs/recommendations.md`](backend/docs/recommendations.md) | Recommendation planner/RAG/search architecture and runtime contract. |
 | [`backend/docs/recommendation_examples.md`](backend/docs/recommendation_examples.md) | Example planner JSON and final-answer behavior. |
@@ -329,6 +330,9 @@ make migrate
 - redaction/выключение чувствительного HTTP-логирования по умолчанию;
 - cross-user authorization тесты;
 - dependency scanner clean для frontend (`npm audit --audit-level=moderate`);
+- Dockerfile для backend и frontend;
+- root `docker-compose.yml` и Make-команды для core, local RAG, fully local AI, hybrid и cloud deployment;
+- UML/Mermaid sequence diagrams в русской документации;
 - локальные service wrappers для vLLM, RAGFlow, SearXNG, TEI и voice-прототипов;
 - черновой фронтенд/voice playground.
 

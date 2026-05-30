@@ -15,7 +15,7 @@ RAGFLOW_BASE_URL    ?= http://localhost:9380
 UPSTREAM_DOCKER_DIR := $(RAGFLOW_RUNTIME_DIR)/docker
 UPSTREAM_ENV        := $(UPSTREAM_DOCKER_DIR)/.env
 
-.PHONY: help init fetch configure pull up down stop start reload restart test \
+.PHONY: help init fetch configure pull up down stop start reload restart wait test \
         key-create key-list key-delete ds-create ds-list ds-delete \
         load-test-docs clear-dataset docs-list setup
 
@@ -36,6 +36,7 @@ help:
 	@echo "  make start        Возобновить остановленные контейнеры (docker compose start)"
 	@echo "  make reload       Пересоздать контейнеры заново (docker compose up -d --force-recreate)"
 	@echo "  make restart      Перезапустить существующие контейнеры (docker compose restart)"
+	@echo "  make wait         Дождаться HTTP-ответа RAGFlow"
 	@echo ""
 	@echo "Различия:"
 	@echo "  stop  сохраняет контейнеры и тома на диске, down — удаляет."
@@ -119,6 +120,18 @@ reload: _compose_check
 restart: _compose_check
 	cd "$(UPSTREAM_DOCKER_DIR)" && docker compose restart
 	@echo "RAGFlow перезапущен на $(RAGFLOW_BASE_URL)"
+
+wait:
+	@for i in {1..120}; do \
+		status=$$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "$(RAGFLOW_BASE_URL)/api/v1/" || true); \
+		if [[ "$$status" == "200" || "$$status" == "404" ]]; then \
+			echo "RAGFlow is ready at $(RAGFLOW_BASE_URL)"; \
+			exit 0; \
+		fi; \
+		sleep 2; \
+	done; \
+	echo "RAGFlow was not ready at $(RAGFLOW_BASE_URL)"; \
+	exit 1
 
 # ----------------------------------------------------------------------
 # Тесты
