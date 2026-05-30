@@ -47,7 +47,7 @@
 Высокоуровневая схема:
 
 ```text
-Frontend / Mobile / Voice UI
+Фронтенд / мобильное приложение / голосовой интерфейс
         |
         | HTTP + OpenAPI contract
         v
@@ -146,6 +146,26 @@ OpenAPI-контракт уже предусматривает AI chat endpoints
 
 `voice-test/` содержит ранние эксперименты с записью, STT/TTS и аудиомоделями.
 
+### Рекомендации, RAG и поиск
+
+Рекомендационный контур добавлен как опциональный слой поверх AI-чата:
+
+- первый LLM-вызов возвращает строгий JSON-план с `response_text` и `needed_tools`;
+- backend выполняет только разрешенные инструменты: RAGFlow для RAG и SearXNG для поиска;
+- источники поиска фильтруются через `ragflow/allowed_resources.txt`;
+- финальный LLM-вызов отвечает уже с учетом найденных evidence chunks;
+- план и evidence возвращаются в `tool_results`.
+
+Подробная документация: [`backend/docs/recommendations.md`](backend/docs/recommendations.md).
+
+Профили деплоя и корневые команды: [`docs/deployment.md`](docs/deployment.md).
+
+Локальные self-hosted сервисы:
+
+- [`ragflow/`](ragflow/) - внутренний RAGFlow-компонент для индексации и retrieval API;
+- [`searxng/`](searxng/) - внутренний SearXNG для discovery по разрешенным доменам;
+- [`tei/`](tei/) - локальный Hugging Face TEI embedding server для RAGFlow.
+
 ## API
 
 Клиентский контракт находится в [`api-contract/openapi.yaml`](api-contract/openapi.yaml).
@@ -202,6 +222,39 @@ make db-current
 
 Более подробная инструкция по Docker/PostgreSQL: [`db/deployment.md`](db/deployment.md).
 
+## Корневой Makefile
+
+В корне проекта есть общий `Makefile` для локального, гибридного и cloud-oriented запуска.
+
+```bash
+make help
+make doctor
+make init
+```
+
+Основные сценарии:
+
+```bash
+# Только ядро: PostgreSQL + backend migrations
+make init-core
+make local-up-core
+
+# Рекомендационный стек локально: TEI + RAGFlow + SearXNG
+make init-recommendations
+make pull-recommendations
+make local-up-recommendations
+
+# Локальный AI-стек: vLLM + TEI + RAGFlow + SearXNG
+make pull-ai-local
+make local-up-ai
+
+# Проверка cloud/hybrid конфигурации
+make cloud-check
+make cloud-recommendations-check
+```
+
+Полная инструкция по вариантам деплоя: [`docs/deployment.md`](docs/deployment.md).
+
 ## Миграции
 
 Новая миграция создается из `backend/`:
@@ -224,6 +277,10 @@ make migrate
 | --- | --- |
 | [`api-contract/openapi.yaml`](api-contract/openapi.yaml) | Полный клиентский OpenAPI/Swagger-контракт. |
 | [`backend/STACK.md`](backend/STACK.md) | Backend-стек, правила транзакций, SQL-подход, тестирование. |
+| [`docs/deployment.md`](docs/deployment.md) | Локальные, гибридные, fully local AI и cloud-oriented профили деплоя. |
+| [`backend/docs/recommendations.md`](backend/docs/recommendations.md) | Recommendation planner/RAG/search architecture and runtime contract. |
+| [`backend/docs/recommendation_examples.md`](backend/docs/recommendation_examples.md) | Example planner JSON and final-answer behavior. |
+| [`backend/docs/ragflow_dataset_setup.md`](backend/docs/ragflow_dataset_setup.md) | RAGFlow dataset, TEI embedding, and smoke-test setup. |
 | [`db/schema.dbml`](db/schema.dbml) | DBML-схема таблиц, enum, индексов и связей. |
 | [`db/descriptions.md`](db/descriptions.md) | Подробное описание доменной модели и назначения таблиц. |
 | [`db/deployment.md`](db/deployment.md) | Локальный запуск PostgreSQL, backup/restore, частые проблемы. |
@@ -238,13 +295,16 @@ make migrate
 - DBML-документация;
 - OpenAPI-контракт клиентского API;
 - модель переводов через две связанные транзакции;
+- FastAPI backend с основными API-группами;
+- AI chat endpoints с текстовым и голосовым сценариями;
+- опциональный recommendation/RAG/search контур;
+- локальные service wrappers для vLLM, RAGFlow, SearXNG, TEI и voice-прототипов;
 - черновой фронтенд/voice playground.
 
 Следующие крупные шаги:
 
-- реализовать FastAPI-приложение под OpenAPI-контракт;
-- добавить repository/service слой с явным SQL;
-- добавить seed-данные для справочников;
-- покрыть ключевые сценарии интеграционными тестами;
+- довести клиентский UX и dashboard flows;
+- расширить internal finance tools для рекомендаций поверх счетов, операций и goals;
+- покрыть больше продуктовых сценариев интеграционными тестами;
 - реализовать фоновые пересчеты аналитических snapshots;
-- определить персистентную модель для AI chat history, если чат должен храниться в БД.
+- подготовить production deployment manifests для выбранной инфраструктуры.

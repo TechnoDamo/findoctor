@@ -21,6 +21,18 @@ coverage/
 db/postgres-data/
 db/backups/
 
+# vLLM model cache
+vLLM/models/
+
+# RAGFlow runtime clone and local data
+ragflow/.runtime/
+
+# SearXNG generated local config
+searxng/config/settings.yml
+
+# TEI model cache
+tei/models/
+
 # Generated voice-test artifacts
 voice-test/request_audio/
 voice-test/response_audio/
