@@ -59,7 +59,7 @@ async def update_financial_institution(
 ) -> dict:
     """Обновление финансовой организации."""
     provider_type_ids = data.provider_type_ids
-    params = data.model_dump(exclude={"provider_type_ids"}, exclude_none=True)
+    params = data.model_dump(exclude={"provider_type_ids"})
     if params:
         institution = await fi_repo.update_institution(conn, institution_id, params)
     else:

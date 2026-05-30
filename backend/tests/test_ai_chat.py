@@ -17,7 +17,7 @@ async def test_send_text_message_uses_contract_camel_case(
 ) -> None:
     """A frontend-shaped text chat request creates persisted messages."""
 
-    async def fake_run_llm(user_text: str, financial_context: dict | None = None) -> tuple[str, dict]:
+    async def fake_run_llm(user_text: str, financial_context: str, prompt_name: str = "llm_text") -> tuple[str, dict]:
         assert user_text == "Привет"
         return "Чат работает", {"prompt_tokens": 3, "completion_tokens": 2}
 
@@ -67,7 +67,7 @@ async def test_send_text_message_continues_existing_camel_case_conversation(
 ) -> None:
     """conversationId from the frontend is respected instead of creating a new chat."""
 
-    async def fake_run_llm(user_text: str, financial_context: dict | None = None) -> tuple[str, dict]:
+    async def fake_run_llm(user_text: str, financial_context: str, prompt_name: str = "llm_text") -> tuple[str, dict]:
         return f"Ответ на: {user_text}", {}
 
     monkeypatch.setattr(chat_service, "_run_llm", fake_run_llm)

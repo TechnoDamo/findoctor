@@ -49,6 +49,8 @@ class AiFinancialContextOptions(AiBaseModel):
     include_assets: bool = True
     include_liabilities: bool = True
     include_goals: bool = True
+    transaction_history_months: int = 3
+    base_currency: str | None = None
     date_from: str | None = None
     date_to: str | None = None
 

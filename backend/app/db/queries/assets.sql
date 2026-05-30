@@ -4,7 +4,7 @@ SELECT id, user_id, asset_type_id, name, estimated_value, currency,
        purchase_price, purchase_date, monthly_cost, created_at, updated_at
 FROM assets
 WHERE user_id = %(user_id)s
-  AND (%(asset_type_id)s IS NULL OR asset_type_id = %(asset_type_id)s)
+  AND (%(asset_type_id)s::uuid IS NULL OR asset_type_id = %(asset_type_id)s::uuid)
 ORDER BY name;
 
 -- name: find_asset

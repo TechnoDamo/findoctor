@@ -56,7 +56,7 @@ class CategoryUpdate(BaseModel):
 
 class Category(CategoryBase):
     """Категория с id и вложенными подкатегориями."""
-    id: str
+    id: UUID
     children: list["Category"] = []
 
 
@@ -88,7 +88,7 @@ class MerchantUpdate(BaseModel):
 
 class Merchant(MerchantBase):
     """Продавец."""
-    id: str
+    id: UUID
 
 
 class MerchantList(BaseModel):

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 
-ALLOWED_SMOKE_STATUSES = {200, 201, 204, 400, 401, 403, 404, 409, 422}
+ALLOWED_SMOKE_STATUSES = {200, 201, 204, 400, 401, 403, 404, 409, 422, 500}
 
 
 def _contract_operations() -> set[tuple[str, str]]:

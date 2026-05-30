@@ -1,5 +1,9 @@
 """Схемы для платежей по обязательствам."""
 
+from datetime import date, datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CurrencyCode, MoneyAmount
@@ -34,19 +38,19 @@ class LiabilityPaymentUpdate(BaseModel):
 
 class LiabilityPayment(BaseModel):
     """Платёж по обязательству."""
-    id: str
-    user_id: str
-    liability_id: str
-    transaction_id: str
-    recurring_transaction_id: str | None = None
-    payment_date: str
-    total_amount: str
-    principal_amount: str | None = None
-    interest_amount: str | None = None
-    fee_amount: str | None = None
+    id: UUID
+    user_id: UUID
+    liability_id: UUID
+    transaction_id: UUID
+    recurring_transaction_id: UUID | None = None
+    payment_date: date
+    total_amount: Decimal
+    principal_amount: Decimal | None = None
+    interest_amount: Decimal | None = None
+    fee_amount: Decimal | None = None
     currency: str
-    balance_after_payment: str | None = None
-    created_at: str
+    balance_after_payment: Decimal | None = None
+    created_at: datetime
 
 
 class LiabilityPaymentList(BaseModel):

@@ -1,5 +1,9 @@
 """Схемы для регулярных операций."""
 
+from datetime import date
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CurrencyCode, MoneyAmount
@@ -42,21 +46,21 @@ class RecurringTransactionUpdate(BaseModel):
 
 class RecurringTransaction(BaseModel):
     """Регулярная операция."""
-    id: str
-    user_id: str
-    account_id: str
-    category_id: str | None = None
-    liability_id: str | None = None
+    id: UUID
+    user_id: UUID
+    account_id: UUID
+    category_id: UUID | None = None
+    liability_id: UUID | None = None
     operation_type: str
     name: str
-    expected_amount: str | None = None
+    expected_amount: Decimal | None = None
     currency: str | None = None
     frequency: str
     interval_count: int
     day_of_month: int | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    next_payment_date: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    next_payment_date: date | None = None
     auto_generated: bool = False
     confidence_score: float | None = None
     is_active: bool = True

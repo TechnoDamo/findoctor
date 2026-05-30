@@ -120,19 +120,19 @@ async def update_transfer(
     async with conn.transaction():
         updated_transfer = await transfer_repo.update_transfer(conn, transfer_id, data)
 
-        if "from_account_id" in data:
+        if data.get("from_account_id") is not None:
             await txn_repo.update_transaction(
                 conn,
                 existing["from_transaction_id"],
                 {"account_id": data["from_account_id"]},
             )
-        if "to_account_id" in data:
+        if data.get("to_account_id") is not None:
             await txn_repo.update_transaction(
                 conn,
                 existing["to_transaction_id"],
                 {"account_id": data["to_account_id"]},
             )
-        if "amount" in data:
+        if data.get("amount") is not None:
             await txn_repo.update_transaction(
                 conn,
                 existing["from_transaction_id"],
@@ -143,14 +143,14 @@ async def update_transfer(
                 existing["to_transaction_id"],
                 {"amount": data["amount"]},
             )
-        if "currency" in data:
+        if data.get("currency") is not None:
             await txn_repo.update_transaction(
                 conn, existing["from_transaction_id"], {"currency": data["currency"]}
             )
             await txn_repo.update_transaction(
                 conn, existing["to_transaction_id"], {"currency": data["currency"]}
             )
-        if "transaction_datetime" in data:
+        if data.get("transaction_datetime") is not None:
             await txn_repo.update_transaction(
                 conn,
                 existing["from_transaction_id"],
@@ -161,7 +161,7 @@ async def update_transfer(
                 existing["to_transaction_id"],
                 {"transaction_datetime": data["transaction_datetime"]},
             )
-        if "description" != None:
+        if data.get("description") is not None:
             await txn_repo.update_transaction(
                 conn,
                 existing["from_transaction_id"],

@@ -20,7 +20,7 @@ APP_PORT ?= 8000
 POSTGRES_PORT ?= 5432
 DATABASE_URL ?= postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_DB)
 
-.PHONY: help db-up db-start db-stop db-logs db-psql migrate migration rollback db-current db-history run test test-unit test-auth test-accounts test-comprehensive test-all test-verbose test-debug test-coverage lint compile contract-check test-db-reset
+.PHONY: help db-up db-start db-stop db-logs db-psql migrate migration rollback db-current db-history run test test-unit test-auth test-accounts test-comprehensive test-all test-verbose test-debug test-coverage lint compile contract-check test-db-reset frontend-tunnel frontend-tunnel-stop backend-tunnel backend-tunnel-stop
 
 help:
 	@echo "Commands:"
@@ -55,6 +55,12 @@ help:
 	@echo "    make lint                Run ruff linter"
 	@echo "    make compile             Compile Python files"
 	@echo "    make contract-check      Check FastAPI routes against OpenAPI contract"
+	@echo ""
+	@echo "  Frontend Tunnel:"
+	@echo "    make frontend-tunnel     Start frontend server with ngrok tunnel for remote access"
+	@echo "    make frontend-tunnel-stop Stop frontend tunnel processes"
+	@echo "    make backend-tunnel      Start backend server with ngrok tunnel for remote API access"
+	@echo "    make backend-tunnel-stop Stop backend tunnel processes"
 
 db-up:
 	mkdir -p $(ROOT_DIR)/db/postgres-data
@@ -146,3 +152,243 @@ contract-check:
 
 test-db-reset:
 	$(UV) run python scripts/reset_test_db.py
+
+frontend-tunnel:
+	@echo "=== Setting up frontend tunnel for remote access ==="
+	@echo ""
+	@echo "1. Checking frontend directory..."
+	@if [ ! -d "$(ROOT_DIR)/frontend" ]; then \
+		echo "Error: Frontend directory not found at $(ROOT_DIR)/frontend"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(ROOT_DIR)/frontend/index.html" ]; then \
+		echo "Creating simple test index.html..."; \
+		echo '<!DOCTYPE html><html><head><title>FinDoctor Test</title></head><body><h1>FinDoctor Frontend Test</h1><p>If you can see this, the tunnel is working!</p></body></html>' > "$(ROOT_DIR)/frontend/index.html"; \
+	fi
+	@echo "✓ Frontend directory ready"
+	@echo ""
+	@echo "2. Starting local HTTP server on port 5173..."
+	@if pgrep -f "python3.*http.server.*5173" > /dev/null; then \
+		echo "Warning: Python HTTP server already running on port 5173"; \
+	else \
+		cd "$(ROOT_DIR)/frontend" && python3 -m http.server 5173 --bind 0.0.0.0 > /dev/null 2>&1 & \
+		echo "✓ HTTP server started in background (PID: $$!)"; \
+		SERVER_PID=$$!; \
+	fi
+	@echo ""
+	@echo "3. Verifying local access..."
+	@sleep 2
+	@if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5173/ | grep -q "200"; then \
+		echo "✓ Local server responding (HTTP 200)"; \
+	else \
+		echo "Error: Local server not responding"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "4. Checking for tunnel tools and starting tunnel..."
+	@TUNNEL_TOOL=""; \
+	if command -v ngrok > /dev/null 2>&1; then \
+		echo "✓ ngrok found at $$(command -v ngrok)"; \
+		TUNNEL_TOOL="ngrok"; \
+	elif command -v cloudflared > /dev/null 2>&1; then \
+		echo "✓ cloudflared found (ngrok not available, using cloudflared)"; \
+		TUNNEL_TOOL="cloudflared"; \
+	else \
+		echo "Error: Neither ngrok nor cloudflared found. Install one of them:"; \
+		echo "  ngrok: brew install ngrok/ngrok/ngrok"; \
+		echo "  cloudflared: brew install cloudflare/cloudflare/cloudflared"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "5. Starting tunnel..."; \
+	if [ "$$TUNNEL_TOOL" = "ngrok" ]; then \
+		if pgrep -f "ngrok http 5173" > /dev/null; then \
+			echo "Warning: ngrok tunnel already running"; \
+			echo "Check ngrok dashboard at: http://127.0.0.1:4040 for the URL"; \
+			PUBLIC_URL="http://127.0.0.1:4040 (check dashboard)"; \
+		else \
+			echo "Starting ngrok tunnel..."; \
+			echo ""; \
+			echo "=== IMPORTANT: NGROK WILL RUN IN THIS TERMINAL ==="; \
+			echo "The ngrok URL will appear below. Look for a line like:"; \
+			echo "  url=https://xxxxxx.ngrok-free.dev"; \
+			echo ""; \
+			echo "Once you see the URL, you can:"; \
+			echo "1. Copy the URL (starts with https://)"; \
+			echo "2. Send it to the other machine"; \
+			echo "3. Press Ctrl+C to stop ngrok when done"; \
+			echo ""; \
+			echo "=== NGROK OUTPUT STARTS BELOW ==="; \
+			echo ""; \
+			ngrok http 5173 --log stdout; \
+			echo ""; \
+			echo "=== NGROK STOPPED ==="; \
+			PUBLIC_URL="See ngrok output above for URL"; \
+		fi; \
+	elif [ "$$TUNNEL_TOOL" = "cloudflared" ]; then \
+		echo "Starting cloudflared tunnel..."; \
+		cloudflared tunnel --url http://127.0.0.1:5173 & \
+		CLOUDFLARED_PID=$$!; \
+		echo "✓ Cloudflared started (PID: $$CLOUDFLARED_PID)"; \
+		echo "Waiting for cloudflared URL (10 seconds)..."; \
+		sleep 10; \
+		echo "Cloudflared URL usually appears in its output above."; \
+		echo "Look for a *.trycloudflare.com URL in the output."; \
+		PUBLIC_URL="https://*.trycloudflare.com (check output above)"; \
+	fi
+	@echo ""
+	@echo "7. Verifying public URL..."
+	@if [ "$$TUNNEL_TOOL" = "ngrok" ] && [ -n "$$PUBLIC_URL" ]; then \
+		if curl -s -o /dev/null -w "%{http_code}" "$$PUBLIC_URL" | grep -q "200"; then \
+			echo "✓ Public URL accessible (HTTP 200)"; \
+		else \
+			echo "Warning: Public URL may not be accessible yet"; \
+		fi; \
+	fi
+	@echo ""
+	@echo "=== TUNNEL SETUP COMPLETE ==="
+	@echo ""
+	@echo "Public URL: $$PUBLIC_URL"
+	@echo ""
+	@echo "Send this URL to the other machine for testing."
+	@echo "The tunnel will stay active until you stop it with:"
+	@echo "  make frontend-tunnel-stop"
+	@echo ""
+	@echo "Or manually kill processes:"
+	@echo "  pkill -f 'python3.*http.server.*5173'"
+	@echo "  pkill -f 'ngrok http 5173'  # or pkill -f cloudflared"
+	@echo ""
+	@echo "Note: Keep this terminal open or the tunnel will stop."
+
+frontend-tunnel-stop:
+	@echo "=== Stopping frontend tunnel processes ==="
+	@if pgrep -f "python3.*http.server.*5173" > /dev/null; then \
+		pkill -f "python3.*http.server.*5173"; \
+		echo "✓ Stopped Python HTTP server"; \
+	else \
+		echo "Python HTTP server not running"; \
+	fi
+	@if pgrep -f "ngrok http 5173" > /dev/null; then \
+		pkill -f "ngrok http 5173"; \
+		echo "✓ Stopped ngrok tunnel"; \
+	fi
+	@if pgrep -f "cloudflared.*tunnel.*5173" > /dev/null; then \
+		pkill -f "cloudflared.*tunnel.*5173"; \
+		echo "✓ Stopped cloudflared tunnel"; \
+	fi
+	@echo "=== All tunnel processes stopped ==="
+
+backend-tunnel:
+	@echo "=== Setting up backend tunnel for remote API access ==="
+	@echo ""
+	@echo "1. Starting backend server on port $(APP_PORT)..."
+	@if pgrep -f "uvicorn.*app.main:app.*$(APP_PORT)" > /dev/null; then \
+		echo "Warning: Backend server already running on port $(APP_PORT)"; \
+	else \
+		$(UV) run uvicorn app.main:app --host $(APP_HOST) --port $(APP_PORT) --reload > /dev/null 2>&1 & \
+		echo "✓ Backend server started in background (PID: $$!)"; \
+		SERVER_PID=$$!; \
+	fi
+	@echo ""
+	@echo "2. Verifying local access..."
+	@sleep 3
+	@if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$(APP_PORT)/docs | grep -q "200"; then \
+		echo "✓ Backend server responding (HTTP 200)"; \
+	else \
+		echo "Error: Backend server not responding"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "3. Checking for tunnel tools and starting tunnel..."
+	@TUNNEL_TOOL=""; \
+	if command -v ngrok > /dev/null 2>&1; then \
+		echo "✓ ngrok found at $$(command -v ngrok)"; \
+		TUNNEL_TOOL="ngrok"; \
+	elif command -v cloudflared > /dev/null 2>&1; then \
+		echo "✓ cloudflared found (ngrok not available, using cloudflared)"; \
+		TUNNEL_TOOL="cloudflared"; \
+	else \
+		echo "Error: Neither ngrok nor cloudflared found. Install one of them:"; \
+		echo "  ngrok: brew install ngrok/ngrok/ngrok"; \
+		echo "  cloudflared: brew install cloudflare/cloudflare/cloudflared"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "4. Starting tunnel..."; \
+	if [ "$$TUNNEL_TOOL" = "ngrok" ]; then \
+		if pgrep -f "ngrok http $(APP_PORT)" > /dev/null; then \
+			echo "Warning: ngrok tunnel already running"; \
+			echo "Check ngrok dashboard at: http://127.0.0.1:4040 for the URL"; \
+			PUBLIC_URL="http://127.0.0.1:4040 (check dashboard)"; \
+		else \
+			echo "Starting ngrok tunnel..."; \
+			echo ""; \
+			echo "=== IMPORTANT: NGROK WILL RUN IN THIS TERMINAL ==="; \
+			echo "The ngrok URL will appear below. Look for a line like:"; \
+			echo "  url=https://xxxxxx.ngrok-free.dev"; \
+			echo ""; \
+			echo "Once you see the URL, you can:"; \
+			echo "1. Copy the URL (starts with https://)"; \
+			echo "2. Send it to the other machine"; \
+			echo "3. Press Ctrl+C to stop ngrok when done"; \
+			echo ""; \
+			echo "=== NGROK OUTPUT STARTS BELOW ==="; \
+			echo ""; \
+			ngrok http $(APP_PORT) --log stdout; \
+			echo ""; \
+			echo "=== NGROK STOPPED ==="; \
+			PUBLIC_URL="See ngrok output above for URL"; \
+		fi; \
+	elif [ "$$TUNNEL_TOOL" = "cloudflared" ]; then \
+		echo "Starting cloudflared tunnel..."; \
+		cloudflared tunnel --url http://127.0.0.1:$(APP_PORT) & \
+		CLOUDFLARED_PID=$$!; \
+		echo "✓ Cloudflared started (PID: $$CLOUDFLARED_PID)"; \
+		echo "Waiting for cloudflared URL (10 seconds)..."; \
+		sleep 10; \
+		echo "Cloudflared URL usually appears in its output above."; \
+		echo "Look for a *.trycloudflare.com URL in the output."; \
+		PUBLIC_URL="https://*.trycloudflare.com (check output above)"; \
+	fi
+	@echo ""
+	@echo "6. Verifying public URL..."
+	@if [ "$$TUNNEL_TOOL" = "ngrok" ] && [ -n "$$PUBLIC_URL" ]; then \
+		if curl -s -o /dev/null -w "%{http_code}" "$$PUBLIC_URL/docs" | grep -q "200"; then \
+			echo "✓ Public URL accessible (HTTP 200)"; \
+		else \
+			echo "Warning: Public URL may not be accessible yet"; \
+		fi; \
+	fi
+	@echo ""
+	@echo "=== BACKEND TUNNEL SETUP COMPLETE ==="
+	@echo ""
+	@echo "Public API URL: $$PUBLIC_URL"
+	@echo "API Documentation: $$PUBLIC_URL/docs"
+	@echo ""
+	@echo "Send these URLs to the other machine for testing."
+	@echo "The tunnel will stay active until you stop it with:"
+	@echo "  make backend-tunnel-stop"
+	@echo ""
+	@echo "Or manually kill processes:"
+	@echo "  pkill -f 'uvicorn.*app.main:app.*$(APP_PORT)'"
+	@echo "  pkill -f 'ngrok http $(APP_PORT)'  # or pkill -f cloudflared"
+	@echo ""
+	@echo "Note: Keep this terminal open or the tunnel will stop."
+
+backend-tunnel-stop:
+	@echo "=== Stopping backend tunnel processes ==="
+	@if pgrep -f "uvicorn.*app.main:app.*$(APP_PORT)" > /dev/null; then \
+		pkill -f "uvicorn.*app.main:app.*$(APP_PORT)"; \
+		echo "✓ Stopped backend server"; \
+	else \
+		echo "Backend server not running"; \
+	fi
+	@if pgrep -f "ngrok http $(APP_PORT)" > /dev/null; then \
+		pkill -f "ngrok http $(APP_PORT)"; \
+		echo "✓ Stopped ngrok tunnel"; \
+	fi
+	@if pgrep -f "cloudflared.*tunnel.*$(APP_PORT)" > /dev/null; then \
+		pkill -f "cloudflared.*tunnel.*$(APP_PORT)"; \
+		echo "✓ Stopped cloudflared tunnel"; \
+	fi
+	@echo "=== All backend tunnel processes stopped ==="

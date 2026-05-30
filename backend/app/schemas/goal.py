@@ -1,5 +1,9 @@
 """Схемы для финансовых целей."""
 
+from datetime import date, datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import MoneyAmount
@@ -25,15 +29,15 @@ class FinancialGoalUpdate(BaseModel):
 
 class FinancialGoal(BaseModel):
     """Финансовая цель."""
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     name: str
-    target_amount: str
-    current_amount: str
-    deadline: str | None = None
+    target_amount: Decimal
+    current_amount: Decimal
+    deadline: date | None = None
     priority: int | None = None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class FinancialGoalList(BaseModel):

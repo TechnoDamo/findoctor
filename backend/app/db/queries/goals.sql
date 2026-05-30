@@ -13,7 +13,7 @@ FROM financial_goals WHERE id = %(goal_id)s;
 -- name: insert_goal
 -- Создание финансовой цели
 INSERT INTO financial_goals (id, user_id, name, target_amount, current_amount, deadline, priority, created_at, updated_at)
-VALUES (gen_random_uuid(), %(user_id)s, %(name)s, %(target_amount)s, COALESCE(%(current_amount)s, '0'), %(deadline)s, %(priority)s, now(), now())
+VALUES (gen_random_uuid(), %(user_id)s, %(name)s, %(target_amount)s, %(current_amount)s, %(deadline)s, %(priority)s, now(), now())
 RETURNING id, user_id, name, target_amount, current_amount, deadline, priority, created_at, updated_at;
 
 -- name: update_goal

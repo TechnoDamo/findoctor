@@ -1,5 +1,9 @@
 """Схемы для активов."""
 
+from datetime import date, datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CurrencyCode, MoneyAmount
@@ -29,17 +33,17 @@ class AssetUpdate(BaseModel):
 
 class Asset(BaseModel):
     """Актив."""
-    id: str
-    user_id: str
-    asset_type_id: str
+    id: UUID
+    user_id: UUID
+    asset_type_id: UUID
     name: str
-    estimated_value: str
+    estimated_value: Decimal
     currency: str
-    purchase_price: str | None = None
-    purchase_date: str | None = None
-    monthly_cost: str | None = None
-    created_at: str
-    updated_at: str
+    purchase_price: Decimal | None = None
+    purchase_date: date | None = None
+    monthly_cost: Decimal | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class AssetList(BaseModel):

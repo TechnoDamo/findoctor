@@ -210,19 +210,23 @@ async def delete_conversation(
 
 async def send_message(
     conn: AsyncConnection,
-    user_id: str,
-    conversation_id: str | None,
+    *,
+    user: dict,
+    conversation_id: str | None = None,
     input_parts: list[dict],
     title: str | None = None,
     response_modalities: list[str] | None = None,
     audio_response: dict | None = None,
     financial_context: dict | None = None,
+    context_options: dict | None = None,
 ) -> dict:
     """
     Отправка сообщения AI-ассистенту и сохранение ответа.
 
     Если conversation_id не указан — создаётся новый диалог.
     """
+    user_id = user["id"]
+
     if conversation_id is None:
         conversation = await chat_repo.insert_conversation(conn, user_id, title)
         conversation_id = conversation["id"]
@@ -284,7 +288,8 @@ async def send_message(
 
 async def send_voice_message(
     conn: AsyncConnection,
-    user_id: str,
+    *,
+    user: dict,
     audio_data: str,
     audio_format: str,
     conversation_id: str | None = None,
@@ -309,6 +314,7 @@ async def send_voice_message(
         response_format: формат аудио-ответа.
         delivery: способ доставки аудио (inline_base64 / temporary_url).
     """
+    user_id = user["id"]
     if conversation_id is None:
         conversation = await chat_repo.insert_conversation(conn, user_id, title)
         conversation_id = conversation["id"]

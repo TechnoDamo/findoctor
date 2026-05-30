@@ -41,7 +41,7 @@ async def get_asset(asset_id: str, conn: DbConnection) -> dict:
 @router.patch("/{asset_id}", response_model=Asset)
 async def update_asset(asset_id: str, data: AssetUpdate, conn: DbConnection) -> dict:
     """Обновление актива."""
-    return await asset_repo.update_asset(conn, asset_id, data.model_dump(exclude_none=True))
+    return await asset_repo.update_asset(conn, asset_id, data.model_dump())
 
 
 @router.delete("/{asset_id}", status_code=204)

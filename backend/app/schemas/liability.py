@@ -1,5 +1,9 @@
 """Схемы для обязательств (долгов и кредитов)."""
 
+from datetime import date, datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CurrencyCode, MoneyAmount
@@ -48,27 +52,27 @@ class LiabilityUpdate(BaseModel):
 
 class Liability(BaseModel):
     """Обязательство."""
-    id: str
-    user_id: str
-    liability_type_id: str
-    linked_account_id: str | None = None
-    collateral_asset_id: str | None = None
+    id: UUID
+    user_id: UUID
+    liability_type_id: UUID
+    linked_account_id: UUID | None = None
+    collateral_asset_id: UUID | None = None
     name: str
-    creditor_institution_id: str | None = None
+    creditor_institution_id: UUID | None = None
     creditor_name: str | None = None
-    original_amount: str | None = None
-    current_balance: str
+    original_amount: Decimal | None = None
+    current_balance: Decimal
     currency: str
     interest_rate: float | None = None
     interest_type: str | None = None
-    minimum_payment_amount: str | None = None
-    regular_payment_amount: str | None = None
+    minimum_payment_amount: Decimal | None = None
+    regular_payment_amount: Decimal | None = None
     payment_due_day: int | None = None
-    start_date: str | None = None
-    maturity_date: str | None = None
+    start_date: date | None = None
+    maturity_date: date | None = None
     status: str
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class LiabilityList(BaseModel):

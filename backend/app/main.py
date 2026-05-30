@@ -8,6 +8,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import ResponseValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg import Error as PsycopgError
@@ -98,6 +99,21 @@ async def database_error_handler(request: Request, exc: PsycopgError) -> JSONRes
                 "code": code,
                 "message": message,
                 "details": {"pgcode": getattr(exc, "sqlstate", None)},
+            }
+        },
+    )
+
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_error_handler(request: Request, exc: ResponseValidationError) -> JSONResponse:
+    """Catch response validation errors and return a controlled 500."""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "server_error",
+                "message": "Internal server error",
+                "details": None,
             }
         },
     )

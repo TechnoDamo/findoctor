@@ -27,9 +27,11 @@ async def list_transfers(
         user["id"],
         page=page,
         page_size=page_size,
-        from_=from_,
-        to=to,
-        account_id=account_id,
+        **{
+            "from": from_,
+            "to": to,
+            "account_id": account_id,
+        },
     )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     return {
@@ -66,7 +68,7 @@ async def update_transfer(
 ) -> dict:
     """Обновление перевода и синхронизация транзакций."""
     return await transfer_service.update_transfer(
-        conn, user["id"], transfer_id, data.model_dump(exclude_none=True)
+        conn, user["id"], transfer_id, data.model_dump()
     )
 
 

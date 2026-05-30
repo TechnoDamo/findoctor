@@ -1,5 +1,9 @@
 """Схемы для транзакций."""
 
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CurrencyCode, MoneyAmount, PageMeta
@@ -7,8 +11,8 @@ from app.schemas.common import CurrencyCode, MoneyAmount, PageMeta
 
 class TagBrief(BaseModel):
     """Краткая информация о теге в составе транзакции."""
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     name: str
 
 
@@ -47,23 +51,23 @@ class TransactionUpdate(BaseModel):
 
 class Transaction(BaseModel):
     """Транзакция."""
-    id: str
-    user_id: str
-    account_id: str
-    category_id: str | None = None
+    id: UUID
+    user_id: UUID
+    account_id: UUID
+    category_id: UUID | None = None
     type: str
-    amount: str
+    amount: Decimal
     currency: str
-    transaction_datetime: str
+    transaction_datetime: datetime
     description: str | None = None
-    merchant_id: str | None = None
+    merchant_id: UUID | None = None
     merchant_name: str | None = None
     geo_location: str | None = None
-    recurring_transaction_id: str | None = None
+    recurring_transaction_id: UUID | None = None
     external_id: str | None = None
-    transfer_id: str | None = None
+    transfer_id: UUID | None = None
     transfer_leg: str | None = None
-    created_at: str
+    created_at: datetime
     tags: list[TagBrief] = []
 
 

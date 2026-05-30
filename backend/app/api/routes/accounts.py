@@ -53,7 +53,7 @@ async def update_account(
     account_id: str, data: AccountUpdate, conn: DbConnection
 ) -> dict:
     """Обновление счёта."""
-    return await account_repo.update_account(conn, account_id, data.model_dump(exclude_none=True))
+    return await account_repo.update_account(conn, account_id, data.model_dump())
 
 
 @router.delete("/{account_id}", status_code=204)

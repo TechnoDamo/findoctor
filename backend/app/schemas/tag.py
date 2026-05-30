@@ -1,5 +1,7 @@
 """Схемы для тегов."""
 
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -15,8 +17,8 @@ class TagUpdate(TagCreate):
 
 class Tag(BaseModel):
     """Тег."""
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     name: str
 
 

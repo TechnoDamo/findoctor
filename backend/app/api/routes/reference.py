@@ -135,7 +135,7 @@ async def get_merchant(merchant_id: str, conn: DbConnection) -> dict:
 @merchants_router.patch("/{merchant_id}", response_model=Merchant)
 async def update_merchant(merchant_id: str, data: MerchantUpdate, conn: DbConnection) -> dict:
     """Обновление продавца."""
-    return await ref_repo.update_merchant(conn, merchant_id, data.model_dump(exclude_none=True))
+    return await ref_repo.update_merchant(conn, merchant_id, data.model_dump())
 
 
 @merchants_router.delete("/{merchant_id}", status_code=204)

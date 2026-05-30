@@ -38,14 +38,16 @@ async def list_transactions(
         user["id"],
         page=page,
         page_size=page_size,
-        from_=from_,
-        to=to,
-        account_id=account_id,
-        category_id=category_id,
-        type_=type_,
-        merchant_id=merchant_id,
-        recurring_transaction_id=recurring_transaction_id,
-        tag_id=tag_id,
+        **{
+            "from": from_,
+            "to": to,
+            "type": type_,
+            "account_id": account_id,
+            "category_id": category_id,
+            "merchant_id": merchant_id,
+            "recurring_transaction_id": recurring_transaction_id,
+            "tag_id": tag_id,
+        },
     )
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     return {
@@ -86,7 +88,7 @@ async def update_transaction(
 ) -> dict:
     """Обновление транзакции."""
     return await txn_repo.update_transaction(
-        conn, transaction_id, data.model_dump(exclude_none=True)
+        conn, transaction_id, data.model_dump()
     )
 
 

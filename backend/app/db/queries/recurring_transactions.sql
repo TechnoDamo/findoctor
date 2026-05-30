@@ -7,10 +7,10 @@ SELECT id, user_id, account_id, category_id, liability_id,
        auto_generated, confidence_score, is_active
 FROM recurring_transactions
 WHERE user_id = %(user_id)s
-  AND (%(is_active)s IS NULL OR is_active = %(is_active)s)
-  AND (%(account_id)s IS NULL OR account_id = %(account_id)s)
-  AND (%(liability_id)s IS NULL OR liability_id = %(liability_id)s)
-  AND (%(next_payment_before)s IS NULL OR next_payment_date <= %(next_payment_before)s)
+  AND (%(is_active)s::boolean IS NULL OR is_active = %(is_active)s::boolean)
+  AND (%(account_id)s::uuid IS NULL OR account_id = %(account_id)s::uuid)
+  AND (%(liability_id)s::uuid IS NULL OR liability_id = %(liability_id)s::uuid)
+  AND (%(next_payment_before)s::date IS NULL OR next_payment_date <= %(next_payment_before)s)
 ORDER BY next_payment_date ASC NULLS LAST;
 
 -- name: find_recurring_transaction

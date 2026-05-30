@@ -39,7 +39,7 @@ async def get_goal(goal_id: str, conn: DbConnection) -> dict:
 @router.patch("/{goal_id}", response_model=FinancialGoal)
 async def update_goal(goal_id: str, data: FinancialGoalUpdate, conn: DbConnection) -> dict:
     """Обновление цели."""
-    return await goal_repo.update_goal(conn, goal_id, data.model_dump(exclude_none=True))
+    return await goal_repo.update_goal(conn, goal_id, data.model_dump())
 
 
 @router.delete("/{goal_id}", status_code=204)

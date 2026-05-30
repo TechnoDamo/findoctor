@@ -18,8 +18,8 @@ SELECT id, code, name, description FROM provider_types ORDER BY name;
 -- Список категорий (фильтрация по типу и родителю)
 SELECT id, parent_id, type, name, description
 FROM categories
-WHERE (%(type)s IS NULL OR type = %(type)s)
-  AND (%(parent_id)s IS NULL OR parent_id = %(parent_id)s)
+WHERE (%(type)s::category_type IS NULL OR type = %(type)s::category_type)
+  AND (%(parent_id)s::uuid IS NULL OR parent_id = %(parent_id)s::uuid)
 ORDER BY name;
 
 -- name: find_category
@@ -35,10 +35,10 @@ RETURNING id, parent_id, type, name, description;
 -- name: update_category
 -- Обновление категории
 UPDATE categories SET
-    parent_id = %(parent_id)s,
-    type = %(type)s,
-    name = %(name)s,
-    description = %(description)s
+    parent_id = COALESCE(%(parent_id)s::uuid, parent_id),
+    type = COALESCE(%(type)s::category_type, type),
+    name = COALESCE(%(name)s, name),
+    description = COALESCE(%(description)s::varchar, description)
 WHERE id = %(category_id)s
 RETURNING id, parent_id, type, name, description;
 
@@ -50,9 +50,9 @@ DELETE FROM categories WHERE id = %(category_id)s;
 -- Поиск продавцов по названию, стране и уровню риска
 SELECT id, name, category, country, risk_level
 FROM merchants
-WHERE (%(q)s IS NULL OR name ILIKE %(q_like)s)
-  AND (%(country)s IS NULL OR country = %(country)s)
-  AND (%(risk_level)s IS NULL OR risk_level = %(risk_level)s)
+WHERE (%(q)s::varchar IS NULL OR name ILIKE %(q_like)s)
+  AND (%(country)s::varchar IS NULL OR country = %(country)s::varchar)
+  AND (%(risk_level)s::risk_level IS NULL OR risk_level = %(risk_level)s::risk_level)
 ORDER BY name;
 
 -- name: find_merchant
@@ -68,10 +68,10 @@ RETURNING id, name, category, country, risk_level;
 -- name: update_merchant
 -- Обновление данных продавца
 UPDATE merchants SET
-    name = %(name)s,
-    category = %(category)s,
-    country = %(country)s,
-    risk_level = %(risk_level)s
+    name = COALESCE(%(name)s, name),
+    category = COALESCE(%(category)s::varchar, category),
+    country = COALESCE(%(country)s::varchar, country),
+    risk_level = COALESCE(%(risk_level)s::risk_level, risk_level)
 WHERE id = %(merchant_id)s
 RETURNING id, name, category, country, risk_level;
 

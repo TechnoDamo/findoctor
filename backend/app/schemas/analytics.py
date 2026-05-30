@@ -1,5 +1,8 @@
 """Схемы для аналитики: дашборд, снимки, денежный поток, капитал."""
 
+from datetime import date, datetime
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -18,9 +21,9 @@ class DashboardSummary(BaseModel):
 
 class DailyFinancialSnapshot(BaseModel):
     """Ежедневный финансовый снимок."""
-    id: str
-    user_id: str
-    snapshot_date: str
+    id: UUID
+    user_id: UUID
+    snapshot_date: date
     total_cash: str
     total_assets: str
     total_liabilities: str
@@ -49,7 +52,7 @@ class JobAccepted(BaseModel):
 
 class CashFlowPoint(BaseModel):
     """Точка денежного потока за период."""
-    period_start: str
+    period_start: date
     income: str
     expenses: str
     net: str
@@ -63,7 +66,7 @@ class CashFlowSeries(BaseModel):
 
 class NetWorthPoint(BaseModel):
     """Точка чистого капитала."""
-    date: str
+    date: date
     total_cash: str
     total_assets: str
     total_liabilities: str

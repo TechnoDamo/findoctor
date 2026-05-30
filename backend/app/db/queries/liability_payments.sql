@@ -5,9 +5,9 @@ SELECT id, user_id, liability_id, transaction_id, recurring_transaction_id,
        fee_amount, currency, balance_after_payment, created_at
 FROM liability_payments
 WHERE user_id = %(user_id)s
-  AND (%(liability_id)s IS NULL OR liability_id = %(liability_id)s)
-  AND (%(from)s IS NULL OR payment_date >= %(from)s)
-  AND (%(to)s IS NULL OR payment_date <= %(to)s)
+  AND (%(liability_id)s::uuid IS NULL OR liability_id = %(liability_id)s::uuid)
+  AND (%(from)s::timestamptz IS NULL OR payment_date >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR payment_date <= %(to)s)
 ORDER BY payment_date DESC;
 
 -- name: find_liability_payment

@@ -7,10 +7,10 @@ SELECT
 FROM financial_institutions fi
 LEFT JOIN financial_institution_provider_types fipt ON fi.id = fipt.financial_institution_id
 LEFT JOIN provider_types pt ON fipt.provider_type_id = pt.id
-WHERE (%(q)s IS NULL OR fi.name ILIKE %(q_like)s)
-  AND (%(country)s IS NULL OR fi.country = %(country)s)
-  AND (%(provider_type_code)s IS NULL OR pt.code = %(provider_type_code)s)
-  AND (%(active_only)s IS NULL OR fi.is_active = %(active_only)s)
+WHERE (%(q)s::varchar IS NULL OR fi.name ILIKE %(q_like)s)
+  AND (%(country)s::varchar IS NULL OR fi.country = %(country)s::varchar)
+  AND (%(provider_type_code)s::varchar IS NULL OR pt.code = %(provider_type_code)s::varchar)
+  AND (%(active_only)s::boolean IS NULL OR fi.is_active = %(active_only)s::boolean)
 GROUP BY fi.id
 ORDER BY fi.name;
 
@@ -41,13 +41,13 @@ ON CONFLICT DO NOTHING;
 -- name: update_institution
 -- Обновление финансовой организации
 UPDATE financial_institutions SET
-    name = %(name)s,
-    country = %(country)s,
-    website_url = %(website_url)s,
-    logo_url = %(logo_url)s,
-    integration_key = %(integration_key)s,
-    risk_level = %(risk_level)s,
-    is_active = %(is_active)s
+    name = COALESCE(%(name)s, name),
+    country = COALESCE(%(country)s::varchar, country),
+    website_url = COALESCE(%(website_url)s::varchar, website_url),
+    logo_url = COALESCE(%(logo_url)s::varchar, logo_url),
+    integration_key = COALESCE(%(integration_key)s::varchar, integration_key),
+    risk_level = COALESCE(%(risk_level)s::risk_level, risk_level),
+    is_active = COALESCE(%(is_active)s::boolean, is_active)
 WHERE id = %(institution_id)s
 RETURNING id, name, country, website_url, logo_url, integration_key, risk_level, is_active;
 

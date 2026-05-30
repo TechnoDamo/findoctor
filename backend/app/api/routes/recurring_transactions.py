@@ -65,7 +65,7 @@ async def update_recurring_transaction(
 ) -> dict:
     """Обновление регулярной операции."""
     return await rt_repo.update_recurring_transaction(
-        conn, recurring_transaction_id, data.model_dump(exclude_none=True)
+        conn, recurring_transaction_id, data.model_dump()
     )
 
 

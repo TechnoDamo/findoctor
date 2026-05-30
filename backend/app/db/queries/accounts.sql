@@ -4,10 +4,10 @@ SELECT id, user_id, account_type_id, institution_id, name, institution_name,
        currency, balance, is_active, created_at, updated_at
 FROM accounts
 WHERE user_id = %(user_id)s
-  AND (%(is_active)s::boolean IS NULL OR is_active = %(is_active)s::boolean)
-  AND (%(account_type_id)s::uuid IS NULL OR account_type_id = %(account_type_id)s::uuid)
-  AND (%(institution_id)s::uuid IS NULL OR institution_id = %(institution_id)s::uuid)
-  AND (%(currency)s::varchar IS NULL OR currency = %(currency)s::varchar)
+  AND (%(is_active)s::boolean IS NULL OR is_active = %(is_active)s::boolean::boolean)
+  AND (%(account_type_id)s::uuid IS NULL OR account_type_id = %(account_type_id)s::uuid::uuid)
+  AND (%(institution_id)s::uuid IS NULL OR institution_id = %(institution_id)s::uuid::uuid)
+  AND (%(currency)s::varchar IS NULL OR currency = %(currency)s::varchar::varchar)
 ORDER BY name;
 
 -- name: find_account

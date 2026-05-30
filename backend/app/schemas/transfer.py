@@ -1,5 +1,9 @@
 """Схемы для переводов между счетами."""
 
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID
+
 from pydantic import BaseModel
 
 from app.schemas.common import CurrencyCode, MoneyAmount, PageMeta
@@ -31,16 +35,16 @@ class TransferUpdate(BaseModel):
 
 class Transfer(BaseModel):
     """Перевод с полной информацией."""
-    id: str
-    user_id: str
-    from_account_id: str
-    to_account_id: str
-    amount: str
+    id: UUID
+    user_id: UUID
+    from_account_id: UUID
+    to_account_id: UUID
+    amount: Decimal
     currency: str
-    transaction_datetime: str
+    transaction_datetime: datetime
     description: str | None = None
-    from_transaction_id: str
-    to_transaction_id: str
+    from_transaction_id: UUID | None = None
+    to_transaction_id: UUID | None = None
     from_transaction: Transaction | None = None
     to_transaction: Transaction | None = None
 

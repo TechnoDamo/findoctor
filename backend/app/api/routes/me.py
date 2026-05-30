@@ -30,6 +30,6 @@ async def update_current_user(data: UserUpdate, user: CurrentUser, conn: DbConne
     updated = await user_repo.update_user(
         conn,
         user["id"],
-        data.model_dump(exclude_none=True),
+        data.model_dump(),
     )
     return _serialize_user(updated)

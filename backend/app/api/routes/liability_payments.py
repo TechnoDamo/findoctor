@@ -26,7 +26,7 @@ async def list_liability_payments(
 ) -> dict:
     """Список платежей с фильтрацией."""
     items = await lp_repo.list_liability_payments(
-        conn, user["id"], liability_id=liability_id, from_=from_, to=to
+        conn, user["id"], **{"from": from_, "to": to, "liability_id": liability_id}
     )
     return {"items": items}
 
@@ -54,7 +54,7 @@ async def update_liability_payment(
 ) -> dict:
     """Обновление платежа."""
     return await lp_repo.update_liability_payment(
-        conn, liability_payment_id, data.model_dump(exclude_none=True)
+        conn, liability_payment_id, data.model_dump()
     )
 
 

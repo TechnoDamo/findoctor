@@ -1,5 +1,7 @@
 """Схемы для импорта транзакций."""
 
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -29,7 +31,7 @@ class TransactionImportRequest(BaseModel):
 class TransactionImportResultItem(BaseModel):
     """Результат импорта одной транзакции."""
     status: str
-    transaction_id: str | None = None
+    transaction_id: UUID | None = None
     external_id: str | None = None
     error: str | None = None
 

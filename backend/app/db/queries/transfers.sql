@@ -4,9 +4,9 @@ SELECT tf.id, tf.user_id, tf.from_account_id, tf.to_account_id,
        tf.amount, tf.currency, tf.transaction_datetime, tf.description
 FROM transfers tf
 WHERE tf.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR tf.transaction_datetime >= %(from)s)
-  AND (%(to)s IS NULL OR tf.transaction_datetime <= %(to)s)
-  AND (%(account_id)s IS NULL OR tf.from_account_id = %(account_id)s OR tf.to_account_id = %(account_id)s)
+  AND (%(from)s::timestamptz IS NULL OR tf.transaction_datetime >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR tf.transaction_datetime <= %(to)s)
+  AND (%(account_id)s::uuid IS NULL OR tf.from_account_id = %(account_id)s::uuid OR tf.to_account_id = %(account_id)s::uuid)
 ORDER BY tf.transaction_datetime DESC
 LIMIT %(page_size)s OFFSET %(offset)s;
 
@@ -15,9 +15,9 @@ LIMIT %(page_size)s OFFSET %(offset)s;
 SELECT COUNT(*) AS total
 FROM transfers tf
 WHERE tf.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR tf.transaction_datetime >= %(from)s)
-  AND (%(to)s IS NULL OR tf.transaction_datetime <= %(to)s)
-  AND (%(account_id)s IS NULL OR tf.from_account_id = %(account_id)s OR tf.to_account_id = %(account_id)s);
+  AND (%(from)s::timestamptz IS NULL OR tf.transaction_datetime >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR tf.transaction_datetime <= %(to)s)
+  AND (%(account_id)s::uuid IS NULL OR tf.from_account_id = %(account_id)s::uuid OR tf.to_account_id = %(account_id)s::uuid);
 
 -- name: find_transfer
 -- Получение перевода по id с полными данными связанных транзакций

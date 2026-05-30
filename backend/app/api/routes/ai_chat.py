@@ -27,13 +27,13 @@ async def create_message(
     """Отправка текстового или аудио (base64) сообщения AI-ассистенту."""
     return await chat_service.send_message(
         conn=conn,
-        user_id=user["id"],
+        user=user,
         conversation_id=data.conversation_id,
         input_parts=[p.model_dump(exclude_none=True) for p in data.input],
         title=data.title,
         response_modalities=data.response_modalities,
         audio_response=data.audio_response.model_dump(exclude_none=True) if data.audio_response else None,
-        financial_context=data.context.model_dump(exclude_none=True) if data.context else None,
+        context_options=data.context.model_dump(exclude_none=True) if data.context else None,
     )
 
 
@@ -59,7 +59,7 @@ async def create_voice_message(
 
     return await chat_service.send_voice_message(
         conn=conn,
-        user_id=user["id"],
+        user=user,
         audio_data=audio_base64,
         audio_format=audio_format or (audio.content_type.split("/")[-1] if audio.content_type else "webm"),
         conversation_id=conversation_id,

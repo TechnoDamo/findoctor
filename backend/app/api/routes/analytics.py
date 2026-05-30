@@ -24,7 +24,7 @@ async def get_dashboard_summary(user: CurrentUser, conn: DbConnection) -> dict:
     summary = await analytics_repo.get_dashboard_summary(
         conn, user["id"], user["base_currency"]
     )
-    return summary or {
+    defaults = {
         "currency": user["base_currency"],
         "total_cash": "0",
         "total_assets": "0",
@@ -35,6 +35,9 @@ async def get_dashboard_summary(user: CurrentUser, conn: DbConnection) -> dict:
         "savings_rate": None,
         "upcoming_recurring_transactions": [],
     }
+    if summary is None:
+        return defaults
+    return {**defaults, **summary}
 
 
 @router.get("/snapshots", response_model=DailyFinancialSnapshotList)

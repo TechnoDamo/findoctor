@@ -1,5 +1,7 @@
 """Схемы для финансовых организаций."""
 
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -27,7 +29,7 @@ class FinancialInstitutionUpdate(BaseModel):
 
 class FinancialInstitution(BaseModel):
     """Финансовая организация."""
-    id: str
+    id: UUID
     name: str
     country: str | None = None
     website_url: str | None = None

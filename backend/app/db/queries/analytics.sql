@@ -31,8 +31,8 @@ SELECT id, user_id, snapshot_date, total_cash, total_assets, total_liabilities,
        net_worth, monthly_income, monthly_expenses, savings_rate
 FROM daily_financial_snapshots
 WHERE user_id = %(user_id)s
-  AND (%(from)s IS NULL OR snapshot_date >= %(from)s)
-  AND (%(to)s IS NULL OR snapshot_date <= %(to)s)
+  AND (%(from)s::timestamptz IS NULL OR snapshot_date >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR snapshot_date <= %(to)s)
 ORDER BY snapshot_date;
 
 -- name: recalculate_snapshots
@@ -59,8 +59,8 @@ SELECT
              SUM(CASE WHEN t.type = 'expense' THEN ABS(t.amount) ELSE 0 END), 0)::text AS net
 FROM transactions t
 WHERE t.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR t.transaction_datetime >= %(from)s)
-  AND (%(to)s IS NULL OR t.transaction_datetime <= %(to)s)
+  AND (%(from)s::timestamptz IS NULL OR t.transaction_datetime >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR t.transaction_datetime <= %(to)s)
 GROUP BY period_start
 ORDER BY period_start;
 
@@ -74,6 +74,6 @@ SELECT
     s.net_worth::text
 FROM daily_financial_snapshots s
 WHERE s.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR s.snapshot_date >= %(from)s)
-  AND (%(to)s IS NULL OR s.snapshot_date <= %(to)s)
+  AND (%(from)s::timestamptz IS NULL OR s.snapshot_date >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR s.snapshot_date <= %(to)s)
 ORDER BY s.snapshot_date;

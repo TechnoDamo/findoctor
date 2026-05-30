@@ -9,8 +9,8 @@ SELECT id, user_id, liability_type_id, linked_account_id, collateral_asset_id,
        status, created_at, updated_at
 FROM liabilities
 WHERE user_id = %(user_id)s
-  AND (%(status)s IS NULL OR status = %(status)s)
-  AND (%(liability_type_id)s IS NULL OR liability_type_id = %(liability_type_id)s)
+  AND (%(status)s::liability_status IS NULL OR status = %(status)s::liability_status)
+  AND (%(liability_type_id)s::uuid IS NULL OR liability_type_id = %(liability_type_id)s::uuid)
 ORDER BY name;
 
 -- name: find_liability

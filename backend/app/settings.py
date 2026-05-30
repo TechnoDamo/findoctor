@@ -61,6 +61,27 @@ class Settings(BaseSettings):
     tts_voice: str = "echo"
     tts_max_chars: int = 300
 
+    # AI Chat context injection
+    ai_chat_context_max_chars: int = 8000
+
+    # Recommendations / RAG / search
+    recommendations_enabled: bool = False
+    recommendation_allowed_resources_file: str = "../ragflow/allowed_resources.txt"
+    recommendation_planner_model: str = ""
+    recommendation_finalizer_model: str = ""
+    recommendation_max_rag_requests: int = 3
+    recommendation_max_search_queries: int = 3
+    recommendation_max_evidence_items: int = 8
+    recommendation_max_evidence_chars: int = 12000
+
+    ragflow_base_url: str = "http://localhost:9380"
+    ragflow_api_key: str = ""
+    ragflow_dataset_id: str = ""
+    ragflow_page_size: int = 5
+
+    searxng_base_url: str = "http://localhost:8201"
+    searxng_timeout_seconds: float = 20.0
+
     # Логирование
     log_level: str = "INFO"
     graylog_enabled: bool = False

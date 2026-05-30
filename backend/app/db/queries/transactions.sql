@@ -11,14 +11,14 @@ FROM transactions t
 LEFT JOIN transaction_tags tt ON t.id = tt.transaction_id
 LEFT JOIN tags tg ON tt.tag_id = tg.id
 WHERE t.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR t.transaction_datetime >= %(from)s)
-  AND (%(to)s IS NULL OR t.transaction_datetime <= %(to)s)
-  AND (%(account_id)s IS NULL OR t.account_id = %(account_id)s)
-  AND (%(category_id)s IS NULL OR t.category_id = %(category_id)s)
-  AND (%(type)s IS NULL OR t.type = %(type)s)
-  AND (%(merchant_id)s IS NULL OR t.merchant_id = %(merchant_id)s)
-  AND (%(recurring_transaction_id)s IS NULL OR t.recurring_transaction_id = %(recurring_transaction_id)s)
-  AND (%(tag_id)s IS NULL OR tt.tag_id = %(tag_id)s)
+  AND (%(from)s::timestamptz IS NULL OR t.transaction_datetime >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR t.transaction_datetime <= %(to)s)
+  AND (%(account_id)s::uuid IS NULL OR t.account_id = %(account_id)s::uuid)
+  AND (%(category_id)s::uuid IS NULL OR t.category_id = %(category_id)s::uuid)
+  AND (%(type)s::transaction_type IS NULL OR t.type = %(type)s::transaction_type)
+  AND (%(merchant_id)s::uuid IS NULL OR t.merchant_id = %(merchant_id)s::uuid)
+  AND (%(recurring_transaction_id)s::uuid IS NULL OR t.recurring_transaction_id = %(recurring_transaction_id)s::uuid)
+  AND (%(tag_id)s::uuid IS NULL OR tt.tag_id = %(tag_id)s::uuid)
 GROUP BY t.id
 ORDER BY t.transaction_datetime DESC
 LIMIT %(page_size)s OFFSET %(offset)s;
@@ -29,14 +29,14 @@ SELECT COUNT(DISTINCT t.id) AS total
 FROM transactions t
 LEFT JOIN transaction_tags tt ON t.id = tt.transaction_id
 WHERE t.user_id = %(user_id)s
-  AND (%(from)s IS NULL OR t.transaction_datetime >= %(from)s)
-  AND (%(to)s IS NULL OR t.transaction_datetime <= %(to)s)
-  AND (%(account_id)s IS NULL OR t.account_id = %(account_id)s)
-  AND (%(category_id)s IS NULL OR t.category_id = %(category_id)s)
-  AND (%(type)s IS NULL OR t.type = %(type)s)
-  AND (%(merchant_id)s IS NULL OR t.merchant_id = %(merchant_id)s)
-  AND (%(recurring_transaction_id)s IS NULL OR t.recurring_transaction_id = %(recurring_transaction_id)s)
-  AND (%(tag_id)s IS NULL OR tt.tag_id = %(tag_id)s);
+  AND (%(from)s::timestamptz IS NULL OR t.transaction_datetime >= %(from)s)
+  AND (%(to)s::timestamptz IS NULL OR t.transaction_datetime <= %(to)s)
+  AND (%(account_id)s::uuid IS NULL OR t.account_id = %(account_id)s::uuid)
+  AND (%(category_id)s::uuid IS NULL OR t.category_id = %(category_id)s::uuid)
+  AND (%(type)s::transaction_type IS NULL OR t.type = %(type)s::transaction_type)
+  AND (%(merchant_id)s::uuid IS NULL OR t.merchant_id = %(merchant_id)s::uuid)
+  AND (%(recurring_transaction_id)s::uuid IS NULL OR t.recurring_transaction_id = %(recurring_transaction_id)s::uuid)
+  AND (%(tag_id)s::uuid IS NULL OR tt.tag_id = %(tag_id)s::uuid);
 
 -- name: find_transaction
 -- Получение транзакции по id с тегами

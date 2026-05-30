@@ -47,7 +47,7 @@ async def update_liability(
 ) -> dict:
     """Обновление обязательства."""
     return await liab_repo.update_liability(
-        conn, liability_id, data.model_dump(exclude_none=True)
+        conn, liability_id, data.model_dump()
     )
 
 
