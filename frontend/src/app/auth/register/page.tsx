@@ -5,15 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { apiErrorMessage } from '@/lib/api/errors';
 import { useRegister } from '@/lib/api/queries/auth';
-
-function errorMessage(error: unknown) {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const response = (error as { response?: { data?: { error?: { message?: string }; detail?: string } } }).response;
-    return response?.data?.error?.message || response?.data?.detail || 'Не удалось зарегистрироваться';
-  }
-  return 'Не удалось зарегистрироваться';
-}
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -48,7 +41,7 @@ export default function RegisterPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
-      setError(errorMessage(err));
+      setError(apiErrorMessage(err, 'Не удалось зарегистрироваться'));
     }
   };
 
