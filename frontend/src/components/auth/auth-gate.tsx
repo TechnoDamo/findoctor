@@ -3,14 +3,15 @@
 import { useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useLogout } from '@/lib/api/queries/auth';
-import { getStoredAccessToken, useAuthStore } from '@/lib/auth/auth-store';
+import { useCurrentUser, useLogout } from '@/lib/api/queries/auth';
+import { getStoredEmail, getStoredPassword, useAuthStore } from '@/lib/auth/auth-store';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const hydrateFromStorage = useAuthStore((state) => state.hydrateFromStorage);
-  const accessToken = useAuthStore((state) => state.accessToken);
+  const email = useAuthStore((state) => state.email);
+  const password = useAuthStore((state) => state.password);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const user = useAuthStore((state) => state.user);
   const logout = useLogout();
@@ -20,19 +21,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [hydrateFromStorage]);
 
   useEffect(() => {
-    if (hasHydrated && !getStoredAccessToken()) {
+    if (hasHydrated && (!getStoredEmail() || !getStoredPassword())) {
       router.replace(`/auth/login?next=${encodeURIComponent(pathname)}`);
     }
   }, [hasHydrated, pathname, router]);
 
-  const hasToken = Boolean(accessToken);
+  const hasCredentials = Boolean(email && password);
+  const currentUser = useCurrentUser(hasHydrated && hasCredentials);
 
   const displayName = useMemo(() => {
     if (!user) return '';
     return user.first_name || user.email || '';
   }, [user]);
 
-  if (!hasHydrated) {
+  if (!hasHydrated || (hasCredentials && currentUser.isLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
         <div className="text-sm text-gray-500">Проверяем сессию...</div>
@@ -40,13 +42,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!hasToken) {
+  if (!hasCredentials || currentUser.isError) {
     return (
       <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
         <div className="w-full max-w-md space-y-4 rounded-md border border-gray-200 bg-white p-6 text-center">
           <h1 className="text-xl font-semibold">Сессия не активна</h1>
           <p className="text-sm text-gray-500">
-            Войдите заново. Если вы только что запускали backend, проверьте что API доступен.
+            Войдите заново. Backend не принял сохранённые email и пароль.
           </p>
           <Button href={`/auth/login?next=${encodeURIComponent(pathname)}`} className="w-full">
             Войти

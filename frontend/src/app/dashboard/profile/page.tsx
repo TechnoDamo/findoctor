@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import apiClient from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/api/queries/auth';
 import { useAuthStore } from '@/lib/auth/auth-store';
 
@@ -38,19 +39,15 @@ export default function ProfilePage() {
     setMessage('');
 
     try {
-      const now = new Date().toISOString();
-      setUser({
-        id: currentUser.data?.id || 'local-user',
-        email,
+      const response = await apiClient.patch('/me', {
         first_name: firstName || null,
         last_name: lastName || null,
         phone: phone || null,
         country: country || null,
         base_currency: currency,
         timezone,
-        created_at: currentUser.data?.created_at || now,
-        updated_at: now,
       });
+      setUser(response.data);
       setMessage('Профиль сохранён');
     } catch {
       setMessage('Не удалось сохранить профиль');

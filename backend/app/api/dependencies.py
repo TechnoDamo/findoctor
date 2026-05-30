@@ -7,18 +7,21 @@ FastAPI-зависимости: текущий пользователь, сое�
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.jwt import decode_access_token
+from app.core.security import verify_password
 from app.db.pool import get_connection
 from app.repositories import auth as auth_repo
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
+    simple_email: Annotated[str | None, Header(alias="X-FinDoctor-Email")] = None,
+    simple_password: Annotated[str | None, Header(alias="X-FinDoctor-Password")] = None,
     conn=Depends(get_connection),
 ) -> dict:
     """
@@ -30,6 +33,17 @@ async def get_current_user(
     Raises:
         HTTPException 401: если токен отсутствует, истёк или недействителен.
     """
+    if simple_email and simple_password:
+        user = await auth_repo.find_user_by_email(conn, simple_email)
+        if user is None or not verify_password(simple_password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Неверный email или пароль")
+        user.pop("password_hash", None)
+        user["_auth_mode"] = "simple"
+        return user
+
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Требуется аутентификация")
+
     payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(status_code=401, detail="Токен истёк или недействителен")

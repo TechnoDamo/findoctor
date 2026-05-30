@@ -1,38 +1,35 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { StoredUser, getStoredUser, useAuthStore } from '@/lib/auth/auth-store';
+import apiClient from '../client';
+import { getStoredUser, useAuthStore } from '@/lib/auth/auth-store';
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '../types';
 
-function localSession(user: StoredUser): AuthResponse {
+function toRegisterPayload(registerData: RegisterRequest) {
   return {
-    access_token: `local-access-${Date.now()}`,
-    refresh_token: `local-refresh-${Date.now()}`,
-    token_type: 'Bearer',
-    expires_in: 86400,
-    user,
+    email: registerData.email,
+    password: registerData.password,
+    phone: registerData.phone || null,
+    first_name: registerData.firstName || null,
+    last_name: registerData.lastName || null,
+    country: registerData.country || null,
+    base_currency: registerData.baseCurrency,
+    timezone: registerData.timezone,
   };
 }
 
 export function useLogin() {
   const setTokens = useAuthStore((state) => state.setTokens);
+  const setCredentials = useAuthStore((state) => state.setCredentials);
   const setUser = useAuthStore((state) => state.setUser);
+  let submittedPassword = '';
 
   return useMutation<AuthResponse, Error, LoginRequest>({
     mutationFn: async (loginData) => {
-      const now = new Date().toISOString();
-      return localSession({
-        id: 'local-user',
-        email: loginData.email,
-        first_name: null,
-        last_name: null,
-        phone: null,
-        country: process.env.NEXT_PUBLIC_DEFAULT_COUNTRY || 'RU',
-        base_currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'RUB',
-        timezone: process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || 'Europe/Moscow',
-        created_at: now,
-        updated_at: now,
-      });
+      submittedPassword = loginData.password;
+      const response = await apiClient.post<AuthResponse>('/auth/login', loginData);
+      return response.data;
     },
     onSuccess: (session) => {
+      setCredentials(session.user.email, submittedPassword);
       setTokens(session.access_token, session.refresh_token);
       setUser(session.user);
     },
@@ -41,25 +38,18 @@ export function useLogin() {
 
 export function useRegister() {
   const setTokens = useAuthStore((state) => state.setTokens);
+  const setCredentials = useAuthStore((state) => state.setCredentials);
   const setUser = useAuthStore((state) => state.setUser);
+  let submittedPassword = '';
 
   return useMutation<AuthResponse, Error, RegisterRequest>({
     mutationFn: async (registerData) => {
-      const now = new Date().toISOString();
-      return localSession({
-        id: 'local-user',
-        email: registerData.email,
-        first_name: registerData.firstName || null,
-        last_name: registerData.lastName || null,
-        phone: registerData.phone || null,
-        country: registerData.country || process.env.NEXT_PUBLIC_DEFAULT_COUNTRY || 'RU',
-        base_currency: registerData.baseCurrency,
-        timezone: registerData.timezone,
-        created_at: now,
-        updated_at: now,
-      });
+      submittedPassword = registerData.password;
+      const response = await apiClient.post<AuthResponse>('/auth/register', toRegisterPayload(registerData));
+      return response.data;
     },
     onSuccess: (session) => {
+      setCredentials(session.user.email, submittedPassword);
       setTokens(session.access_token, session.refresh_token);
       setUser(session.user);
     },
@@ -70,7 +60,13 @@ export function useLogout() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return useMutation<void, Error>({
-    mutationFn: async () => undefined,
+    mutationFn: async () => {
+      try {
+        await apiClient.post('/auth/logout');
+      } catch {
+        // Simple auth logout is local-only; backend logout may be a no-op/fail if no bearer session exists.
+      }
+    },
     onSettled: () => {
       clearAuth();
     },
@@ -85,9 +81,9 @@ export function useCurrentUser(enabled = true) {
     queryKey: ['user'],
     queryFn: async () => {
       const storedUser = user || getStoredUser();
-      if (!storedUser) throw new Error('No local user');
-      setUser(storedUser);
-      return storedUser;
+      const response = await apiClient.get<User>('/me');
+      setUser(response.data || storedUser);
+      return response.data || storedUser;
     },
     enabled,
     retry: false,

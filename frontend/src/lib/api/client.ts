@@ -2,6 +2,8 @@ import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'ax
 import {
   clearStoredAuth,
   getStoredAccessToken,
+  getStoredEmail,
+  getStoredPassword,
   getStoredRefreshToken,
   storeTokens,
 } from '@/lib/auth/auth-store';
@@ -35,6 +37,12 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const email = getStoredEmail();
+    const password = getStoredPassword();
+    if (email && password) {
+      config.headers['X-FinDoctor-Email'] = email;
+      config.headers['X-FinDoctor-Password'] = password;
+    }
     return config;
   },
   (error) => {
@@ -52,8 +60,18 @@ apiClient.interceptors.response.use(
     const isAuthEndpoint = requestUrl.includes('/auth/login') ||
       requestUrl.includes('/auth/register') ||
       requestUrl.includes('/auth/refresh');
+    const isSimpleAuthRequest = Boolean(
+      originalRequest?.headers?.['X-FinDoctor-Email'] &&
+      originalRequest?.headers?.['X-FinDoctor-Password']
+    );
     
-    if (axiosError.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+    if (
+      axiosError.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint &&
+      !isSimpleAuthRequest
+    ) {
       originalRequest._retry = true;
       const refreshToken = getStoredRefreshToken();
       if (!refreshToken) {
