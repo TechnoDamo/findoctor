@@ -20,8 +20,8 @@ export function LogoutButton({ href, className }: LogoutButtonProps) {
       type="button"
       className={[styles.circleAction, styles.circleActionButton, className].filter(Boolean).join(" ")}
       aria-label="Выйти"
-      onClick={() => {
-        signOutSession();
+      onClick={async () => {
+        await signOutSession();
         router.push(href);
         router.refresh();
       }}

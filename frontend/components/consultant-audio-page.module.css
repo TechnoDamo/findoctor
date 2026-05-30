@@ -33,7 +33,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 159px;
+  padding-top: 132px;
 }
 
 .voiceTitle {
@@ -45,46 +45,94 @@
   color: #444444;
 }
 
-.voiceCircle {
+.voiceSphere {
   position: relative;
   margin-top: 37px;
-  width: 186px;
-  height: 185px;
+  width: var(--voice-sphere-size);
+  height: var(--voice-sphere-size);
   border: 0;
   border-radius: 999px;
   padding: 0;
   cursor: pointer;
   overflow: hidden;
-  background:
-    radial-gradient(46% 47% at 50% 38%, #ffd8d8 0%, rgba(255, 216, 216, 0.12) 100%),
-    radial-gradient(70% 68% at 50% 67%, #ffb0b0 0%, #ffa7a7 58%, #f39f9f 100%);
+  transform: scale(var(--voice-sphere-live-scale));
+  transition: transform var(--voice-sphere-scale-transition) ease-out;
   box-shadow: 0 10px 28px rgba(255, 167, 167, 0.42), inset 0 0 40px rgba(255, 255, 255, 0.28);
 }
 
-.recording {
-  animation: voicePulse 1.8s ease-in-out infinite;
+.voiceSphere:disabled {
+  cursor: default;
+  opacity: 0.75;
 }
 
-.voiceCircleInner {
+.idle {
+  background:
+    radial-gradient(46% 47% at 50% 38%, #d6ecff 0%, rgba(214, 236, 255, 0.2) 100%),
+    radial-gradient(70% 68% at 50% 67%, #b8ddff 0%, #abd5ff 58%, #9ecdf7 100%);
+  animation: idlePulse var(--voice-sphere-idle-duration) ease-in-out infinite;
+}
+
+.recording {
+  background:
+    radial-gradient(46% 47% at 50% 38%, #ffd8d8 0%, rgba(255, 216, 216, 0.12) 100%),
+    radial-gradient(70% 68% at 50% 67%, #ffb0b0 0%, #ffa7a7 58%, #f39f9f 100%);
+  animation: recordingPulse var(--voice-sphere-record-duration) ease-in-out infinite;
+}
+
+.waiting {
+  background:
+    radial-gradient(46% 47% at 50% 38%, #fff0d8 0%, rgba(255, 240, 216, 0.22) 100%),
+    radial-gradient(70% 68% at 50% 67%, #ffd9ad 0%, #ffd09f 58%, #f5be84 100%);
+  animation: waitingPulse var(--voice-sphere-waiting-duration) ease-in-out infinite;
+}
+
+.playing {
+  background:
+    radial-gradient(46% 47% at 50% 38%, #d7ffe6 0%, rgba(215, 255, 230, 0.12) 100%),
+    radial-gradient(70% 68% at 50% 67%, #b0ffd3 0%, #9df5c3 58%, #89eab4 100%);
+  animation: playingPulse var(--voice-sphere-playing-duration) ease-in-out infinite;
+}
+
+.voiceSphereInner {
   position: absolute;
-  inset: 24px;
+  inset: var(--voice-sphere-inner-inset);
   border-radius: 999px;
   background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.16) 64%, rgba(255, 255, 255, 0) 100%);
-  animation: voiceMorph 4s ease-in-out infinite;
+  animation: sphereMorph var(--voice-sphere-morph-duration) ease-in-out infinite;
 }
 
-.voiceCircleInner::before,
-.voiceCircleInner::after {
+.voiceSphereInner::before,
+.voiceSphereInner::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   border: 2px solid rgba(255, 255, 255, 0.42);
-  animation: voiceWave 2.4s ease-out infinite;
+  animation: sphereWave var(--voice-sphere-wave-duration) ease-out infinite;
 }
 
-.voiceCircleInner::after {
-  animation-delay: 0.9s;
+.voiceSphereInner::after {
+  animation-delay: var(--voice-sphere-wave-delay);
+}
+
+.stateHint {
+  width: 288px;
+  margin: 22px 0 0;
+  text-align: center;
+  color: #777272;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.errorText {
+  width: 288px;
+  margin: 12px 0 0;
+  text-align: center;
+  color: #bf3d3d;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
 }
 
 .backToChatButton {
@@ -113,20 +161,59 @@
   filter: brightness(0.96);
 }
 
-@keyframes voicePulse {
+.hiddenAudio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes idlePulse {
   0%,
   100% {
-    transform: scale(1);
-    filter: saturate(1);
+    filter: saturate(1) brightness(1);
   }
 
   50% {
-    transform: scale(1.045);
-    filter: saturate(1.12);
+    filter: saturate(1.08) brightness(1.03);
   }
 }
 
-@keyframes voiceMorph {
+@keyframes recordingPulse {
+  0%,
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+
+  50% {
+    filter: saturate(1.2) brightness(1.08);
+  }
+}
+
+@keyframes waitingPulse {
+  0%,
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+
+  50% {
+    filter: saturate(1.15) brightness(0.95);
+  }
+}
+
+@keyframes playingPulse {
+  0%,
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+
+  50% {
+    filter: saturate(1.3) brightness(1.09);
+  }
+}
+
+@keyframes sphereMorph {
   0%,
   100% {
     border-radius: 52% 48% 56% 44% / 48% 54% 46% 52%;
@@ -141,7 +228,7 @@
   }
 }
 
-@keyframes voiceWave {
+@keyframes sphereWave {
   0% {
     transform: scale(0.75);
     opacity: 0;
@@ -158,10 +245,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .recording,
-  .voiceCircleInner,
-  .voiceCircleInner::before,
-  .voiceCircleInner::after {
+  .voiceSphere,
+  .voiceSphereInner,
+  .voiceSphereInner::before,
+  .voiceSphereInner::after {
     animation: none;
   }
 }
@@ -173,6 +260,11 @@
   }
 
   .voiceArea {
-    padding-top: 148px;
+    padding-top: 120px;
+  }
+
+  .stateHint,
+  .errorText {
+    width: min(300px, calc(100% - 32px));
   }
 }

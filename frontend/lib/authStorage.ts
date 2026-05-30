@@ -23,6 +23,30 @@ function safeParseUser(value: string | null): StoredUser | null {
   }
 }
 
+function safeStorageGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures (e.g. private/in-app browser restrictions).
+  }
+}
+
+function safeStorageRemove(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function setSessionCookie() {
   document.cookie = `${AUTH_COOKIE_NAME}=1; path=/; max-age=${SESSION_MAX_AGE_SECONDS}; samesite=lax`;
 }
@@ -31,30 +55,44 @@ function clearSessionCookie() {
   document.cookie = `${AUTH_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
 }
 
+async function syncSessionCookie(method: "POST" | "DELETE") {
+  try {
+    await fetch("/api/auth/session", {
+      method,
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+  } catch {
+    // Keep client-side fallback cookie/localStorage behavior when request fails.
+  }
+}
+
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  return safeParseUser(localStorage.getItem(AUTH_USER_KEY));
+  return safeParseUser(safeStorageGet(AUTH_USER_KEY));
 }
 
 export function createUser(user: StoredUser) {
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  safeStorageSet(AUTH_USER_KEY, JSON.stringify(user));
 }
 
 export function hasRegisteredUser() {
   return getStoredUser() !== null;
 }
 
-export function signInSession() {
-  localStorage.setItem(AUTH_SESSION_KEY, "1");
+export async function signInSession() {
+  safeStorageSet(AUTH_SESSION_KEY, "1");
   setSessionCookie();
+  await syncSessionCookie("POST");
 }
 
-export function signOutSession() {
-  localStorage.removeItem(AUTH_SESSION_KEY);
+export async function signOutSession() {
+  safeStorageRemove(AUTH_SESSION_KEY);
   clearSessionCookie();
+  await syncSessionCookie("DELETE");
 }
 
 export function hasLocalSession() {
@@ -62,5 +100,20 @@ export function hasLocalSession() {
     return false;
   }
 
-  return localStorage.getItem(AUTH_SESSION_KEY) === "1";
+  return safeStorageGet(AUTH_SESSION_KEY) === "1";
+}
+
+export function hasAuthCookie() {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return document.cookie
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .some((chunk) => chunk.startsWith(`${AUTH_COOKIE_NAME}=`));
+}
+
+export function hasClientSession() {
+  return hasLocalSession() || hasAuthCookie();
 }

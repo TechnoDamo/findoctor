@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
-import { createUser, getStoredUser, signInSession } from "@/lib/authStorage";
+import { createUser, getStoredUser, hasClientSession, signInSession } from "@/lib/authStorage";
 
 import styles from "./auth.module.css";
 
@@ -32,8 +31,6 @@ function normalizeEmail(value: string) {
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(mode === "register");
@@ -41,7 +38,13 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const currentLabel = LABELS[mode];
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (hasClientSession()) {
+      window.location.replace("/finance");
+    }
+  }, []);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const normalizedEmail = normalizeEmail(email);
@@ -65,9 +68,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
 
       createUser({ email: normalizedEmail, password });
-      signInSession();
-      router.push("/finance");
-      router.refresh();
+      await signInSession();
+      window.location.assign("/finance");
       return;
     }
 
@@ -81,9 +83,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    signInSession();
-    router.push("/finance");
-    router.refresh();
+    await signInSession();
+    window.location.assign("/finance");
   };
 
   return (
@@ -125,19 +126,24 @@ export function AuthForm({ mode }: AuthFormProps) {
           </Link>
 
           <div className={styles.agreementRow}>
-            <button
-              type="button"
+            <label
               className={styles.checkControl}
               data-checked={agreed}
-              onClick={() => {
-                setAgreed((prev) => !prev);
-                setError("");
-              }}
-              aria-label="Согласие с условиями"
-              aria-pressed={agreed}
             >
-              ✓
-            </button>
+              <input
+                className={styles.checkInput}
+                type="checkbox"
+                checked={agreed}
+                onChange={(event) => {
+                  setAgreed(event.target.checked);
+                  setError("");
+                }}
+                aria-label="Согласие с условиями"
+              />
+              <span className={styles.checkIcon} aria-hidden="true">
+                ✓
+              </span>
+            </label>
             <p className={styles.agreementText}>
               Нажимая кнопку «Продолжить» я соглашаюсь с условиями пользовательского соглашения и подтверждаю, что мне
               исполнилось 18 лет
@@ -148,7 +154,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             {error}
           </p>
 
-          <button className={styles.submitButton} type="submit">
+          <button className={styles.submitButton} type="submit" onTouchStart={() => {}}>
             Продолжить
           </button>
         </form>

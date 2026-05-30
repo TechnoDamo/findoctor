@@ -30,26 +30,31 @@
 }
 
 .chatArea {
-  padding: 260px 23px calc(130px + env(safe-area-inset-bottom));
+  padding: 170px 23px calc(130px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .aiMessage,
-.userMessage,
-.userImageMessage {
+.userMessage {
   position: relative;
-}
-
-.aiMessage {
-  width: 328px;
-  min-height: 76px;
+  width: fit-content;
+  max-width: min(90%, 328px);
   border-radius: 25px;
-  background: #f3f3f3;
-  padding: 19px 18px;
+  padding: 15px 16px;
   box-sizing: border-box;
   font-size: 15px;
   line-height: 22px;
   font-weight: 500;
   color: #444444;
+  white-space: pre-wrap;
+}
+
+.aiMessage {
+  min-height: 58px;
+  background: #f3f3f3;
+  align-self: flex-start;
 }
 
 .aiMessage::after {
@@ -65,18 +70,9 @@
 }
 
 .userMessage {
-  margin-top: 30px;
+  min-height: 52px;
   margin-left: auto;
-  width: 202px;
-  min-height: 66px;
-  border-radius: 25px;
   background: #ffc3c3;
-  padding: 15px 14px;
-  box-sizing: border-box;
-  font-size: 15px;
-  line-height: 23px;
-  font-weight: 500;
-  color: #444444;
 }
 
 .userMessage::after {
@@ -89,37 +85,6 @@
   border-radius: 0 0 12px;
   background: #ffc3c3;
   transform: rotate(-28deg);
-}
-
-.userImageMessage {
-  margin-top: 25px;
-  margin-left: auto;
-  width: 214px;
-  height: 163px;
-  border-radius: 25px;
-  background: #ffc3c3;
-  padding: 8px 17px 7px 6px;
-  box-sizing: border-box;
-}
-
-.userImageMessage::after {
-  content: "";
-  position: absolute;
-  right: -5px;
-  bottom: 10px;
-  width: 14px;
-  height: 14px;
-  border-radius: 0 0 10px;
-  background: #ffc3c3;
-  transform: rotate(-18deg);
-}
-
-.userImageFrame {
-  position: relative;
-  width: 191px;
-  height: 148px;
-  border-radius: 19px;
-  overflow: hidden;
 }
 
 .inputBar {
@@ -137,21 +102,26 @@
   gap: 8px;
 }
 
-.addButton {
+.sendButton {
   width: 36px;
   height: 36px;
   border: 0;
   border-radius: 999px;
-  background: transparent;
-  color: #949090;
-  font-size: 27px;
+  background: #ffe1e1;
+  color: #696464;
+  font-size: 20px;
   line-height: 1;
-  font-weight: 500;
+  font-weight: 700;
   padding: 0;
   font-family: inherit;
   display: grid;
   place-items: center;
   cursor: pointer;
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .textInput {
@@ -194,10 +164,5 @@
   .inputBar {
     left: 18px;
     right: 18px;
-  }
-
-  .aiMessage {
-    width: 100%;
-    max-width: 328px;
   }
 }

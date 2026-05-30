@@ -1,14 +1,15 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
 
-import { AUTH_COOKIE_NAME } from "@/lib/auth";
+import { useEffect } from "react";
 
-export default async function FinanceLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const cookieStore = await cookies();
+import { hasClientSession } from "@/lib/authStorage";
 
-  if (!cookieStore.has(AUTH_COOKIE_NAME)) {
-    redirect("/login");
-  }
+export default function FinanceLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  useEffect(() => {
+    if (!hasClientSession()) {
+      window.location.assign("/login");
+    }
+  }, []);
 
   return children;
 }

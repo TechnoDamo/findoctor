@@ -117,7 +117,10 @@ export function FinanceDashboard() {
           <p className={styles.balanceCaption}>Общий баланс</p>
 
           <div className={styles.summaryBottomRow}>
-            <span className={styles.balancePill}>{formatRub(summary.balanceRub)}</span>
+            <span className={styles.balancePill}>
+              <strong>{numberFormatter.format(summary.balanceRub)}</strong>
+              <span>руб</span>
+            </span>
             <Link className={styles.dailySpendButton} href={financeRoutes.daySpending}>
               <span>
                 Потратил

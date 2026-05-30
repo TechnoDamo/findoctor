@@ -62,8 +62,9 @@ export default async function FinanceSectionRoute({ params, searchParams }: Fina
     const modeParam = resolvedSearchParams.mode;
     const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
     const initialMode = modeValue === "income" ? "income" : "expense";
+    const initialOpen = typeof modeValue === "string";
 
-    return <DaySpendingPage initialMode={initialMode} />;
+    return <DaySpendingPage initialMode={initialMode} initialOpen={initialOpen} />;
   }
 
   return <FinanceSectionPage title={sectionData.title} subtitle={sectionData.subtitle} amount={sectionData.amount} />;

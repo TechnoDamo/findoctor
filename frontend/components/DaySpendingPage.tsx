@@ -12,6 +12,7 @@ type DaySpendingSheetMode = "expense" | "income";
 
 type DaySpendingPageProps = {
   initialMode: DaySpendingSheetMode;
+  initialOpen?: boolean;
 };
 
 const categoryOptions = ["Дети", "Жилье", "Транспорт", "Продукты"];
@@ -29,8 +30,9 @@ const sheetCopy = {
   },
 } as const;
 
-export function DaySpendingPage({ initialMode }: DaySpendingPageProps) {
-  const [sheetMode] = useState<DaySpendingSheetMode>(initialMode);
+export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendingPageProps) {
+  const [sheetMode, setSheetMode] = useState<DaySpendingSheetMode>(initialMode);
+  const [isSheetOpen, setIsSheetOpen] = useState(initialOpen);
   const [isReminderEnabled, setIsReminderEnabled] = useState(true);
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [typeIndex, setTypeIndex] = useState(0);
@@ -52,6 +54,18 @@ export function DaySpendingPage({ initialMode }: DaySpendingPageProps) {
 
   function handleTypeClick() {
     setTypeIndex((current) => (current + 1) % activeTypeOptions.length);
+  }
+
+  function openSheet(mode: DaySpendingSheetMode) {
+    setSheetMode(mode);
+    setTypeIndex(0);
+    setDescription("");
+    setAmount("");
+    setIsSheetOpen(true);
+  }
+
+  function closeSheet() {
+    setIsSheetOpen(false);
   }
 
   return (
@@ -95,6 +109,18 @@ export function DaySpendingPage({ initialMode }: DaySpendingPageProps) {
           </button>
         </section>
 
+        <section className={styles.actionsSection} aria-label="Добавление операций за день">
+          <h2 className={styles.actionsTitle}>Добавить операцию</h2>
+          <div className={styles.actionsRow}>
+            <button type="button" className={styles.actionButton} onClick={() => openSheet("expense")} aria-label="Добавить расход">
+              Добавить расход
+            </button>
+            <button type="button" className={styles.actionButton} onClick={() => openSheet("income")} aria-label="Добавить доход">
+              Добавить доход
+            </button>
+          </div>
+        </section>
+
         <section className={styles.recommendationsSection} aria-label="Рекомендации">
           <h2 className={styles.recommendationsTitle}>Рекомендации</h2>
 
@@ -107,7 +133,8 @@ export function DaySpendingPage({ initialMode }: DaySpendingPageProps) {
       </div>
 
       <BottomSheetModal
-        isOpen
+        isOpen={isSheetOpen}
+        onClose={closeSheet}
         ariaLabel={modeCopy.title}
         title={modeCopy.title}
         backdropClassName={styles.backdrop}

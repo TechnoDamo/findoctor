@@ -91,22 +91,51 @@
   width: 41px;
   height: 41px;
   border-radius: 999px;
-  border: 0;
   background: #d5d5d8;
-  color: transparent;
   flex: 0 0 auto;
   margin-top: 4px;
   display: grid;
   place-items: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.checkInput {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.checkIcon {
   font-size: 30px;
   font-weight: 700;
   line-height: 1;
-  cursor: pointer;
+  color: transparent;
 }
 
 .checkControl[data-checked="true"] {
   background: var(--auth-color-accent);
+}
+
+.checkControl[data-checked="true"] .checkIcon {
   color: var(--auth-color-text);
+}
+
+.checkControl:active {
+  transform: scale(0.97);
+  background: #cfcfd2;
+}
+
+.checkControl[data-checked="true"]:active {
+  background: var(--auth-color-accent-active);
 }
 
 .agreementText {
@@ -140,10 +169,15 @@
   display: grid;
   place-items: center;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .submitButton:active {
   background: var(--auth-color-accent-active);
+  transform: scale(0.99);
 }
 
 @media (max-width: 420px) {
