@@ -11,6 +11,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hydrateFromStorage = useAuthStore((state) => state.hydrateFromStorage);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
   const user = useAuthStore((state) => state.user as { email?: string; first_name?: string | null } | null);
   const logout = useLogout();
 
@@ -19,28 +21,45 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [hydrateFromStorage]);
 
   useEffect(() => {
-    if (!getStoredAccessToken()) {
+    if (hasHydrated && !getStoredAccessToken()) {
       router.replace(`/auth/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [pathname, router]);
+  }, [hasHydrated, pathname, router]);
 
-  const currentUser = useCurrentUser(Boolean(accessToken));
+  const hasToken = Boolean(accessToken);
+  const currentUser = useCurrentUser(hasHydrated && hasToken);
 
   useEffect(() => {
     if (currentUser.isError) {
-      router.replace(`/auth/login?next=${encodeURIComponent(pathname)}`);
+      clearAuth();
     }
-  }, [currentUser.isError, pathname, router]);
+  }, [clearAuth, currentUser.isError]);
 
   const displayName = useMemo(() => {
     if (!user) return '';
     return user.first_name || user.email || '';
   }, [user]);
 
-  if (!accessToken || currentUser.isLoading) {
+  if (!hasHydrated || (hasToken && currentUser.isLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
         <div className="text-sm text-gray-500">Проверяем сессию...</div>
+      </div>
+    );
+  }
+
+  if (!hasToken || currentUser.isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 grid place-items-center p-6">
+        <div className="w-full max-w-md space-y-4 rounded-md border border-gray-200 bg-white p-6 text-center">
+          <h1 className="text-xl font-semibold">Сессия не активна</h1>
+          <p className="text-sm text-gray-500">
+            Войдите заново. Если вы только что запускали backend, проверьте что API доступен.
+          </p>
+          <Button href={`/auth/login?next=${encodeURIComponent(pathname)}`} className="w-full">
+            Войти
+          </Button>
+        </div>
       </div>
     );
   }

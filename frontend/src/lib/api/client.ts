@@ -14,7 +14,7 @@ type RefreshResponse = {
 };
 
 function apiBaseUrl() {
-  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
   const trimmedUrl = rawUrl.replace(/\/$/, '');
   return trimmedUrl.endsWith('/api/v1') ? trimmedUrl : `${trimmedUrl}/api/v1`;
 }
