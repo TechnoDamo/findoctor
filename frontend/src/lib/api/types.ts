@@ -4,19 +4,21 @@
 export interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  baseCurrency: string;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  country?: string | null;
+  base_currency: string;
   timezone: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
   user: User;
 }
 

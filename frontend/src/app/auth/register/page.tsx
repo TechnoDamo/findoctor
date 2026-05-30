@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegister } from '@/lib/api/queries/auth';
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: { message?: string }; detail?: string } } }).response;
+    return response?.data?.error?.message || response?.data?.detail || 'Не удалось зарегистрироваться';
+  }
+  return 'Не удалось зарегистрироваться';
+}
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -14,8 +23,8 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('');
   const [baseCurrency, setBaseCurrency] = useState(process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'RUB');
   const [timezone, setTimezone] = useState(process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE || 'Europe/Moscow');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const register = useRegister();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,12 +36,20 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    router.push('/dashboard');
-    setLoading(false);
+    try {
+      await register.mutateAsync({
+        email,
+        password,
+        firstName,
+        lastName,
+        baseCurrency,
+        timezone,
+      });
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   };
 
   return (
@@ -124,8 +141,8 @@ export default function RegisterPage() {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}
+        <Button type="submit" className="w-full" disabled={register.isLoading}>
+          {register.isLoading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}
         </Button>
       </form>
 

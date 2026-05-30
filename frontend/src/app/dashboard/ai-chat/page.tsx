@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { apiBaseUrl } from '@/lib/api/client';
+import { getStoredAccessToken } from '@/lib/auth/auth-store';
 
 type ChatMessage = {
   id: string;
@@ -15,15 +17,10 @@ type ChatMessage = {
   audioUrl?: string | null;
 };
 
-const API_URL =
-  process.env.NEXT_PUBLIC_CHAT_TEST_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:8000';
-
-const ACCESS_TOKEN_KEY = process.env.NEXT_PUBLIC_ACCESS_TOKEN_KEY || 'access_token';
+const API_URL = process.env.NEXT_PUBLIC_CHAT_TEST_API_URL || apiBaseUrl();
 
 function authHeaders(extra?: HeadersInit): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  const token = getStoredAccessToken();
   return {
     ...(extra || {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

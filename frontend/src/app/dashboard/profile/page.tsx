@@ -1,22 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import apiClient from '@/lib/api/client';
+import { useCurrentUser } from '@/lib/api/queries/auth';
 
 export default function ProfilePage() {
-  const [firstName, setFirstName] = useState('Иван');
-  const [lastName, setLastName] = useState('Иванов');
-  const [email, setEmail] = useState('ivan@example.com');
-  const [phone, setPhone] = useState('+7 999 123-45-67');
+  const currentUser = useCurrentUser();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [currency, setCurrency] = useState('RUB');
   const [timezone, setTimezone] = useState('Europe/Moscow');
-  const [country, setCountry] = useState('RU');
+  const [country, setCountry] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!currentUser.data) return;
+    setFirstName(currentUser.data.first_name || '');
+    setLastName(currentUser.data.last_name || '');
+    setEmail(currentUser.data.email);
+    setPhone(currentUser.data.phone || '');
+    setCurrency(currentUser.data.base_currency);
+    setTimezone(currentUser.data.timezone);
+    setCountry(currentUser.data.country || '');
+  }, [currentUser.data]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setMessage('');
+
+    try {
+      await apiClient.patch('/me', {
+        first_name: firstName || null,
+        last_name: lastName || null,
+        phone: phone || null,
+        country: country || null,
+        base_currency: currency,
+        timezone,
+      });
+      await currentUser.refetch();
+      setMessage('Профиль сохранён');
+    } catch {
+      setMessage('Не удалось сохранить профиль');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -31,6 +66,7 @@ export default function ProfilePage() {
           <CardTitle>Личные данные</CardTitle>
         </CardHeader>
         <CardContent>
+          {message && <div className="mb-4 text-sm text-gray-600">{message}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -44,7 +80,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <Label htmlFor="email">Почта</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled />
             </div>
             <div>
               <Label htmlFor="phone">Телефон</Label>
@@ -77,7 +113,9 @@ export default function ProfilePage() {
                 <option value="Asia/Novosibirsk">Новосибирск (UTC+7)</option>
               </select>
             </div>
-            <Button type="submit">Сохранить</Button>
+            <Button type="submit" disabled={saving || currentUser.isLoading}>
+              {saving ? 'Сохраняем...' : 'Сохранить'}
+            </Button>
           </form>
         </CardContent>
       </Card>

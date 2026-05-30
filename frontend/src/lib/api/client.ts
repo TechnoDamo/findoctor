@@ -1,11 +1,26 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import {
+  clearStoredAuth,
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  storeTokens,
+} from '@/lib/auth/auth-store';
 
-// Create axios instance with base configuration
-const ACCESS_TOKEN_KEY = process.env.NEXT_PUBLIC_ACCESS_TOKEN_KEY || 'access_token';
-const REFRESH_TOKEN_KEY = process.env.NEXT_PUBLIC_REFRESH_TOKEN_KEY || 'refresh_token';
+type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+type RefreshResponse = {
+  access_token: string;
+  refresh_token: string;
+};
+
+function apiBaseUrl() {
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  const trimmedUrl = rawUrl.replace(/\/$/, '');
+  return trimmedUrl.endsWith('/api/v1') ? trimmedUrl : `${trimmedUrl}/api/v1`;
+}
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  baseURL: apiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -16,7 +31,7 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const token = getStoredAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -31,20 +46,40 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const axiosError = error as AxiosError;
+    const originalRequest = axiosError.config as RetriableRequestConfig | undefined;
+    const requestUrl = originalRequest?.url || '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/auth/refresh');
     
-    // If we get a 401 and we have a refresh token, try to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (axiosError.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
+      const refreshToken = getStoredRefreshToken();
+      if (!refreshToken) {
+        clearStoredAuth();
+        if (typeof window !== 'undefined') window.location.href = '/auth/login';
+        return Promise.reject(error);
+      }
       
       try {
-        // In a real implementation, we'd refresh the token here
-        // For now, we'll just reject the request
-        return Promise.reject(error);
+        const response = await axios.post<RefreshResponse>(
+          `${apiBaseUrl()}/auth/refresh`,
+          { refresh_token: refreshToken },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept-Language': process.env.NEXT_PUBLIC_DEFAULT_LOCALE || 'ru',
+            },
+          }
+        );
+
+        storeTokens(response.data.access_token, response.data.refresh_token);
+        originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+        return apiClient(originalRequest);
       } catch (refreshError) {
-        // Redirect to login if refresh fails
-        localStorage.removeItem('access_token');
-        window.location.href = '/auth/login';
+        clearStoredAuth();
+        if (typeof window !== 'undefined') window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       }
     }
@@ -53,4 +88,5 @@ apiClient.interceptors.response.use(
   }
 );
 
+export { apiBaseUrl };
 export default apiClient;

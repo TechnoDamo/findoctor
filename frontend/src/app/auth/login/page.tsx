@@ -5,21 +5,34 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLogin } from '@/lib/api/queries/auth';
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: { message?: string }; detail?: string } } }).response;
+    return response?.data?.error?.message || response?.data?.detail || 'Не удалось войти';
+  }
+  return 'Не удалось войти';
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const login = useLogin();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setError('');
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    router.push('/dashboard');
-    setLoading(false);
+    try {
+      await login.mutateAsync({ email, password });
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   };
 
   return (
@@ -28,6 +41,12 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold tracking-tight">С возвращением</h1>
         <p className="text-gray-500 mt-2">Войдите в аккаунт</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -53,8 +72,8 @@ export default function LoginPage() {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Входим...' : 'Войти'}
+        <Button type="submit" className="w-full" disabled={login.isLoading}>
+          {login.isLoading ? 'Входим...' : 'Войти'}
         </Button>
       </form>
 
