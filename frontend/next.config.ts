@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const nextConfig: NextConfig = {};
+const rootDir = dirname(fileURLToPath(import.meta.url));
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    // Explicit root avoids manifest/cache corruption when multiple lockfiles exist.
+    root: rootDir,
+  },
+};
 
 export default nextConfig;

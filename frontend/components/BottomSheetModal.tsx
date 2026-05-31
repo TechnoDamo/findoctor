@@ -6,6 +6,34 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import styles from "./finance.module.css";
 
+let activeBodyScrollLocks = 0;
+let previousBodyOverflow = "";
+let previousHtmlOverflow = "";
+
+const lockBodyScroll = () => {
+  if (activeBodyScrollLocks === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+    previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+  }
+
+  activeBodyScrollLocks += 1;
+};
+
+const unlockBodyScroll = () => {
+  if (activeBodyScrollLocks === 0) {
+    return;
+  }
+
+  activeBodyScrollLocks -= 1;
+
+  if (activeBodyScrollLocks === 0) {
+    document.body.style.overflow = previousBodyOverflow;
+    document.documentElement.style.overflow = previousHtmlOverflow;
+  }
+};
+
 type BottomSheetModalProps = {
   isOpen: boolean;
   title?: string;
@@ -30,6 +58,18 @@ export function BottomSheetModal({
   titleClassName,
 }: BottomSheetModalProps) {
   const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    lockBodyScroll();
+
+    return () => {
+      unlockBodyScroll();
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!closing || !onClose) {

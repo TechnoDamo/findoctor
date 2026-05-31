@@ -30,8 +30,16 @@
   height: 161px;
   border-radius: 25px;
   background: #f3f3f3;
-  padding: 15px 24px 18px 18px;
+  padding: 14px 16px 14px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.topBlock,
+.bottomBlock {
+  display: flex;
+  flex-direction: column;
 }
 
 .summaryLabel {
@@ -43,7 +51,7 @@
 }
 
 .summaryValue {
-  margin: -10px 0 0;
+  margin: 11px 0 0;
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
@@ -64,10 +72,10 @@
   color: #949090;
 }
 
-.summaryDivider {
-  width: 100%;
+.divider {
+  margin-top: 18px;
+  margin-bottom: 18px;
   height: 1px;
-  margin: 21px 0 22px;
   background: #d9d9d9;
 }
 
@@ -104,17 +112,22 @@
   align-items: center;
   justify-content: flex-end;
   cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
 .reminderSwitch:active {
-  transform: scale(0.98);
-  filter: brightness(0.97);
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
 }
 
 .reminderSwitch[aria-checked="false"] {
   justify-content: flex-start;
   background: #d9d9d9;
+}
+
+.reminderSwitch[aria-checked="false"]:active {
+  background: #cfcfd1;
 }
 
 .reminderSwitchThumb {
@@ -169,12 +182,13 @@
   font-size: 16px;
   line-height: 1;
   font-weight: 700;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
 .detailsLink:active {
+  background: #f39f9f;
   transform: scale(0.99);
-  filter: brightness(0.97);
+  filter: brightness(0.96);
 }
 
 .operationsSection {
@@ -205,12 +219,13 @@
   display: grid;
   place-items: center;
   padding: 0;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
 .addButton:active {
-  transform: scale(0.98);
-  filter: brightness(0.97);
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
 }
 
 .operationsList {
@@ -233,11 +248,11 @@
   gap: 10px;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: background-color 0.2s ease, filter 0.2s ease;
 }
 
 .operationCard:active {
-  transform: scale(0.995);
+  background: #cfcfd1;
   filter: brightness(0.98);
 }
 
@@ -300,18 +315,6 @@
   overflow-y: auto;
 }
 
-.pickerSheet {
-  width: 100%;
-  min-height: clamp(220px, 52dvh, 420px);
-  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
-  border: 0;
-  border-radius: 18px 18px 0 0;
-  background: #ffffff;
-  padding: 0 clamp(16px, 4.2vw, 22px) calc(20px + env(safe-area-inset-bottom));
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
 .sheetHandle {
   width: 87px;
   height: 7px;
@@ -329,43 +332,42 @@
   color: #444444;
 }
 
-.selectPill {
+.selectPillField {
+  margin-top: 12px;
+  position: relative;
   width: 100%;
-  height: 56px;
-  border: 0;
-  border-radius: 25px;
-  background: #f3f3f3;
-  padding: 0 22px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  display: block;
 }
 
-.selectPill + .selectPill {
+.selectPillField + .selectPillField {
   margin-top: 16px;
 }
 
+.selectPill {
+  width: 100%;
+  height: 66px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 46px 0 24px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #949090;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
 .selectPill:active {
-  transform: scale(0.995);
+  background: #cfcfd1;
   filter: brightness(0.98);
 }
 
-.selectLabel {
-  font-size: 16px;
-  line-height: 1;
-  font-weight: 600;
-  color: #949090;
-}
-
-.selectValue {
-  font-size: 16px;
-  line-height: 1;
-  font-weight: 700;
+.selectPillSelected {
   color: #444444;
 }
 
@@ -415,40 +417,21 @@
   line-height: 1;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
 .saveButton:active {
+  background: #f39f9f;
   transform: scale(0.99);
-  filter: brightness(0.97);
+  filter: brightness(0.96);
 }
 
-.optionList {
-  display: grid;
-  gap: 10px;
-  padding-bottom: 6px;
-}
-
-.optionButton {
-  width: 100%;
-  min-height: 52px;
-  border: 0;
-  border-radius: 18px;
-  background: #f3f3f3;
-  padding: 0 18px;
-  box-sizing: border-box;
-  text-align: left;
+.selectChevron {
+  position: absolute;
+  right: 22px;
+  top: 23px;
   color: #444444;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
-}
-
-.optionButton:active {
-  transform: scale(0.995);
-  filter: brightness(0.98);
+  pointer-events: none;
 }
 
 @media (max-width: 390px) {

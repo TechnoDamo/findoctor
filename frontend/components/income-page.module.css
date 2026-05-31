@@ -133,6 +133,13 @@
   justify-content: center;
   padding: 0;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.addButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
 }
 
 .sourcesList {
@@ -155,6 +162,12 @@
   box-sizing: border-box;
   text-align: left;
   cursor: pointer;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.sourceCard:active {
+  background: #cfcfd1;
+  filter: brightness(0.98);
 }
 
 .sourceName,
@@ -202,6 +215,189 @@
   line-height: 1.2;
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.chatButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
+}
+
+.sheetBackdrop {
+  background: rgba(20, 20, 20, 0.45);
+}
+
+.sheet {
+  background: #ffffff;
+  border: none;
+  border-radius: 18px 18px 0 0;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  padding: 6px clamp(16px, 4.5vw, 24px) calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.sheetHandle {
+  width: 86px;
+  height: 8px;
+  margin: 0 auto 28px;
+  background: #d4d4d6;
+}
+
+.sheetTitle {
+  margin: 0 0 22px;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 600;
+  text-align: left;
+  color: #444444;
+}
+
+.sheetForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selectPillField {
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
+.selectPillField + .selectPillField {
+  margin-top: 15px;
+}
+
+.selectPill {
+  width: 100%;
+  height: 66px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 46px 0 24px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #949090;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.selectPill:active {
+  background: #cfcfd1;
+  filter: brightness(0.98);
+}
+
+.selectPillSelected {
+  color: #444444;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 22px;
+  top: 23px;
+  color: #444444;
+  pointer-events: none;
+}
+
+.inputCard {
+  width: 100%;
+  height: 112px;
+  margin-top: 34px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 17px 22px 16px;
+  box-sizing: border-box;
+}
+
+.inputLabel {
+  display: block;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #949090;
+}
+
+.textInput {
+  width: 100%;
+  height: 28px;
+  margin-top: 13px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #444444;
+  padding: 0;
+}
+
+.fieldDivider {
+  width: 100%;
+  height: 1px;
+  margin: 15px 0 16px;
+  background: #d9d9d9;
+}
+
+.formError {
+  margin: 2px 4px 0;
+  color: #d14c4c;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.sheetActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.sheetSaveButton,
+.sheetDeleteButton {
+  border: 0;
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.sheetSaveButton {
+  width: 183px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffa7a7;
+  color: #444444;
+}
+
+.sheetDeleteButton {
+  background: #f3f3f3;
+  color: #555555;
+  min-width: 118px;
+}
+
+.sheetSaveButton:active,
+.sheetDeleteButton:active {
+  background: #f39f9f;
+  transform: scale(0.99);
+  filter: brightness(0.96);
 }
 
 @media (max-width: 379px) {
@@ -211,6 +407,6 @@
   }
 
   .sourceCard {
-    padding-left: 86px;
+    padding-left: 16px;
   }
 }

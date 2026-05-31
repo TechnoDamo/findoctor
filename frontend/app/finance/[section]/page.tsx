@@ -15,12 +15,10 @@ import { financeSectionsBySlug } from "@/lib/financeSections";
 
 type FinanceSectionRouteProps = {
   params: Promise<{ section: string }>;
-  searchParams?: Promise<{ mode?: string | string[] }>;
 };
 
-export default async function FinanceSectionRoute({ params, searchParams }: FinanceSectionRouteProps) {
+export default async function FinanceSectionRoute({ params }: FinanceSectionRouteProps) {
   const { section } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
   const sectionData = financeSectionsBySlug[section];
 
   if (!sectionData) {
@@ -64,12 +62,7 @@ export default async function FinanceSectionRoute({ params, searchParams }: Fina
   }
 
   if (section === "day_spending_page") {
-    const modeParam = resolvedSearchParams.mode;
-    const modeValue = Array.isArray(modeParam) ? modeParam[0] : modeParam;
-    const initialMode = modeValue === "income" ? "income" : "expense";
-    const initialOpen = typeof modeValue === "string";
-
-    return <DaySpendingPage initialMode={initialMode} initialOpen={initialOpen} />;
+    return <DaySpendingPage />;
   }
 
   return <FinanceSectionPage title={sectionData.title} subtitle={sectionData.subtitle} amount={sectionData.amount} />;

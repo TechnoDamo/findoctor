@@ -10,7 +10,7 @@ import { financeRoutes } from "@/lib/financeRoutes";
 
 import styles from "./credit-traffic-page.module.css";
 
-type CreditTrafficModalKind = "chat" | "add-credit" | "edit-credit";
+type CreditTrafficModalKind = "chat" | "add-credit";
 type CreditRisk = "safe" | "caution" | "danger";
 
 type CreditCalculatorForm = {
@@ -31,6 +31,20 @@ type CreditCalculationResult = {
   totalOverpayment: number;
 };
 
+type CreditCardData = {
+  bankName: string;
+  amountRub: number;
+  monthlyPaymentRub: number;
+  monthsLeft: number;
+};
+
+type CreditEditForm = {
+  bankName: string;
+  amountRub: string;
+  monthlyPaymentRub: string;
+  monthsLeft: string;
+};
+
 const mockLoadValue = 24;
 
 const markerPosition = Math.max(0, Math.min(100, mockLoadValue));
@@ -43,10 +57,6 @@ const modalCopy: Record<CreditTrafficModalKind, { title: string; description: st
   "add-credit": {
     title: "Добавить кредит",
     description: "Здесь будет bottom sheet для добавления нового кредита.",
-  },
-  "edit-credit": {
-    title: "Редактировать кредит",
-    description: "Здесь будет bottom sheet для редактирования карточки кредита.",
   },
 };
 
@@ -66,6 +76,13 @@ const initialCreditForm: CreditCalculatorForm = {
   interestRate: "",
   loanPurpose: "",
   incomeStability: "",
+};
+
+const initialCreditCard: CreditCardData = {
+  bankName: "Кредит СберБанк",
+  amountRub: 450000,
+  monthlyPaymentRub: 7000,
+  monthsLeft: 46,
 };
 
 function parseNumber(value: string) {
@@ -169,6 +186,16 @@ function evaluateCreditCalculation(form: CreditCalculatorForm): CreditCalculatio
 export function CreditTrafficPage() {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<CreditTrafficModalKind | null>(null);
+  const [creditCard, setCreditCard] = useState<CreditCardData>(initialCreditCard);
+  const [isEditCreditOpen, setIsEditCreditOpen] = useState(false);
+  const [editCreditForm, setEditCreditForm] = useState<CreditEditForm>({
+    bankName: initialCreditCard.bankName,
+    amountRub: String(initialCreditCard.amountRub),
+    monthlyPaymentRub: String(initialCreditCard.monthlyPaymentRub),
+    monthsLeft: String(initialCreditCard.monthsLeft),
+  });
+  const [editCreditErrors, setEditCreditErrors] = useState<Partial<Record<keyof CreditEditForm, string>>>({});
+
   const [isCreditCalculatorOpen, setIsCreditCalculatorOpen] = useState(false);
   const [isCreditResultOpen, setIsCreditResultOpen] = useState(false);
   const [creditForm, setCreditForm] = useState<CreditCalculatorForm>(initialCreditForm);
@@ -188,6 +215,73 @@ export function CreditTrafficPage() {
 
   function closeCreditResult() {
     setIsCreditResultOpen(false);
+  }
+
+  function openEditCreditModal() {
+    setEditCreditForm({
+      bankName: creditCard.bankName,
+      amountRub: String(creditCard.amountRub),
+      monthlyPaymentRub: String(creditCard.monthlyPaymentRub),
+      monthsLeft: String(creditCard.monthsLeft),
+    });
+    setEditCreditErrors({});
+    setIsEditCreditOpen(true);
+  }
+
+  function closeEditCreditModal() {
+    setIsEditCreditOpen(false);
+  }
+
+  function updateEditCreditField(field: keyof CreditEditForm, value: string) {
+    setEditCreditForm((current) => ({ ...current, [field]: value }));
+    setEditCreditErrors((current) => ({ ...current, [field]: undefined }));
+  }
+
+  function validateCreditEditForm(form: CreditEditForm) {
+    const nextErrors: Partial<Record<keyof CreditEditForm, string>> = {};
+
+    if (!form.bankName.trim()) {
+      nextErrors.bankName = "Введите название кредита";
+    }
+
+    const amount = parseNumber(form.amountRub);
+    if (!(amount > 0)) {
+      nextErrors.amountRub = "Введите сумму кредита больше нуля";
+    }
+
+    const monthlyPayment = parseNumber(form.monthlyPaymentRub);
+    if (!(monthlyPayment > 0)) {
+      nextErrors.monthlyPaymentRub = "Введите платеж больше нуля";
+    }
+
+    const monthsLeft = Number.parseInt(form.monthsLeft.replace(/[^\d]/g, ""), 10);
+    if (!(monthsLeft > 0)) {
+      nextErrors.monthsLeft = "Введите оставшийся срок больше нуля";
+    }
+
+    return nextErrors;
+  }
+
+  function handleSaveCreditEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextErrors = validateCreditEditForm(editCreditForm);
+    setEditCreditErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    const amountRub = parseNumber(editCreditForm.amountRub);
+    const monthlyPaymentRub = parseNumber(editCreditForm.monthlyPaymentRub);
+    const monthsLeft = Number.parseInt(editCreditForm.monthsLeft.replace(/[^\d]/g, ""), 10);
+
+    setCreditCard({
+      bankName: editCreditForm.bankName.trim(),
+      amountRub: Math.round(amountRub),
+      monthlyPaymentRub: Math.round(monthlyPaymentRub),
+      monthsLeft,
+    });
+    setIsEditCreditOpen(false);
   }
 
   function updateFormField(field: keyof CreditCalculatorForm, value: string) {
@@ -312,11 +406,11 @@ export function CreditTrafficPage() {
             </button>
           </div>
 
-          <button type="button" className={styles.creditCard} onClick={() => setActiveModal("edit-credit")} aria-label="Кредит СберБанк">
+          <button type="button" className={styles.creditCard} onClick={openEditCreditModal} aria-label={creditCard.bankName}>
             <div className={styles.creditTopRow}>
-              <p className={styles.creditBank}>Кредит СберБанк</p>
+              <p className={styles.creditBank}>{creditCard.bankName}</p>
               <p className={styles.creditAmount}>
-                <span className={styles.creditAmountValue}>450 000</span>
+                <span className={styles.creditAmountValue}>{formatRub(creditCard.amountRub)}</span>
                 <span className={styles.creditAmountUnit}> руб</span>
               </p>
             </div>
@@ -325,10 +419,10 @@ export function CreditTrafficPage() {
 
             <div className={styles.creditBottomRow}>
               <p className={styles.creditPayment}>
-                <span className={styles.creditPaymentValue}>7 000</span>
+                <span className={styles.creditPaymentValue}>{formatRub(creditCard.monthlyPaymentRub)}</span>
                 <span className={styles.creditPaymentUnit}> руб в мес</span>
               </p>
-              <p className={styles.creditLeftMonths}>Осталось 46 мес</p>
+              <p className={styles.creditLeftMonths}>Осталось {creditCard.monthsLeft} мес</p>
             </div>
           </button>
         </section>
@@ -348,6 +442,64 @@ export function CreditTrafficPage() {
         <button type="button" className={styles.modalCloseButton} onClick={() => setActiveModal(null)}>
           Закрыть
         </button>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        isOpen={isEditCreditOpen}
+        onClose={closeEditCreditModal}
+        ariaLabel="Редактировать кредит"
+        backdropClassName={styles.creditSheetBackdrop}
+        sheetClassName={styles.creditSheet}
+        handleClassName={styles.creditSheetHandle}
+      >
+        <h2 className={styles.sheetTitle}>Редактировать кредит</h2>
+
+        <form className={styles.creditForm} onSubmit={handleSaveCreditEdit}>
+          <div className={styles.inputGroupCard}>
+            <input
+              className={styles.inputRow}
+              value={editCreditForm.bankName}
+              onChange={(event) => updateEditCreditField("bankName", event.target.value)}
+              placeholder="Название кредита"
+              aria-label="Название кредита"
+            />
+            <input
+              className={styles.inputRow}
+              value={editCreditForm.amountRub}
+              onChange={(event) => updateEditCreditField("amountRub", event.target.value)}
+              placeholder="Сумма кредита"
+              inputMode="decimal"
+              aria-label="Сумма кредита"
+            />
+            <input
+              className={styles.inputRow}
+              value={editCreditForm.monthlyPaymentRub}
+              onChange={(event) => updateEditCreditField("monthlyPaymentRub", event.target.value)}
+              placeholder="Ежемесячный платеж"
+              inputMode="decimal"
+              aria-label="Ежемесячный платеж"
+            />
+            <input
+              className={styles.inputRow}
+              value={editCreditForm.monthsLeft}
+              onChange={(event) => updateEditCreditField("monthsLeft", event.target.value)}
+              placeholder="Осталось месяцев"
+              inputMode="numeric"
+              aria-label="Осталось месяцев"
+            />
+          </div>
+
+          <div className={styles.errorStack}>
+            {editCreditErrors.bankName ? <p className={styles.fieldError}>{editCreditErrors.bankName}</p> : null}
+            {editCreditErrors.amountRub ? <p className={styles.fieldError}>{editCreditErrors.amountRub}</p> : null}
+            {editCreditErrors.monthlyPaymentRub ? <p className={styles.fieldError}>{editCreditErrors.monthlyPaymentRub}</p> : null}
+            {editCreditErrors.monthsLeft ? <p className={styles.fieldError}>{editCreditErrors.monthsLeft}</p> : null}
+          </div>
+
+          <button type="submit" className={styles.calculateButton}>
+            Сохранить
+          </button>
+        </form>
       </BottomSheetModal>
 
       <BottomSheetModal

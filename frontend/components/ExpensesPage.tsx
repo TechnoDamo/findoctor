@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { ChevronDown, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -145,23 +146,6 @@ function getRecommendation(totalExpensesRub: number, incomeRub: number) {
   }
 
   return "Расходная нагрузка заметная. Стоит оптимизировать подписки и крупные обязательные платежи.";
-}
-
-function pickOptionWithPrompt(title: string, options: readonly string[], currentValue: string) {
-  const promptText = `${title}\n\n${options.map((option, index) => `${index + 1}. ${option}`).join("\n")}\n\nТекущее: ${currentValue}\nВведите номер:`;
-  const raw = window.prompt(promptText);
-
-  if (raw === null) {
-    return null;
-  }
-
-  const index = Number.parseInt(raw.trim(), 10);
-
-  if (!Number.isFinite(index) || index < 1 || index > options.length) {
-    return null;
-  }
-
-  return options[index - 1];
 }
 
 export function ExpensesPage() {
@@ -494,6 +478,9 @@ export function ExpensesPage() {
           <h2 className={styles.expensesSectionTitle}>Рекомендации</h2>
           <article className={styles.expensesRecommendationCard}>
             <p className={styles.expensesRecommendationText}>{recommendationText}</p>
+            <Link className={styles.detailsButton} href={financeRoutes.consultant}>
+              Подробнее
+            </Link>
           </article>
         </section>
       </div>
@@ -519,50 +506,42 @@ export function ExpensesPage() {
             }}
           >
             <div className={styles.expenseSelectStack}>
-              <button
-                type="button"
-                className={styles.selectPill}
-                onClick={() => {
-                  const nextValue = pickOptionWithPrompt("Выберите категорию", categoryOptions, expenseForm.category);
-
-                  if (!nextValue) {
-                    return;
-                  }
-
-                  setExpenseForm((current) => ({ ...current, category: nextValue }));
-                }}
-                aria-label="Выбрать категорию"
-              >
-                <span className={styles.fieldLabel}>Категория</span>
-                <span className={styles.selectValueWrap}>
-                  <span className={styles.fieldValue}>{expenseForm.category}</span>
-                  <ChevronDown className={styles.selectChevron} aria-hidden="true" />
-                </span>
-              </button>
+              <label className={styles.selectPillField}>
+                <select
+                  className={`${styles.selectPill} ${expenseForm.category ? styles.selectPillSelected : ""}`}
+                  value={expenseForm.category}
+                  onChange={(event) => setExpenseForm((current) => ({ ...current, category: event.target.value }))}
+                  aria-label="Выбрать категорию"
+                >
+                  <option value="">Категория</option>
+                  {categoryOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className={styles.selectChevron} size={20} strokeWidth={2} />
+              </label>
             </div>
             {errors.category ? <p className={styles.formError}>{errors.category}</p> : null}
 
             <div className={styles.expenseSelectStack}>
-              <button
-                type="button"
-                className={styles.selectPill}
-                onClick={() => {
-                  const nextValue = pickOptionWithPrompt("Выберите тип расхода", expenseTypeOptions, expenseForm.expenseType);
-
-                  if (!nextValue) {
-                    return;
-                  }
-
-                  setExpenseForm((current) => ({ ...current, expenseType: nextValue as ExpenseType }));
-                }}
-                aria-label="Выбрать тип расхода"
-              >
-                <span className={styles.fieldLabel}>Тип расхода</span>
-                <span className={styles.selectValueWrap}>
-                  <span className={styles.fieldValue}>{expenseForm.expenseType}</span>
-                  <ChevronDown className={styles.selectChevron} aria-hidden="true" />
-                </span>
-              </button>
+              <label className={styles.selectPillField}>
+                <select
+                  className={`${styles.selectPill} ${expenseForm.expenseType ? styles.selectPillSelected : ""}`}
+                  value={expenseForm.expenseType}
+                  onChange={(event) => setExpenseForm((current) => ({ ...current, expenseType: event.target.value as ExpenseType }))}
+                  aria-label="Выбрать тип расхода"
+                >
+                  <option value="">Тип расхода</option>
+                  {expenseTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className={styles.selectChevron} size={20} strokeWidth={2} />
+              </label>
             </div>
             {errors.expenseType ? <p className={styles.formError}>{errors.expenseType}</p> : null}
 

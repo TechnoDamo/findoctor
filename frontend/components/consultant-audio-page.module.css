@@ -1,8 +1,9 @@
 .page {
+  height: 100dvh;
   min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   background: #ffffff;
   color: #444444;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
@@ -10,14 +11,21 @@
 
 .content {
   position: relative;
+  height: 100%;
   width: 100%;
   max-width: 402px;
-  min-height: 876px;
+  min-height: 0;
   margin: 0 auto;
   background: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .headerZone {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-shrink: 0;
   min-height: 0;
   background: #ffffff;
   padding: calc(env(safe-area-inset-top) + 20px) 23px 18px;
@@ -30,10 +38,14 @@
 }
 
 .voiceArea {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 132px;
+  justify-content: center;
+  padding: clamp(14px, 4vh, 34px) 0 8px;
+  overflow: hidden;
 }
 
 .voiceTitle {
@@ -47,7 +59,7 @@
 
 .voiceSphere {
   position: relative;
-  margin-top: 37px;
+  margin-top: 24px;
   width: var(--voice-sphere-size);
   height: var(--voice-sphere-size);
   border: 0;
@@ -117,7 +129,7 @@
 
 .stateHint {
   width: 288px;
-  margin: 22px 0 0;
+  margin: 16px 0 0;
   text-align: center;
   color: #777272;
   font-size: 14px;
@@ -127,7 +139,7 @@
 
 .errorText {
   width: 288px;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   text-align: center;
   color: #bf3d3d;
   font-size: 13px;
@@ -136,10 +148,7 @@
 }
 
 .backToChatButton {
-  position: absolute;
-  left: 50%;
-  bottom: calc(37px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  margin: 10px auto calc(56px + env(safe-area-inset-bottom));
   width: 218px;
   height: 72px;
   border-radius: 20px;
@@ -152,12 +161,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: background-color 0.2s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
 .backToChatButton:active {
   background: #f39f9f;
-  transform: translateX(-50%) scale(0.99);
+  transform: scale(0.99);
   filter: brightness(0.96);
 }
 
@@ -260,7 +270,7 @@
   }
 
   .voiceArea {
-    padding-top: 120px;
+    padding-top: 12px;
   }
 
   .stateHint,

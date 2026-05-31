@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -13,7 +14,6 @@ import styles from "./day-spending-page.module.css";
 
 type OperationDirection = "expense" | "income";
 type OperationMode = "create" | "edit";
-type PickerKind = "category" | "type";
 
 type DayOperation = {
   id: string;
@@ -25,11 +25,6 @@ type DayOperation = {
 };
 
 type DaySpendingSheetMode = "expense" | "income";
-
-type DaySpendingPageProps = {
-  initialMode: DaySpendingSheetMode;
-  initialOpen?: boolean;
-};
 
 const categoryOptions = ["Дети", "Подписки", "Жилье", "Транспорт", "Здоровье", "Еда", "Развлечения", "Другое"];
 const expenseTypeOptions = ["Обязательные расходы", "Необязательные расходы"];
@@ -85,17 +80,14 @@ function formatRub(value: number) {
   return numberFormatter.format(Math.max(0, Math.round(value)));
 }
 
-export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendingPageProps) {
+export function DaySpendingPage() {
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [operations, setOperations] = useState<DayOperation[]>(initialOperations);
 
-  const [sheetMode, setSheetMode] = useState<DaySpendingSheetMode>(initialMode);
-  const [sheetOpen, setSheetOpen] = useState(initialOpen);
+  const [sheetMode, setSheetMode] = useState<DaySpendingSheetMode>("expense");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetOperationMode, setSheetOperationMode] = useState<OperationMode>("create");
   const [editingOperationId, setEditingOperationId] = useState<string | null>(null);
-
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerKind, setPickerKind] = useState<PickerKind>("category");
 
   const [selectedCategory, setSelectedCategory] = useState(categoryOptions[0]);
   const [selectedType, setSelectedType] = useState(expenseTypeOptions[0]);
@@ -127,8 +119,6 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
         ? "Расходы на день"
         : "Доходы на день";
 
-  const pickerTitle = pickerKind === "category" ? "Выберите категорию" : sheetMode === "expense" ? "Выберите тип расхода" : "Выберите тип дохода";
-
   function closeMainSheet() {
     setSheetOpen(false);
     setEditingOperationId(null);
@@ -154,25 +144,6 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
     setDescription(operation.description);
     setAmount(String(operation.amountRub));
     setSheetOpen(true);
-  }
-
-  function openPicker(kind: PickerKind) {
-    setPickerKind(kind);
-    setPickerOpen(true);
-  }
-
-  function closePicker() {
-    setPickerOpen(false);
-  }
-
-  function applyOption(option: string) {
-    if (pickerKind === "category") {
-      setSelectedCategory(option);
-    } else {
-      setSelectedType(option);
-    }
-
-    closePicker();
   }
 
   function saveOperation() {
@@ -215,8 +186,6 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
     closeMainSheet();
   }
 
-  const pickerOptions = pickerKind === "category" ? categoryOptions : currentTypeOptions;
-
   return (
     <main className={styles.page}>
       <div className={styles.content}>
@@ -231,19 +200,23 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
         />
 
         <section className={styles.summaryCard} aria-label="Сводка трат на день">
-          <p className={styles.summaryLabel}>Остаток на сегодня</p>
-          <p className={styles.summaryValue}>
-            <strong>{formatRub(remainderRub)}</strong>
-            <span>руб</span>
-          </p>
+          <div className={styles.topBlock}>
+            <p className={styles.summaryLabel}>Остаток на сегодня</p>
+            <p className={styles.summaryValue}>
+              <strong>{formatRub(remainderRub)}</strong>
+              <span>руб</span>
+            </p>
+          </div>
 
-          <div className={styles.summaryDivider} aria-hidden="true" />
+          <div className={styles.divider} aria-hidden="true" />
 
-          <p className={styles.summaryLabel}>Лимит на день</p>
-          <p className={styles.summaryValue}>
-            <strong>{formatRub(dayLimitRub)}</strong>
-            <span>руб</span>
-          </p>
+          <div className={styles.bottomBlock}>
+            <p className={styles.summaryLabel}>Лимит на день</p>
+            <p className={styles.summaryValue}>
+              <strong>{formatRub(dayLimitRub)}</strong>
+              <span>руб</span>
+            </p>
+          </div>
         </section>
 
         <section className={styles.reminderCard} aria-label="Напоминание о заполнении">
@@ -333,15 +306,39 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
         handleClassName={styles.sheetHandle}
         titleClassName={styles.sheetTitle}
       >
-        <button type="button" className={styles.selectPill} onClick={() => openPicker("category")}>
-          <span className={styles.selectLabel}>Категория</span>
-          <span className={styles.selectValue}>{selectedCategory}</span>
-        </button>
+        <label className={styles.selectPillField}>
+          <select
+            className={`${styles.selectPill} ${selectedCategory ? styles.selectPillSelected : ""}`}
+            value={selectedCategory}
+            onChange={(event) => setSelectedCategory(event.target.value)}
+            aria-label="Категория"
+          >
+            <option value="">Категория</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className={styles.selectChevron} size={20} strokeWidth={2} />
+        </label>
 
-        <button type="button" className={styles.selectPill} onClick={() => openPicker("type")}>
-          <span className={styles.selectLabel}>{sheetMode === "expense" ? "Тип расхода" : "Тип дохода"}</span>
-          <span className={styles.selectValue}>{selectedType}</span>
-        </button>
+        <label className={styles.selectPillField}>
+          <select
+            className={`${styles.selectPill} ${selectedType ? styles.selectPillSelected : ""}`}
+            value={selectedType}
+            onChange={(event) => setSelectedType(event.target.value)}
+            aria-label={sheetMode === "expense" ? "Тип расхода" : "Тип дохода"}
+          >
+            <option value="">{sheetMode === "expense" ? "Тип расхода" : "Тип дохода"}</option>
+            {currentTypeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className={styles.selectChevron} size={20} strokeWidth={2} />
+        </label>
 
         <section className={styles.inputCard} aria-label="Описание и сумма">
           <input
@@ -371,24 +368,6 @@ export function DaySpendingPage({ initialMode, initialOpen = false }: DaySpendin
         </button>
       </BottomSheetModal>
 
-      <BottomSheetModal
-        isOpen={pickerOpen}
-        onClose={closePicker}
-        ariaLabel={pickerTitle}
-        title={pickerTitle}
-        backdropClassName={styles.backdrop}
-        sheetClassName={styles.pickerSheet}
-        handleClassName={styles.sheetHandle}
-        titleClassName={styles.sheetTitle}
-      >
-        <div className={styles.optionList}>
-          {pickerOptions.map((option) => (
-            <button key={option} type="button" className={styles.optionButton} onClick={() => applyOption(option)}>
-              {option}
-            </button>
-          ))}
-        </div>
-      </BottomSheetModal>
     </main>
   );
 }

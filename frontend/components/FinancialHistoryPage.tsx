@@ -155,24 +155,23 @@ export function FinancialHistoryPage() {
               <div className={styles.operationsList}>
                 {group.items.map((item) => (
                   <article className={styles.operationCard} key={item.id}>
-                    <div className={styles.operationInfo}>
-                      <p className={styles.operationType}>{item.type}</p>
-                      <p className={styles.operationName}>{item.name}</p>
-                    </div>
-
-                    <p className={styles.operationAmount}>
-                      <strong>{formatRubAmount(item.amountRub)}</strong>
-                      <span>руб</span>
-                    </p>
+                    <p className={styles.operationType}>{item.type}</p>
 
                     <Image
                       className={styles.operationIcon}
                       src={item.direction === "income" ? "/icons/finance/history-income.svg" : "/icons/finance/history-expense.svg"}
                       alt=""
-                      width={27}
-                      height={27}
+                      width={30}
+                      height={30}
                       aria-hidden="true"
                     />
+
+                    <p className={styles.operationName}>{item.name}</p>
+
+                    <p className={styles.operationAmount}>
+                      <strong>{formatRubAmount(item.amountRub)}</strong>
+                      <span>руб</span>
+                    </p>
                   </article>
                 ))}
               </div>

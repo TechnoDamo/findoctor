@@ -882,6 +882,12 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.expenseRowCard:active {
+  background: #cfcfd1;
+  filter: brightness(0.98);
 }
 
 .expenseName,
@@ -968,6 +974,8 @@
   background: #f3f3f3;
   padding: 22px 18px 16px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .expensesRecommendationText {
@@ -1068,19 +1076,38 @@
   margin-top: 15px;
 }
 
+.selectPillField {
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
 .selectPill {
   width: 100%;
-  height: 56px;
+  height: 66px;
   border: 0;
   border-radius: 25px;
   background: #f3f3f3;
-  padding: 0 21px;
+  padding: 0 46px 0 24px;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font: inherit;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #949090;
+  appearance: none;
+  outline: none;
   cursor: pointer;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+}
+
+.selectPill:active {
+  background: #cfcfd1;
+  filter: brightness(0.98);
+}
+
+.selectPillSelected {
+  color: #444444;
 }
 
 .fieldLabel {
@@ -1110,10 +1137,11 @@
 }
 
 .selectChevron {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
+  position: absolute;
+  right: 22px;
+  top: 23px;
   color: #444444;
+  pointer-events: none;
 }
 
 .textFieldsCard {

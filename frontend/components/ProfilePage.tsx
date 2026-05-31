@@ -15,17 +15,17 @@ import styles from "./profile-page.module.css";
 type ModalType = "consultant" | "support" | "age" | "about" | null;
 
 const consultantLevels = [
-  { id: "anger-5", name: "Злобный дед", anger: "Злость - 5" },
-  { id: "anger-4", name: "Злобный дед", anger: "Злость - 4" },
-  { id: "anger-3", name: "Злобный дед", anger: "Злость - 3" },
-  { id: "anger-2", name: "Злобный дед", anger: "Злость - 2" },
-  { id: "anger-1", name: "Злобный дед", anger: "Злость - 1" },
+  { id: "anger-5", name: "Злой инвестор", anger: "Злость - 5" },
+  { id: "anger-4", name: "Раздраженный трейдер", anger: "Злость - 4" },
+  { id: "anger-3", name: "Сердитый бухгалтер", anger: "Злость - 3" },
+  { id: "anger-2", name: "Умиротверенный аудитор", anger: "Злость - 2" },
+  { id: "anger-1", name: "Спокойный аналитик", anger: "Злость - 1" },
 ];
 
 export function ProfilePage() {
   const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [darkThemeEnabled, setDarkThemeEnabled] = useState(false);
   const [selectedConsultantIndex, setSelectedConsultantIndex] = useState(0);
+  const selectedConsultant = consultantLevels[selectedConsultantIndex];
 
   return (
     <main className={styles.page}>
@@ -51,8 +51,8 @@ export function ProfilePage() {
           <button type="button" className={styles.cardActionButton} onClick={() => setOpenModal("consultant")}>
             <span className={styles.consultantLabel}>Мой консультант</span>
             <span className={styles.consultantValueWrap}>
-              <span className={styles.consultantName}>Злобный дед</span>
-              <span className={styles.consultantValue}>Злость - 5</span>
+              <span className={styles.consultantName}>{selectedConsultant.name}</span>
+              <span className={styles.consultantValue}>{selectedConsultant.anger}</span>
             </span>
           </button>
         </section>
@@ -102,17 +102,6 @@ export function ProfilePage() {
         </section>
 
         <section className={styles.settingsSection} aria-label="Настройки и разделы">
-          <button type="button" className={styles.menuItemButton} onClick={() => setDarkThemeEnabled((prev) => !prev)}>
-            <span className={styles.menuItemLeft}>
-              <Image src="/icons/profile/night-mode.svg" alt="" width={27} height={27} />
-              <span className={styles.menuItemLabel}>Темная тема</span>
-            </span>
-
-            <span className={`${styles.toggleTrack} ${darkThemeEnabled ? styles.toggleTrackActive : ""}`} aria-hidden="true">
-              <span className={`${styles.toggleThumb} ${darkThemeEnabled ? styles.toggleThumbActive : ""}`} />
-            </span>
-          </button>
-
           <button type="button" className={styles.menuItemButton} onClick={() => setOpenModal("support")}>
             <span className={styles.menuItemLeft}>
               <Image src="/icons/profile/support.svg" alt="" width={27} height={27} />
