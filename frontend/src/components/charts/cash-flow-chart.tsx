@@ -1,28 +1,53 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
-const data = [
-  { month: 'Янв', income: 400000, expenses: 240000 },
-  { month: 'Фев', income: 350000, expenses: 280000 },
-  { month: 'Мар', income: 420000, expenses: 310000 },
-  { month: 'Апр', income: 380000, expenses: 290000 },
-  { month: 'Май', income: 410000, expenses: 320000 },
-  { month: 'Июн', income: 390000, expenses: 305000 },
-  { month: 'Июл', income: 430000, expenses: 330000 },
-];
+import { Skeleton } from '@/components/ui/skeleton';
+import type { CashFlowSeries } from '@/lib/api/types';
 
 function formatRUB(value: number) {
   return `${(value / 1000).toFixed(1)} тыс`;
 }
 
-export function CashFlowChart() {
+function formatLabel(dateStr: string) {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+}
+
+interface Props {
+  data?: CashFlowSeries;
+  isLoading?: boolean;
+  isError?: boolean;
+}
+
+export function CashFlowChart({ data, isLoading, isError }: Props) {
+  if (isLoading) {
+    return <Skeleton className="h-80 w-full" />;
+  }
+
+  if (isError || !data?.items?.length) {
+    return (
+      <div className="h-80 flex items-center justify-center text-sm text-gray-500">
+        {isError ? 'Не удалось загрузить данные' : 'Нет данных о денежном потоке'}
+      </div>
+    );
+  }
+
+  const chartData = data.items.map((point) => ({
+    period: formatLabel(point.period_start),
+    income: parseFloat(point.income) || 0,
+    expenses: Math.abs(parseFloat(point.expenses) || 0),
+  }));
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+        <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
+          <XAxis dataKey="period" />
           <YAxis tickFormatter={formatRUB} />
           <Tooltip
             formatter={(value) => [`₽${Number(value).toLocaleString('ru-RU')}`, '']}

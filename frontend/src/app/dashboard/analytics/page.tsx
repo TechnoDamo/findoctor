@@ -1,12 +1,56 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CashFlowChart } from '@/components/charts/cash-flow-chart';
 import { NetWorthChart } from '@/components/charts/net-worth-chart';
+import { useDashboardSummary, useCashFlow, useNetWorth } from '@/lib/api/queries/analytics';
+
+function formatRub(value: number | string) {
+  const n = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(n)) return '0 ₽';
+  return `${Math.abs(n).toLocaleString('ru-RU')} ₽`;
+}
 
 export default function AnalyticsPage() {
+  const summary = useDashboardSummary();
+  const cashFlow = useCashFlow({ groupBy: 'month' });
+  const netWorth = useNetWorth();
+
+  const isLoading = summary.isLoading;
+  const isError = summary.isError;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 w-full" />)}
+        </div>
+        <Skeleton className="h-80 w-full" />
+      </div>
+    );
+  }
+
+  if (isError || !summary.data) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Аналитика</h1>
+        <Card><CardContent className="p-6 text-center text-red-500">Не удалось загрузить данные</CardContent></Card>
+      </div>
+    );
+  }
+
+  const s = summary.data;
+  const totalCash = parseFloat(s.total_cash) || 0;
+  const totalAssets = parseFloat(s.total_assets) || 0;
+  const totalLiabilities = Math.abs(parseFloat(s.total_liabilities) || 0);
+  const netWorthVal = parseFloat(s.net_worth) || 0;
+  const monthlyIncome = parseFloat(s.monthly_income) || 0;
+  const monthlyExpenses = Math.abs(parseFloat(s.monthly_expenses) || 0);
+  const savingsRate = s.savings_rate != null ? s.savings_rate : (monthlyIncome > 0 ? ((monthlyIncome - monthlyExpenses) / monthlyIncome * 100) : 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -28,53 +72,36 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Наличные</CardTitle>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" className="h-4 w-4 text-muted-foreground"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₽1 245 000</div>
+                <div className="text-2xl font-bold">{totalCash >= 0 ? '' : '−'}{formatRub(totalCash)}</div>
               </CardContent>
-              <CardFooter>
-                <p className="text-xs text-muted-foreground">+12,5% к прошлому месяцу</p>
-              </CardFooter>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Активы</CardTitle>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" className="h-4 w-4 text-muted-foreground"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₽2 830 000</div>
+                <div className="text-2xl font-bold">{totalAssets >= 0 ? '' : '−'}{formatRub(totalAssets)}</div>
               </CardContent>
-              <CardFooter>
-                <p className="text-xs text-muted-foreground">+8,7% к прошлому месяцу</p>
-              </CardFooter>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Обязательства</CardTitle>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" className="h-4 w-4 text-muted-foreground"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">−₽1 520 000</div>
+                <div className="text-2xl font-bold text-red-600">−{formatRub(totalLiabilities)}</div>
               </CardContent>
-              <CardFooter>
-                <p className="text-xs text-muted-foreground">−2,1% к прошлому месяцу</p>
-              </CardFooter>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Капитал</CardTitle>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" className="h-4 w-4 text-muted-foreground"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 17l-5-5m10 0l-5 5"/></svg>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₽1 310 000</div>
+                <div className={`text-2xl font-bold ${netWorthVal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {netWorthVal >= 0 ? '' : '−'}{formatRub(netWorthVal)}
+                </div>
               </CardContent>
-              <CardFooter>
-                <p className="text-xs text-muted-foreground">+15,6% к прошлому месяцу</p>
-              </CardFooter>
             </Card>
           </div>
 
@@ -87,19 +114,19 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Доходы</p>
-                  <p className="text-2xl font-bold text-green-600">₽420 000</p>
+                  <p className="text-2xl font-bold text-green-600">{formatRub(monthlyIncome)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Расходы</p>
-                  <p className="text-2xl font-bold text-red-600">−₽285 000</p>
+                  <p className="text-2xl font-bold text-red-600">−{formatRub(monthlyExpenses)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Сбережения</p>
-                  <p className="text-2xl font-bold text-blue-600">₽135 000</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatRub(monthlyIncome - monthlyExpenses)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Норма сбережений</p>
-                  <p className="text-2xl font-bold text-purple-600">32%</p>
+                  <p className="text-2xl font-bold text-purple-600">{Math.round(savingsRate)}%</p>
                 </div>
               </div>
             </CardContent>
@@ -113,7 +140,7 @@ export default function AnalyticsPage() {
               <CardDescription>Доходы и расходы по месяцам</CardDescription>
             </CardHeader>
             <CardContent>
-              <CashFlowChart />
+              <CashFlowChart data={cashFlow.data} isLoading={cashFlow.isLoading} isError={cashFlow.isError} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -125,7 +152,7 @@ export default function AnalyticsPage() {
               <CardDescription>Изменение капитала за последние 12 месяцев</CardDescription>
             </CardHeader>
             <CardContent>
-              <NetWorthChart />
+              <NetWorthChart data={netWorth.data} isLoading={netWorth.isLoading} isError={netWorth.isError} />
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,31 +1,50 @@
 'use client';
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const data = [
-  { date: 'Янв 24', netWorth: 950000 },
-  { date: 'Фев 24', netWorth: 980000 },
-  { date: 'Мар 24', netWorth: 1020000 },
-  { date: 'Апр 24', netWorth: 1080000 },
-  { date: 'Май 24', netWorth: 1120000 },
-  { date: 'Июн 24', netWorth: 1180000 },
-  { date: 'Июл 24', netWorth: 1150000 },
-  { date: 'Авг 24', netWorth: 1210000 },
-  { date: 'Сен 24', netWorth: 1240000 },
-  { date: 'Окт 24', netWorth: 1280000 },
-  { date: 'Ноя 24', netWorth: 1300000 },
-  { date: 'Дек 24', netWorth: 1310000 },
-];
+import { Skeleton } from '@/components/ui/skeleton';
+import type { NetWorthSeries } from '@/lib/api/types';
 
 function formatRUB(value: number) {
   return `${(value / 1000).toFixed(0)} тыс`;
 }
 
-export function NetWorthChart() {
+function formatLabel(dateStr: string) {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+}
+
+interface Props {
+  data?: NetWorthSeries;
+  isLoading?: boolean;
+  isError?: boolean;
+}
+
+export function NetWorthChart({ data, isLoading, isError }: Props) {
+  if (isLoading) {
+    return <Skeleton className="h-80 w-full" />;
+  }
+
+  if (isError || !data?.items?.length) {
+    return (
+      <div className="h-80 flex items-center justify-center text-sm text-gray-500">
+        {isError ? 'Не удалось загрузить данные' : 'Нет данных о капитале'}
+      </div>
+    );
+  }
+
+  const chartData = data.items.map((point) => ({
+    date: formatLabel(point.date),
+    netWorth: parseFloat(point.net_worth) || 0,
+  }));
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+        <AreaChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <YAxis tickFormatter={formatRUB} />

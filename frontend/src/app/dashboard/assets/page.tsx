@@ -1,9 +1,44 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAssets } from '@/lib/api/queries/assets';
+
+function formatRub(value: number) {
+  return `${value.toLocaleString('ru-RU')} ₽`;
+}
 
 export default function AssetsPage() {
+  const router = useRouter();
+  const { data: assets, isLoading, isError } = useAssets();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-start">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Активы</h1>
+        <Card><CardContent className="p-6 text-center text-red-500">Не удалось загрузить активы</CardContent></Card>
+      </div>
+    );
+  }
+
+  const assetsList = assets || [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -11,67 +46,36 @@ export default function AssetsPage() {
           <h1 className="text-3xl font-bold">Активы</h1>
           <p className="text-gray-500">Имущество, инвестиции и ценности</p>
         </div>
-        <Button href="/dashboard/assets/new">Добавить актив</Button>
+        <Button onClick={() => router.push('/dashboard/assets/new')}>Добавить актив</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Квартира</CardTitle>
-            <CardDescription>Недвижимость</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₽12 500 000</div>
-            <p className="text-sm text-muted-foreground mt-2">Куплена: март 2020</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Автомобиль</CardTitle>
-            <CardDescription>Транспорт</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₽2 800 000</div>
-            <p className="text-sm text-muted-foreground mt-2">Куплен: июнь 2023</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Инвестпортфель</CardTitle>
-            <CardDescription>Ценные бумаги</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₽1 500 000</div>
-            <p className="text-sm text-muted-foreground mt-2">Ежемесячный взнос: ₽50 000</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Все активы</CardTitle>
-          <CardDescription>Общая стоимость: ₽16 800 000</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { name: 'Квартира', type: 'Недвижимость', value: '₽12 500 000', date: 'Март 2020' },
-              { name: 'Автомобиль', type: 'Транспорт', value: '₽2 800 000', date: 'Июнь 2023' },
-              { name: 'Инвестпортфель', type: 'Ценные бумаги', value: '₽1 500 000', date: 'Январь 2022' },
-            ].map((a, i) => (
-              <div key={i} className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                <div>
-                  <p className="font-medium">{a.name}</p>
-                  <p className="text-sm text-muted-foreground">{a.type} • {a.date}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-600">{a.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {assetsList.length === 0 ? (
+        <Card><CardContent className="p-12 text-center text-gray-500">Пока нет активов. Добавьте первый.</CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {assetsList.map((asset) => (
+            <Card key={asset.id}>
+              <CardHeader>
+                <CardTitle>{asset.name}</CardTitle>
+                <CardDescription>{asset.currency}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{formatRub(asset.estimated_value)}</div>
+                {asset.purchase_date && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Куплен: {new Date(asset.purchase_date).toLocaleDateString('ru-RU')}
+                  </p>
+                )}
+                {asset.purchase_price != null && (
+                  <p className="text-sm text-muted-foreground">
+                    Цена покупки: {formatRub(asset.purchase_price)}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

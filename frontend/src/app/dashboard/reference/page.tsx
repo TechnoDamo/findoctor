@@ -2,120 +2,94 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const categories = [
-  { name: 'Зарплата', type: 'Доход' },
-  { name: 'Фриланс', type: 'Доход' },
-  { name: 'Инвестиции', type: 'Доход' },
-  { name: 'Продукты', type: 'Расход' },
-  { name: 'Транспорт', type: 'Расход' },
-  { name: 'Жильё', type: 'Расход' },
-  { name: 'Развлечения', type: 'Расход' },
-  { name: 'Здоровье', type: 'Расход' },
-];
-
-const institutions = [
-  { name: 'Сбербанк', country: 'RU', types: ['Банк', 'Брокер'] },
-  { name: 'Тинькофф', country: 'RU', types: ['Банк', 'Брокер'] },
-  { name: 'ВТБ', country: 'RU', types: ['Банк'] },
-  { name: 'Interactive Brokers', country: 'US', types: ['Брокер'] },
-];
-
-const merchants = [
-  { name: 'Пятёрочка', category: 'Продукты', risk: 'Низкий' },
-  { name: 'Яндекс.Такси', category: 'Транспорт', risk: 'Низкий' },
-  { name: 'Ozon', category: 'Товары', risk: 'Низкий' },
-  { name: 'Мосэнерго', category: 'Жильё', risk: 'Низкий' },
-];
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAccountTypes, useAssetTypes, useLiabilityTypes, useCategories } from '@/lib/api/queries/reference';
 
 export default function ReferencePage() {
+  const accountTypes = useAccountTypes();
+  const assetTypes = useAssetTypes();
+  const liabilityTypes = useLiabilityTypes();
+  const categories = useCategories();
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Справочники</h1>
+      <div>
+        <h1 className="text-3xl font-bold">Справочники</h1>
+        <p className="text-gray-500">Типы счетов, активов, обязательств и категории</p>
+      </div>
 
-      <Tabs defaultValue="categories">
+      <Tabs defaultValue="account-types" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="account-types">Типы счетов</TabsTrigger>
+          <TabsTrigger value="asset-types">Типы активов</TabsTrigger>
+          <TabsTrigger value="liability-types">Типы обязательств</TabsTrigger>
           <TabsTrigger value="categories">Категории</TabsTrigger>
-          <TabsTrigger value="institutions">Банки и брокеры</TabsTrigger>
-          <TabsTrigger value="merchants">Мерчанты</TabsTrigger>
-          <TabsTrigger value="types">Типы</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="account-types">
+          <Card>
+            <CardHeader><CardTitle>Типы счетов</CardTitle></CardHeader>
+            <CardContent>
+              {accountTypes.isLoading && <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-10 w-full"/>)}</div>}
+              {accountTypes.isError && <div className="text-red-500">Ошибка загрузки</div>}
+              {accountTypes.data?.map((item) => (
+                <div key={item.id} className="p-3 border-b last:border-0 flex justify-between text-sm">
+                  <span className="font-medium">{item.name}</span>
+                  <span className="text-gray-500">{item.id}</span>
+                </div>
+              ))}
+              {accountTypes.data?.length === 0 && <div className="text-gray-500 py-4">Пусто</div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="asset-types">
+          <Card>
+            <CardHeader><CardTitle>Типы активов</CardTitle></CardHeader>
+            <CardContent>
+              {assetTypes.isLoading && <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-10 w-full"/>)}</div>}
+              {assetTypes.isError && <div className="text-red-500">Ошибка загрузки</div>}
+              {assetTypes.data?.map((item) => (
+                <div key={item.id} className="p-3 border-b last:border-0 flex justify-between text-sm">
+                  <span className="font-medium">{item.name}</span>
+                  <span className="text-gray-500">{item.id}</span>
+                </div>
+              ))}
+              {assetTypes.data?.length === 0 && <div className="text-gray-500 py-4">Пусто</div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="liability-types">
+          <Card>
+            <CardHeader><CardTitle>Типы обязательств</CardTitle></CardHeader>
+            <CardContent>
+              {liabilityTypes.isLoading && <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-10 w-full"/>)}</div>}
+              {liabilityTypes.isError && <div className="text-red-500">Ошибка загрузки</div>}
+              {liabilityTypes.data?.map((item) => (
+                <div key={item.id} className="p-3 border-b last:border-0 flex justify-between text-sm">
+                  <span className="font-medium">{item.name}</span>
+                  <span className="text-gray-500">{item.id}</span>
+                </div>
+              ))}
+              {liabilityTypes.data?.length === 0 && <div className="text-gray-500 py-4">Пусто</div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="categories">
           <Card>
-            <CardHeader>
-              <CardTitle>Категории транзакций</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Категории</CardTitle></CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {categories.map((c, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 border rounded-lg">
-                    <span className="font-medium">{c.name}</span>
-                    <span className={`text-sm px-2 py-1 rounded-full ${c.type === 'Доход' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{c.type}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="institutions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Финансовые организации</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {institutions.map((inst, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                      <span className="font-medium">{inst.name}</span>
-                      <span className="text-sm text-muted-foreground ml-2">{inst.country}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {inst.types.map((t, j) => (
-                        <span key={j} className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="merchants">
-          <Card>
-            <CardHeader>
-              <CardTitle>Мерчанты</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {merchants.map((m, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                      <span className="font-medium">{m.name}</span>
-                      <span className="text-sm text-muted-foreground ml-2">{m.category}</span>
-                    </div>
-                    <span className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{m.risk}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="types">
-          <Card>
-            <CardHeader>
-              <CardTitle>Типы счетов</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {['Дебетовая карта', 'Кредитная карта', 'Накопительный', 'Вклад', 'Брокерский', 'Электронный кошелёк'].map((t, i) => (
-                  <div key={i} className="p-3 border rounded-lg text-center font-medium hover:bg-gray-50 cursor-pointer">{t}</div>
-                ))}
-              </div>
+              {categories.isLoading && <div className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-10 w-full"/>)}</div>}
+              {categories.isError && <div className="text-red-500">Ошибка загрузки</div>}
+              {categories.data?.map((item) => (
+                <div key={item.id} className="p-3 border-b last:border-0 flex justify-between text-sm">
+                  <span className="font-medium">{item.name}</span>
+                  <span className="text-gray-500">{item.id}</span>
+                </div>
+              ))}
+              {categories.data?.length === 0 && <div className="text-gray-500 py-4">Пусто</div>}
             </CardContent>
           </Card>
         </TabsContent>

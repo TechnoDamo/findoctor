@@ -62,7 +62,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <div className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
-          <div className="text-xl font-bold mb-8 text-primary">ФинДоктор</div>
+          <div className="text-xl font-bold mb-8 text-primary">ПрофИИт</div>
           <nav className="space-y-1">
             <a href="/dashboard" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm font-medium">Обзор</a>
             <a href="/dashboard/accounts" className="block px-4 py-2 rounded hover:bg-gray-100 text-sm">Счета</a>
@@ -80,7 +80,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="flex-1">
           <header className="bg-white border-b border-gray-200 p-4">
             <div className="flex justify-between items-center">
-              <h1 className="text-xl font-semibold">ФинДоктор</h1>
+              <h1 className="text-xl font-semibold">ПрофИИт</h1>
               <div className="flex items-center space-x-4">
                 {displayName && <span className="text-sm text-gray-600">{displayName}</span>}
                 <Button

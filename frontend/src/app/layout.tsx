@@ -6,7 +6,7 @@ import { QueryProvider } from '@/lib/providers/query-provider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ФинДоктор — управление финансами',
+  title: 'ПрофИИт — управление финансами',
   description: 'Персональный дэшборд для учёта счетов, транзакций, активов и обязательств',
 };
 

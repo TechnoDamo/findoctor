@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'ФинДоктор — Вход',
+  title: 'ПрофИИт — Вход',
   description: 'Авторизация и регистрация',
 };
 
