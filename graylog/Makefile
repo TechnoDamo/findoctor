@@ -46,7 +46,7 @@ init: init-env
 deploy-local: init-env up configure
 
 deploy-cloud:
-	@test -n "$(GRAYLOG_HOST)" || { echo "GRAYLOG_HOST не задан"; exit 1; }
+	@test -n "$(GRAYLOG_HOST)" || { echo "GRAYLOG_HOST не задан — укажите external Graylog/GELF endpoint в graylog/.env"; exit 1; }
 	@if echo "$(GRAYLOG_HOST)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
 		echo "GRAYLOG_HOST выглядит локальным, а DEPLOYMENT=cloud ожидает external log endpoint."; \
 		exit 1; \

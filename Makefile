@@ -104,7 +104,10 @@ deploy-system:
 		ai:local) \
 			$(MAKE) deploy-system ENTITY=vllm DEPLOYMENT=local && \
 			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
-		ai:cloud) $(MAKE) cloud-check && $(MAKE) cloud-recommendations-check ;; \
+		ai:cloud) \
+			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=cloud && \
+			$(MAKE) cloud-check && \
+			$(MAKE) cloud-recommendations-check ;; \
 		ai:hybrid) \
 			$(MAKE) cloud-check && \
 			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
@@ -120,6 +123,10 @@ deploy-system:
 		whisper:cloud|stt:cloud) $(MAKE) cloud-check ;; \
 		graylog:local|observability:local) $(MAKE) -C $(GRAYLOG_DIR) deploy-local ;; \
 		graylog:cloud|observability:cloud) $(MAKE) -C $(GRAYLOG_DIR) deploy-cloud ;; \
+		full:cloud) \
+			echo "full deployment не поддерживает cloud-режим."; \
+			echo "Используйте system:cloud для core+recommendations или разверните компоненты отдельно."; \
+			exit 1 ;; \
 		*) \
 			echo "Unknown deployment matrix: ENTITY=$(ENTITY), DEPLOYMENT=$(DEPLOYMENT)"; \
 			echo "Run: make help"; \
@@ -181,10 +188,9 @@ logs-system:
 init: init-core init-recommendations init-observability init-voice
 
 init-core:
-	@test -f .env || cp backend/.env.example .env
-	$(MAKE) -C $(BACKEND_DIR) init
+	$(MAKE) -C $(BACKEND_DIR) init-env
 	$(MAKE) -C $(FRONTEND_DIR) init
-	@echo "Env-файлы ядра готовы"
+	@echo "Env-файлы ядра готовы (backend/.env и frontend/.env)"
 
 init-recommendations:
 	$(MAKE) -C $(TEI_DIR) init

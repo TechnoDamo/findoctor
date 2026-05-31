@@ -109,6 +109,10 @@ help:
 
 init:
 	@test -f .env || cp .env.example .env
+	@if [ ! -f "$(WHISPER_CPP_DIR)/CMakeLists.txt" ]; then \
+		echo "Initializing whisper.cpp submodule..."; \
+		cd .. && git submodule update --init whisper-server/whisper.cpp; \
+	fi
 	@echo "whisper-server/.env is ready"
 
 deploy-local: init build model proxy-install
@@ -146,6 +150,10 @@ logs:
 	@tail -f .runtime/proxy.log
 
 build:
+	@if [ ! -f "$(WHISPER_CPP_DIR)/CMakeLists.txt" ]; then \
+		echo "ERROR: whisper.cpp submodule not found. Run: make init"; \
+		exit 1; \
+	fi
 	@echo "=== Building whisper.cpp server ==="
 	@echo "Detected: $(UNAME_S) / $(UNAME_M)"
 	@echo "CMake args: $(CMAKE_ARGS)"

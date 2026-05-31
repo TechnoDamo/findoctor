@@ -10,8 +10,6 @@ if [[ -f "$ROOT_DIR/backend/.env" ]]; then
   set +a
 fi
 
-missing=0
-
 check_optional_endpoint() {
   local name="$1"
   local value="${!name:-}"
@@ -35,8 +33,4 @@ if [[ -z "${LLM_API_KEY:-${OPENAI_API_KEY:-}}" ]]; then
   echo "WARN: не задан LLM_API_KEY или OPENAI_API_KEY"
 else
   echo "OK:   LLM/OpenAI API key задан"
-fi
-
-if [[ "$missing" -ne 0 ]]; then
-  exit 1
 fi

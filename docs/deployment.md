@@ -326,6 +326,17 @@ make deploy-system ENTITY=recommendations DEPLOYMENT=local
 6. Запустите `make backend-test-recommendations`.
 7. Запустите `make recommendations-test`.
 
+### Локальный STT (whisper-server)
+
+Для локального распознавания речи требуется инициализировать git-сабмодуль whisper.cpp:
+
+```bash
+make deploy-system ENTITY=whisper DEPLOYMENT=local
+```
+
+Команда `make init` в whisper-server автоматически выполнит `git submodule update --init`.
+Если сабмодуль не склонирован, `make build` выведет ошибку с инструкцией.
+
 ## Диагностика
 
 Если локальный recommendation-стек падает из-за уже существующего контейнера:

@@ -203,30 +203,29 @@ make init
 
 | Сценарий | Что запускает | Команда |
 | --- | --- | --- |
-| Локальное ядро | PostgreSQL, миграции, backend/frontend отдельно | `make init-core && make local-up-core` |
-| Docker core | PostgreSQL + backend + frontend в Docker | `make deploy-local-core` |
-| Local RAG | Core app + локальные TEI/RAGFlow/SearXNG | `make deploy-local-rag` |
-| Fully local AI | Core app + vLLM + TEI/RAGFlow/SearXNG | `make deploy-local-ai` |
-| Hybrid | Cloud/external LLM + локальные RAG/search/embeddings | `make deploy-hybrid-llm-local-rag` |
-| Cloud AI | Backend/frontend в Docker + внешние AI/RAG endpoints из env | `make deploy-cloud-ai` |
-| Full local demo | vLLM, TEI, RAGFlow, SearXNG, Graylog, PostgreSQL, backend, frontend | `make deploy-full-local` |
+| Локальное ядро | PostgreSQL + backend + frontend в Docker | `make deploy-system ENTITY=core DEPLOYMENT=local` |
+| Локальные рекомендации | TEI + RAGFlow + SearXNG локально | `make deploy-system ENTITY=recommendations DEPLOYMENT=local` |
+| Fully local AI | Core + vLLM + TEI/RAGFlow/SearXNG локально | `make deploy-system ENTITY=ai DEPLOYMENT=local` |
+| Hybrid AI | Cloud/external LLM + локальные RAG/search/embeddings | `make deploy-system ENTITY=ai DEPLOYMENT=hybrid` |
+| Cloud AI | Core cloud-проверка + внешние AI/RAG endpoints | `make deploy-system ENTITY=ai DEPLOYMENT=cloud` |
+| Полная система | Core + рекомендации локально | `make deploy-system ENTITY=system DEPLOYMENT=local` |
+| Full local demo | vLLM, TEI, RAGFlow, SearXNG, Graylog, PostgreSQL, backend, frontend | `make deploy-system ENTITY=full DEPLOYMENT=local` |
+
+Совместимые алиасы: `make deploy-local-core`, `make deploy-local-ai`, `make deploy-hybrid-llm-local-rag`, `make deploy-cloud-ai`, `make deploy-full-local`.
 
 Локальная разработка приложения:
 
 ```bash
-make init-core
-make local-up-core
-make backend-run
-make frontend-install
-make frontend-run
+make deploy-system ENTITY=core DEPLOYMENT=local   # PostgreSQL + backend + frontend
+make backend-run                                     # FastAPI dev server (порт 8000)
+make frontend-install                                # npm install
+make frontend-run                                    # Next.js dev server (порт 3000)
 ```
 
 Локальные recommendation-сервисы:
 
 ```bash
-make init-recommendations
-make pull-recommendations
-make local-up-recommendations
+make deploy-system ENTITY=recommendations DEPLOYMENT=local
 make recommendations-test
 ```
 
@@ -235,7 +234,7 @@ Fully local AI:
 ```bash
 make init
 make pull-ai-local
-make local-up-ai
+make deploy-system ENTITY=ai DEPLOYMENT=local
 ```
 
 Остановка:
