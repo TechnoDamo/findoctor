@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE ?= .env
 
@@ -15,7 +16,7 @@ RAGFLOW_BASE_URL    ?= http://localhost:9380
 UPSTREAM_DOCKER_DIR := $(RAGFLOW_RUNTIME_DIR)/docker
 UPSTREAM_ENV        := $(UPSTREAM_DOCKER_DIR)/.env
 
-.PHONY: help init fetch configure pull up down stop start reload restart wait test \
+.PHONY: help init deploy-local deploy-cloud status logs fetch configure pull up down stop start reload restart wait test \
         key-create key-list key-delete ds-create ds-list ds-delete \
         load-test-docs clear-dataset docs-list setup
 
@@ -24,6 +25,8 @@ help:
 	@echo ""
 	@echo "Настройка:"
 	@echo "  make init         Создать .env из .env.example"
+	@echo "  make deploy-local Полный локальный запуск: init, fetch, configure, pull, up, wait"
+	@echo "  make deploy-cloud Проверить external RAGFlow endpoint/API settings"
 	@echo "  make fetch        Клонировать upstream RAGFlow в $(RAGFLOW_RUNTIME_DIR)"
 	@echo "  make configure    Подготовить upstream docker/.env из шаблона"
 	@echo "  make pull         Скачать все Docker-образы (docker compose pull)"
@@ -74,6 +77,18 @@ init:
 	@test -f allowed_resources.txt || touch allowed_resources.txt
 	@echo "ragflow/.env готов. Заполните RAGFLOW_API_KEY и RAGFLOW_DATASET_ID после настройки RAGFlow."
 
+deploy-local: init fetch configure pull up wait
+
+deploy-cloud:
+	@test -n "$(RAGFLOW_BASE_URL)" || { echo "RAGFLOW_BASE_URL не задан"; exit 1; }
+	@test -n "$(RAGFLOW_API_KEY)" || { echo "RAGFLOW_API_KEY не задан"; exit 1; }
+	@test -n "$(RAGFLOW_DATASET_ID)" || { echo "RAGFLOW_DATASET_ID не задан"; exit 1; }
+	@if echo "$(RAGFLOW_BASE_URL)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "RAGFLOW_BASE_URL выглядит локальным, а DEPLOYMENT=cloud ожидает external/internal managed endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud RAGFlow config OK: $(RAGFLOW_BASE_URL)"
+
 fetch:
 	@if [ -d "$(RAGFLOW_RUNTIME_DIR)/.git" ]; then \
 		echo "Upstream RAGFlow уже клонирован: $(RAGFLOW_RUNTIME_DIR)"; \
@@ -120,6 +135,16 @@ reload: _compose_check
 restart: _compose_check
 	cd "$(UPSTREAM_DOCKER_DIR)" && docker compose restart
 	@echo "RAGFlow перезапущен на $(RAGFLOW_BASE_URL)"
+
+status:
+	@if [ -f "$(UPSTREAM_DOCKER_DIR)/docker-compose.yml" ]; then \
+		cd "$(UPSTREAM_DOCKER_DIR)" && docker compose ps; \
+	else \
+		echo "RAGFlow runtime не настроен. Сначала: make fetch configure"; \
+	fi
+
+logs: _compose_check
+	cd "$(UPSTREAM_DOCKER_DIR)" && docker compose logs -f
 
 wait:
 	@for i in {1..120}; do \

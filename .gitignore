@@ -16,6 +16,7 @@ voice-test/.venv-silero/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
 # Local database runtime data
 db/postgres-data/
@@ -39,3 +40,6 @@ voice-test/response_audio/
 voice-test/routerai_outputs/
 *.pcm
 *.wav
+
+# Standalone AI voice chat playground
+ai-voice-chat/

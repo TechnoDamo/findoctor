@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE ?= .env
 
@@ -15,10 +16,13 @@ GRAYLOG_ROOT_USERNAME ?= admin
 GRAYLOG_ROOT_PASSWORD ?= admin
 GRAYLOG_INPUT_TITLE ?= FinDoctor Backend GELF UDP
 
-.PHONY: help init-env up down restart logs status ps wait input input-udp streams configure test-input reset-old
+.PHONY: help init init-env deploy-local deploy-cloud up down stop restart logs status ps wait input input-udp streams configure test-input reset-old
 
 help:
 	@echo "Graylog commands:"
+	@echo "  make init           Alias for init-env"
+	@echo "  make deploy-local   Start and configure local Graylog stack"
+	@echo "  make deploy-cloud   Validate external Graylog/GELF config"
 	@echo "  make init-env       Create graylog/.env from .env.example"
 	@echo "  make up             Start Graylog, MongoDB, and Elasticsearch"
 	@echo "  make down           Stop the Graylog stack"
@@ -37,11 +41,25 @@ init-env:
 	@test -f .env || cp .env.example .env
 	@echo "graylog/.env is ready"
 
+init: init-env
+
+deploy-local: init-env up configure
+
+deploy-cloud:
+	@test -n "$(GRAYLOG_HOST)" || { echo "GRAYLOG_HOST не задан"; exit 1; }
+	@if echo "$(GRAYLOG_HOST)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "GRAYLOG_HOST выглядит локальным, а DEPLOYMENT=cloud ожидает external log endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud Graylog config OK: $(GRAYLOG_HOST)"
+
 up:
 	docker compose --env-file $(ENV_FILE) up -d
 
 down:
 	docker compose --env-file $(ENV_FILE) down
+
+stop: down
 
 restart:
 	docker compose --env-file $(ENV_FILE) restart

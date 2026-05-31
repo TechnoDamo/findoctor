@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE := .env
 
@@ -86,12 +87,14 @@ else
   endif
 endif
 
-.PHONY: help init build model run run-raw proxy-install clean info test
+.PHONY: help init deploy-local deploy-cloud stop status logs build model run run-raw proxy-install clean info test
 
 help:
 	@echo "whisper-server commands:"
 	@echo ""
 	@echo "  make init          Create .env from .env.example"
+	@echo "  make deploy-local  Build model/proxy and start proxy in background"
+	@echo "  make deploy-cloud  Validate external STT endpoint config"
 	@echo "  make build         Build whisper.cpp with hardware acceleration"
 	@echo "  make model         Download Whisper model ($(WHISPER_MODEL))"
 	@echo "  make proxy-install Install Python proxy dependencies"
@@ -107,6 +110,40 @@ help:
 init:
 	@test -f .env || cp .env.example .env
 	@echo "whisper-server/.env is ready"
+
+deploy-local: init build model proxy-install
+	@mkdir -p .runtime
+	@if [ -f .runtime/proxy.pid ] && kill -0 "$$(cat .runtime/proxy.pid)" 2>/dev/null; then \
+		echo "whisper proxy уже запущен, pid=$$(cat .runtime/proxy.pid)"; \
+	else \
+		nohup python3 proxy_server.py > .runtime/proxy.log 2>&1 & echo $$! > .runtime/proxy.pid; \
+		echo "whisper proxy запущен на $(WHISPER_HOST):$(WHISPER_PORT), pid=$$(cat .runtime/proxy.pid)"; \
+	fi
+
+deploy-cloud:
+	@test -n "$(STT_BASE_URL)" || { echo "STT_BASE_URL не задан"; exit 1; }
+	@test -n "$(STT_MODEL)" || { echo "STT_MODEL не задан"; exit 1; }
+	@if echo "$(STT_BASE_URL)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "STT_BASE_URL выглядит локальным, а DEPLOYMENT=cloud ожидает external STT endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud STT config OK: $(STT_BASE_URL), model=$(STT_MODEL)"
+
+stop:
+	@if [ -f .runtime/proxy.pid ]; then \
+		kill "$$(cat .runtime/proxy.pid)" 2>/dev/null || true; \
+		rm -f .runtime/proxy.pid; \
+	fi
+
+status:
+	@if [ -f .runtime/proxy.pid ] && kill -0 "$$(cat .runtime/proxy.pid)" 2>/dev/null; then \
+		echo "whisper proxy running, pid=$$(cat .runtime/proxy.pid), url=http://$(WHISPER_HOST):$(WHISPER_PORT)"; \
+	else \
+		echo "whisper proxy is not running"; \
+	fi
+
+logs:
+	@tail -f .runtime/proxy.log
 
 build:
 	@echo "=== Building whisper.cpp server ==="

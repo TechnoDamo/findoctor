@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE ?= .env
 
@@ -21,12 +22,14 @@ TEI_POOLING ?=
 
 MODELS_DIR_ABS := $(abspath $(TEI_MODELS_DIR))
 
-.PHONY: help init pull run stop restart logs shell ps wait info test test-health test-embed test-openai test-similarity curl-examples clean clean-all
+.PHONY: help init deploy-local deploy-cloud pull run stop restart logs shell ps status wait info test test-health test-embed test-openai test-similarity curl-examples clean clean-all
 
 help:
 	@echo "TEI — локальный embedding inference service ПрофИИта"
 	@echo ""
 	@echo "  make init           Создать .env"
+	@echo "  make deploy-local   Полный локальный запуск: init, pull, run, wait"
+	@echo "  make deploy-cloud   Проверить external embeddings endpoint"
 	@echo "  make pull           Скачать Docker image"
 	@echo "  make run            Запустить TEI на $(TEI_BASE_URL)"
 	@echo "  make stop           Остановить и удалить контейнер"
@@ -47,6 +50,16 @@ init:
 	@test -f .env || cp .env.example .env
 	@mkdir -p "$(MODELS_DIR_ABS)"
 	@echo "tei/.env готов"
+
+deploy-local: init pull run wait
+
+deploy-cloud:
+	@test -n "$(TEI_BASE_URL)" || { echo "TEI_BASE_URL не задан"; exit 1; }
+	@if echo "$(TEI_BASE_URL)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "TEI_BASE_URL выглядит локальным, а DEPLOYMENT=cloud ожидает external/internal embeddings endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud embeddings config OK: $(TEI_BASE_URL)"
 
 pull:
 	docker pull "$(TEI_IMAGE)"
@@ -86,6 +99,8 @@ shell:
 
 ps:
 	docker ps -a --filter "name=$(TEI_CONTAINER_NAME)" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+status: ps
 
 wait:
 	@./scripts/wait_for_tei.sh

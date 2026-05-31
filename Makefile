@@ -1,23 +1,30 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ROOT_DIR := $(CURDIR)
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
+DB_DIR := db
 RAGFLOW_DIR := ragflow
 SEARXNG_DIR := searxng
 TEI_DIR := tei
 VLLM_DIR := vLLM
 GRAYLOG_DIR := graylog
 WHISPER_DIR := whisper-server
-DOCKER_COMPOSE ?= docker compose
+
+DOCKER ?= $(shell command -v docker 2>/dev/null || { test -x /opt/local/bin/docker && echo /opt/local/bin/docker; } || echo docker)
+DOCKER_COMPOSE ?= $(DOCKER) compose
 COMPOSE_FILE ?= docker-compose.yml
+
+ENTITY ?= core
+DEPLOYMENT ?= local
 
 BACKEND_PYTEST := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/pytest),./.venv/bin/pytest,pytest)
 BACKEND_RUFF := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/ruff),./.venv/bin/ruff,ruff)
 BACKEND_PYTHON := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/python),./.venv/bin/python,python3)
 
-.PHONY: help
+.PHONY: help deploy-system stop-system status-system logs-system
 .PHONY: init init-core init-recommendations init-observability init-voice
 .PHONY: pull pull-recommendations pull-ai-local
 .PHONY: local-up local-up-core local-up-recommendations local-up-ai local-down local-down-recommendations
@@ -31,63 +38,152 @@ BACKEND_PYTHON := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/python),./.venv/bin/p
 .PHONY: stop-ragflow stop-searxng stop-tei stop-vllm docs-check doctor
 
 help:
-	@echo "Корневые команды ПрофИИта"
+	@echo "ПрофИИт — корневой deployment dispatcher"
 	@echo ""
-	@echo "  Настройка:"
-	@echo "    make init                         Подготовить env-файлы для всех локальных сервисов"
-	@echo "    make init-core                    Подготовить env-файлы backend/frontend"
-	@echo "    make init-recommendations         Подготовить env/config для RAGFlow, SearXNG, TEI"
-	@echo "    make pull-recommendations         Скачать/подготовить артефакты RAGFlow, SearXNG, TEI"
-	@echo "    make pull-ai-local                Скачать/подготовить vLLM + recommendation-сервисы"
+	@echo "Канонический интерфейс:"
+	@echo "  make deploy-system ENTITY=<entity> DEPLOYMENT=<local|cloud|hybrid>"
+	@echo "  make stop-system   ENTITY=<entity>"
+	@echo "  make status-system ENTITY=<entity>"
+	@echo "  make logs-system   ENTITY=<entity>"
 	@echo ""
-	@echo "  Локальный запуск:"
-	@echo "    make local-up-core                Запустить локальную БД и применить миграции"
-	@echo "    make local-up-recommendations     Запустить TEI, RAGFlow и SearXNG локально"
-	@echo "    make local-up-ai                  Запустить vLLM + recommendation-сервисы локально"
-	@echo "    make local-up                     Запустить ядро + recommendation-сервисы"
-	@echo "    make local-down-recommendations   Остановить TEI, RAGFlow и SearXNG"
-	@echo "    make local-down                   Остановить recommendation-сервисы и БД"
+	@echo "Entities:"
+	@echo "  core              PostgreSQL + backend + frontend"
+	@echo "  system            core + recommendations"
+	@echo "  full              core + recommendations + vllm + graylog"
+	@echo "  postgres          PostgreSQL"
+	@echo "  backend           FastAPI backend"
+	@echo "  frontend          Next.js frontend"
+	@echo "  recommendations   TEI + RAGFlow + SearXNG"
+	@echo "  ragflow           RAGFlow"
+	@echo "  searxng/search    SearXNG"
+	@echo "  tei/embeddings    Text Embeddings Inference"
+	@echo "  vllm/llm          local OpenAI-compatible LLM"
+	@echo "  whisper/stt       local STT proxy"
+	@echo "  graylog/observability Graylog stack"
 	@echo ""
-	@echo "  Docker/деплой всего приложения:"
-	@echo "    make compose-build                Собрать Docker images backend/frontend"
-	@echo "    make compose-up-core              Запустить PostgreSQL из root docker-compose.yml"
-	@echo "    make compose-up-app               Запустить PostgreSQL + backend + frontend в Docker"
-	@echo "    make deploy-local-core            Полный Docker core: Postgres + backend + frontend"
-	@echo "    make deploy-local-rag             Core app + локальные TEI/RAGFlow/SearXNG"
-	@echo "    make deploy-local-ai              Core app + локальный vLLM + TEI/RAGFlow/SearXNG"
-	@echo "    make deploy-hybrid-llm-local-rag  Cloud/external LLM + локальные RAG/search/embeddings"
-	@echo "    make deploy-cloud-ai              Backend/frontend в Docker + внешние AI/RAG endpoints"
-	@echo "    make deploy-full-local            vLLM + рекомендации + Graylog + app в Docker"
-	@echo "    make deploy-down                  Остановить root compose и локальные AI/RAG сервисы"
+	@echo "Examples:"
+	@echo "  make deploy-system ENTITY=postgres DEPLOYMENT=local"
+	@echo "  make deploy-system ENTITY=backend DEPLOYMENT=local"
+	@echo "  make deploy-system ENTITY=recommendations DEPLOYMENT=cloud"
+	@echo "  make deploy-system ENTITY=core DEPLOYMENT=local"
+	@echo "  make deploy-system ENTITY=ai DEPLOYMENT=hybrid"
 	@echo ""
-	@echo "  Гибридный/cloud запуск:"
-	@echo "    make hybrid-up-recommendations    Запустить локальные RAG/search/embeddings с cloud/external LLM"
-	@echo "    make cloud-check                  Проверить env для cloud/external endpoint"
-	@echo "    make cloud-recommendations-check  Проверить env для RAGFlow/SearXNG/TEI endpoint"
-	@echo ""
-	@echo "  Тесты и проверка:"
-	@echo "    make backend-test                 Запустить backend tests"
-	@echo "    make backend-test-recommendations Запустить recommendation + AI chat tests"
-	@echo "    make backend-lint                 Запустить backend ruff"
-	@echo "    make recommendations-test         Запустить smoke tests RAGFlow/SearXNG/TEI"
-	@echo "    make recommendations-curl         Показать API curl-примеры"
-	@echo "    make doctor                       Показать сводку готовности деплоя"
-	@echo ""
-	@echo "  Логи и статус:"
-	@echo "    make status                       Показать статус локальных сервисов"
-	@echo "    make logs-ragflow | logs-searxng | logs-tei | logs-vllm"
-	@echo ""
-	@echo "  Процессы приложения:"
-	@echo "    make backend-run                  Запустить FastAPI dev server"
-	@echo "    make frontend-run                 Запустить Next.js dev server"
-	@echo "    make frontend-build               Собрать frontend"
+	@echo "Compatibility aliases still exist: make local-up-core, make deploy-local-core, make backend-test, make docs-check."
 
+deploy-system:
+	@case "$(ENTITY):$(DEPLOYMENT)" in \
+		core:local) \
+			$(MAKE) -C $(DB_DIR) deploy-local && \
+			$(MAKE) -C $(BACKEND_DIR) deploy-local && \
+			$(MAKE) -C $(FRONTEND_DIR) deploy-local ;; \
+		core:cloud) \
+			$(MAKE) -C $(DB_DIR) deploy-cloud && \
+			$(MAKE) -C $(BACKEND_DIR) deploy-cloud && \
+			$(MAKE) -C $(FRONTEND_DIR) deploy-cloud ;; \
+		system:local) \
+			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local && \
+			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
+		system:cloud) \
+			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=cloud && \
+			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=cloud ;; \
+		full:local) \
+			$(MAKE) deploy-system ENTITY=system DEPLOYMENT=local && \
+			$(MAKE) deploy-system ENTITY=vllm DEPLOYMENT=local && \
+			$(MAKE) deploy-system ENTITY=graylog DEPLOYMENT=local ;; \
+		postgres:local|db:local) $(MAKE) -C $(DB_DIR) deploy-local ;; \
+		postgres:cloud|db:cloud) $(MAKE) -C $(DB_DIR) deploy-cloud ;; \
+		backend:local) $(MAKE) -C $(BACKEND_DIR) deploy-local ;; \
+		backend:cloud) $(MAKE) -C $(BACKEND_DIR) deploy-cloud ;; \
+		frontend:local) $(MAKE) -C $(FRONTEND_DIR) deploy-local ;; \
+		frontend:cloud) $(MAKE) -C $(FRONTEND_DIR) deploy-cloud ;; \
+		recommendations:local|rag:local) \
+			$(MAKE) -C $(TEI_DIR) deploy-local && \
+			$(MAKE) -C $(SEARXNG_DIR) deploy-local && \
+			$(MAKE) -C $(RAGFLOW_DIR) deploy-local ;; \
+		recommendations:cloud|rag:cloud) $(MAKE) cloud-recommendations-check ;; \
+		ai:local) \
+			$(MAKE) deploy-system ENTITY=vllm DEPLOYMENT=local && \
+			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
+		ai:cloud) $(MAKE) cloud-check && $(MAKE) cloud-recommendations-check ;; \
+		ai:hybrid) \
+			$(MAKE) cloud-check && \
+			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
+		ragflow:local) $(MAKE) -C $(RAGFLOW_DIR) deploy-local ;; \
+		ragflow:cloud) $(MAKE) -C $(RAGFLOW_DIR) deploy-cloud ;; \
+		searxng:local|search:local) $(MAKE) -C $(SEARXNG_DIR) deploy-local ;; \
+		searxng:cloud|search:cloud) $(MAKE) -C $(SEARXNG_DIR) deploy-cloud ;; \
+		tei:local|embeddings:local) $(MAKE) -C $(TEI_DIR) deploy-local ;; \
+		tei:cloud|embeddings:cloud) $(MAKE) -C $(TEI_DIR) deploy-cloud ;; \
+		vllm:local|llm:local) $(MAKE) -C $(VLLM_DIR) deploy-local ;; \
+		vllm:cloud|llm:cloud) $(MAKE) cloud-check ;; \
+		whisper:local|stt:local) $(MAKE) -C $(WHISPER_DIR) deploy-local ;; \
+		whisper:cloud|stt:cloud) $(MAKE) cloud-check ;; \
+		graylog:local|observability:local) $(MAKE) -C $(GRAYLOG_DIR) deploy-local ;; \
+		graylog:cloud|observability:cloud) $(MAKE) -C $(GRAYLOG_DIR) deploy-cloud ;; \
+		*) \
+			echo "Unknown deployment matrix: ENTITY=$(ENTITY), DEPLOYMENT=$(DEPLOYMENT)"; \
+			echo "Run: make help"; \
+			exit 1 ;; \
+	esac
+
+stop-system:
+	@case "$(ENTITY)" in \
+		core) $(MAKE) -C $(FRONTEND_DIR) stop; $(MAKE) -C $(BACKEND_DIR) stop; $(MAKE) -C $(DB_DIR) stop ;; \
+		system) $(MAKE) stop-system ENTITY=core; $(MAKE) stop-system ENTITY=recommendations ;; \
+		full) $(MAKE) stop-system ENTITY=system; $(MAKE) stop-system ENTITY=vllm; $(MAKE) stop-system ENTITY=graylog ;; \
+		postgres|db) $(MAKE) -C $(DB_DIR) stop ;; \
+		backend) $(MAKE) -C $(BACKEND_DIR) stop ;; \
+		frontend) $(MAKE) -C $(FRONTEND_DIR) stop ;; \
+		recommendations|rag) $(MAKE) -C $(RAGFLOW_DIR) stop; $(MAKE) -C $(SEARXNG_DIR) stop; $(MAKE) -C $(TEI_DIR) stop ;; \
+		ragflow) $(MAKE) -C $(RAGFLOW_DIR) stop ;; \
+		searxng|search) $(MAKE) -C $(SEARXNG_DIR) stop ;; \
+		tei|embeddings) $(MAKE) -C $(TEI_DIR) stop ;; \
+		vllm|llm) $(MAKE) -C $(VLLM_DIR) stop ;; \
+		whisper|stt) $(MAKE) -C $(WHISPER_DIR) stop ;; \
+		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) stop ;; \
+		*) echo "Unknown entity: $(ENTITY)"; exit 1 ;; \
+	esac
+
+status-system:
+	@case "$(ENTITY)" in \
+		core) $(MAKE) -C $(DB_DIR) status; $(MAKE) -C $(BACKEND_DIR) status; $(MAKE) -C $(FRONTEND_DIR) status ;; \
+		system) $(MAKE) status-system ENTITY=core; $(MAKE) status-system ENTITY=recommendations ;; \
+		postgres|db) $(MAKE) -C $(DB_DIR) status ;; \
+		backend) $(MAKE) -C $(BACKEND_DIR) status ;; \
+		frontend) $(MAKE) -C $(FRONTEND_DIR) status ;; \
+		recommendations|rag) $(MAKE) -C $(TEI_DIR) status; $(MAKE) -C $(SEARXNG_DIR) status; $(MAKE) -C $(RAGFLOW_DIR) status ;; \
+		ragflow) $(MAKE) -C $(RAGFLOW_DIR) status ;; \
+		searxng|search) $(MAKE) -C $(SEARXNG_DIR) status ;; \
+		tei|embeddings) $(MAKE) -C $(TEI_DIR) status ;; \
+		vllm|llm) $(MAKE) -C $(VLLM_DIR) status ;; \
+		whisper|stt) $(MAKE) -C $(WHISPER_DIR) status ;; \
+		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) status ;; \
+		*) echo "Unknown entity: $(ENTITY)"; exit 1 ;; \
+	esac
+
+logs-system:
+	@case "$(ENTITY)" in \
+		postgres|db) $(MAKE) -C $(DB_DIR) logs ;; \
+		backend) $(MAKE) -C $(BACKEND_DIR) logs ;; \
+		frontend) $(MAKE) -C $(FRONTEND_DIR) logs ;; \
+		ragflow) $(MAKE) -C $(RAGFLOW_DIR) logs ;; \
+		searxng|search) $(MAKE) -C $(SEARXNG_DIR) logs ;; \
+		tei|embeddings) $(MAKE) -C $(TEI_DIR) logs ;; \
+		vllm|llm) $(MAKE) -C $(VLLM_DIR) logs ;; \
+		whisper|stt) $(MAKE) -C $(WHISPER_DIR) logs ;; \
+		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) logs ;; \
+		*) echo "logs-system supports one concrete service entity, got ENTITY=$(ENTITY)"; exit 1 ;; \
+	esac
+
+# ----------------------------------------------------------------------
+# Compatibility aliases
+# ----------------------------------------------------------------------
 init: init-core init-recommendations init-observability init-voice
 
 init-core:
 	@test -f .env || cp backend/.env.example .env
-	@test -f $(BACKEND_DIR)/.env || cp $(BACKEND_DIR)/.env.example $(BACKEND_DIR)/.env
-	@test -f $(FRONTEND_DIR)/.env || { test ! -f $(FRONTEND_DIR)/.env.example || cp $(FRONTEND_DIR)/.env.example $(FRONTEND_DIR)/.env; }
+	$(MAKE) -C $(BACKEND_DIR) init
+	$(MAKE) -C $(FRONTEND_DIR) init
 	@echo "Env-файлы ядра готовы"
 
 init-recommendations:
@@ -96,13 +192,10 @@ init-recommendations:
 	$(MAKE) -C $(SEARXNG_DIR) init
 
 init-observability:
-	@test ! -d $(GRAYLOG_DIR) || $(MAKE) -C $(GRAYLOG_DIR) init-env
+	@test ! -d $(GRAYLOG_DIR) || $(MAKE) -C $(GRAYLOG_DIR) init
 
 init-voice:
-	@if [ -d "$(WHISPER_DIR)" ] && [ -f "$(WHISPER_DIR)/.env.example" ] && [ ! -f "$(WHISPER_DIR)/.env" ]; then \
-		cp "$(WHISPER_DIR)/.env.example" "$(WHISPER_DIR)/.env"; \
-		echo "whisper-server/.env готов"; \
-	fi
+	@test ! -d $(WHISPER_DIR) || $(MAKE) -C $(WHISPER_DIR) init
 
 pull: pull-recommendations
 
@@ -120,29 +213,22 @@ pull-ai-local:
 local-up: local-up-core local-up-recommendations
 
 local-up-core:
-	$(MAKE) -C $(BACKEND_DIR) db-up
-	$(MAKE) -C $(BACKEND_DIR) migrate
+	$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local
 
 local-up-recommendations:
-	$(MAKE) -C $(TEI_DIR) run
-	$(MAKE) -C $(RAGFLOW_DIR) up
-	$(MAKE) -C $(SEARXNG_DIR) run
-	$(MAKE) wait-recommendations
+	$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local
 
 local-up-ai:
-	$(MAKE) -C $(VLLM_DIR) run
-	$(MAKE) local-up-recommendations
+	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=local
 
-hybrid-up-recommendations: local-up-recommendations
-	@echo "Гибридный режим: локальные RAG/search/embeddings запущены. Настройте backend LLM_* env vars для cloud/external LLM."
+hybrid-up-recommendations:
+	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=hybrid
 
 local-down: local-down-recommendations
-	-$(MAKE) -C $(BACKEND_DIR) db-stop
+	$(MAKE) stop-system ENTITY=core
 
 local-down-recommendations:
-	-$(MAKE) -C $(SEARXNG_DIR) stop
-	-$(MAKE) -C $(RAGFLOW_DIR) down
-	-$(MAKE) -C $(TEI_DIR) stop
+	$(MAKE) stop-system ENTITY=recommendations
 
 compose-build: init-core
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app build
@@ -162,31 +248,29 @@ compose-logs:
 compose-ps:
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app --profile core ps
 
-deploy-local-core: init-core compose-up-app
-	@echo "Core deployment ready: frontend http://localhost:$${FRONTEND_PORT:-3000}, backend http://localhost:$${BACKEND_PORT:-8001}/api/v1"
+deploy-local-core:
+	$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local
 
-deploy-local-rag: init pull-recommendations local-up-recommendations compose-up-app
-	@echo "Hybrid local RAG deployment ready. Убедитесь, что backend/.env содержит RECOMMENDATIONS_ENABLED=true, RAGFLOW_API_KEY и RAGFLOW_DATASET_ID."
+deploy-local-rag:
+	$(MAKE) deploy-system ENTITY=system DEPLOYMENT=local
 
-deploy-local-ai: init pull-ai-local local-up-ai compose-up-app
-	@echo "Fully local AI deployment ready. Убедитесь, что backend/.env указывает LLM_BASE_URL=http://host.docker.internal:8100/v1 для backend container."
+deploy-local-ai:
+	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=local
 
-deploy-hybrid-llm-local-rag: init-recommendations pull-recommendations local-up-recommendations compose-up-app
-	@echo "Hybrid deployment ready: внешний/cloud LLM + локальные RAG/search/embeddings."
+deploy-hybrid-llm-local-rag:
+	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=hybrid
 
-deploy-cloud-ai: init-core cloud-check cloud-recommendations-check compose-up-app
-	@echo "Cloud AI deployment ready: backend/frontend в Docker, AI/RAG endpoints берутся из env."
+deploy-cloud-ai:
+	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=cloud
 
 deploy-observability:
-	$(MAKE) -C $(GRAYLOG_DIR) up
-	$(MAKE) -C $(GRAYLOG_DIR) configure
+	$(MAKE) deploy-system ENTITY=graylog DEPLOYMENT=local
 
-deploy-full-local: init pull-ai-local local-up-ai deploy-observability compose-up-app
-	@echo "Full local deployment ready: app + vLLM + TEI + RAGFlow + SearXNG + Graylog."
+deploy-full-local:
+	$(MAKE) deploy-system ENTITY=full DEPLOYMENT=local
 
-deploy-down: compose-down local-down-recommendations
-	-$(MAKE) -C $(VLLM_DIR) stop
-	-$(MAKE) -C $(GRAYLOG_DIR) down
+deploy-down:
+	$(MAKE) stop-system ENTITY=full
 
 wait: wait-recommendations
 
@@ -248,6 +332,7 @@ docs-check:
 	@echo "  docs/deployment.md"
 	@echo "  docs/architecture-uml.md"
 	@echo "  docs/hackathon-readiness.md"
+	@echo "  backend/README.md"
 	@echo "  backend/docs/recommendations.md"
 	@echo "  backend/docs/recommendation_examples.md"
 	@echo "  backend/docs/ragflow_dataset_setup.md"
@@ -256,37 +341,31 @@ docs-check:
 	@echo "  tei/README.md"
 
 status:
-	@echo "Backend DB:"
-	@docker ps -a --filter "name=findoctor-postgres" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || true
-	@echo ""
-	@echo "Recommendation services:"
-	@$(MAKE) -C $(TEI_DIR) ps
-	@$(MAKE) -C $(SEARXNG_DIR) ps
-	@$(MAKE) -C $(RAGFLOW_DIR) ps || true
+	$(MAKE) status-system ENTITY=system
 
 logs-ragflow:
-	$(MAKE) -C $(RAGFLOW_DIR) logs
+	$(MAKE) logs-system ENTITY=ragflow
 
 logs-searxng:
-	$(MAKE) -C $(SEARXNG_DIR) logs
+	$(MAKE) logs-system ENTITY=searxng
 
 logs-tei:
-	$(MAKE) -C $(TEI_DIR) logs
+	$(MAKE) logs-system ENTITY=tei
 
 logs-vllm:
-	$(MAKE) -C $(VLLM_DIR) logs
+	$(MAKE) logs-system ENTITY=vllm
 
 logs-backend:
-	$(MAKE) -C $(BACKEND_DIR) db-logs
+	$(MAKE) logs-system ENTITY=backend
 
 stop-ragflow:
-	$(MAKE) -C $(RAGFLOW_DIR) down
+	$(MAKE) stop-system ENTITY=ragflow
 
 stop-searxng:
-	$(MAKE) -C $(SEARXNG_DIR) stop
+	$(MAKE) stop-system ENTITY=searxng
 
 stop-tei:
-	$(MAKE) -C $(TEI_DIR) stop
+	$(MAKE) stop-system ENTITY=tei
 
 stop-vllm:
-	$(MAKE) -C $(VLLM_DIR) stop
+	$(MAKE) stop-system ENTITY=vllm

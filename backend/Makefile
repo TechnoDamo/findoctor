@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 UV ?= $(shell command -v uv 2>/dev/null || echo /Users/damir/.langflow/uv/uv)
 
 ROOT_DIR := ..
@@ -19,14 +20,40 @@ APP_HOST ?= 0.0.0.0
 APP_PORT ?= 8000
 POSTGRES_PORT ?= 5432
 DATABASE_URL ?= postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_DB)
+DOCKER ?= docker
+DOCKER_IMAGE ?= findoctor-backend:local
+DOCKER_CONTAINER ?= findoctor-backend
+DOCKER_HOST_PORT ?= 8001
+DOCKER_APP_PORT ?= 8000
+DOCKER_DB_HOST ?= host.docker.internal
 
-.PHONY: help db-up db-start db-stop db-logs db-psql migrate migration rollback db-current db-history run test test-unit test-auth test-accounts test-comprehensive test-all test-verbose test-debug test-coverage lint compile contract-check test-db-reset frontend-tunnel frontend-tunnel-stop backend-tunnel backend-tunnel-stop
+.PHONY: help init init-env deploy-local deploy-cloud stop status logs shell db-up db-start db-stop db-logs db-psql migrate migration rollback db-current db-history run test test-unit test-auth test-accounts test-comprehensive test-all test-verbose test-debug test-coverage lint compile contract-check test-db-reset docker-build docker-up docker-run docker-stop docker-logs docker-shell docker-smoke docker-clean frontend-tunnel frontend-tunnel-stop backend-tunnel backend-tunnel-stop
 
 help:
 	@echo "Commands:"
 	@echo ""
+	@echo "  Setup:"
+	@echo "    make init                 Alias for init-env"
+	@echo "    make init-env             Create backend .env from .env.example if needed"
+	@echo ""
 	@echo "  Application:"
 	@echo "    make run                  Start FastAPI dev server on $(APP_HOST):$(APP_PORT)"
+	@echo ""
+	@echo "  Standard deployment:"
+	@echo "    make deploy-local         Build/run backend container against local PostgreSQL"
+	@echo "    make deploy-cloud         Validate cloud/external backend configuration"
+	@echo "    make stop                 Stop backend container"
+	@echo "    make status               Show backend container status"
+	@echo "    make logs                 Follow backend container logs"
+	@echo ""
+	@echo "  Docker backend:"
+	@echo "    make docker-build         Build backend image from this directory"
+	@echo "    make docker-up            Build and run backend container"
+	@echo "    make docker-run           Run backend container against local PostgreSQL"
+	@echo "    make docker-smoke         Check public reference endpoint through container"
+	@echo "    make docker-logs          Follow backend container logs"
+	@echo "    make docker-shell         Open shell inside backend container"
+	@echo "    make docker-stop          Stop and remove backend container"
 	@echo ""
 	@echo "  Database:"
 	@echo "    make db-up                Start local PostgreSQL container"
@@ -61,6 +88,28 @@ help:
 	@echo "    make frontend-tunnel-stop Stop frontend tunnel processes"
 	@echo "    make backend-tunnel      Start backend server with ngrok tunnel for remote API access"
 	@echo "    make backend-tunnel-stop Stop backend tunnel processes"
+
+init-env:
+	@test -f $(ENV_FILE) || cp .env.example $(ENV_FILE)
+	@echo "Env-файл готов: $(ENV_FILE)"
+
+init: init-env
+
+deploy-local: init-env docker-up docker-smoke
+
+deploy-cloud: init-env
+	@test -n "$(DATABASE_URL)" || { echo "DATABASE_URL не задан"; exit 1; }
+	@test -n "$(JWT_SECRET_KEY)" || { echo "JWT_SECRET_KEY не задан"; exit 1; }
+	@echo "Cloud backend config OK: DATABASE_URL and JWT_SECRET_KEY are present."
+
+stop: docker-stop
+
+status:
+	@$(DOCKER) ps -a --filter "name=$(DOCKER_CONTAINER)" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+logs: docker-logs
+
+shell: docker-shell
 
 db-up:
 	mkdir -p $(ROOT_DIR)/db/postgres-data
@@ -106,6 +155,49 @@ db-history:
 run:
 	@echo "Starting on http://$(APP_HOST):$(APP_PORT)"
 	$(UV) run uvicorn app.main:app --host $(APP_HOST) --port $(APP_PORT) --reload
+
+docker-build:
+	$(DOCKER) build -t $(DOCKER_IMAGE) .
+
+docker-up: docker-build docker-run
+
+docker-run: docker-stop
+	$(DOCKER) run -d \
+		--name $(DOCKER_CONTAINER) \
+		--env-file $(ENV_FILE) \
+		-e APP_HOST=0.0.0.0 \
+		-e APP_PORT=$(DOCKER_APP_PORT) \
+		-e POSTGRES_HOST=$(DOCKER_DB_HOST) \
+		-e POSTGRES_PORT=$(POSTGRES_PORT) \
+		-e DATABASE_URL=postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DOCKER_DB_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) \
+		-e RUN_MIGRATIONS=true \
+		-p $(DOCKER_HOST_PORT):$(DOCKER_APP_PORT) \
+		--add-host=host.docker.internal:host-gateway \
+		$(DOCKER_IMAGE)
+	@echo "Backend container: http://localhost:$(DOCKER_HOST_PORT)/api/v1"
+
+docker-stop:
+	-$(DOCKER) rm -f $(DOCKER_CONTAINER) >/dev/null 2>&1
+
+docker-logs:
+	$(DOCKER) logs -f $(DOCKER_CONTAINER)
+
+docker-shell:
+	$(DOCKER) exec -it $(DOCKER_CONTAINER) sh
+
+docker-smoke:
+	@for attempt in $$(seq 1 30); do \
+		if curl -fsS http://localhost:$(DOCKER_HOST_PORT)/api/v1/reference/account-types >/dev/null; then \
+			echo "OK: backend container отвечает на /api/v1/reference/account-types"; \
+			exit 0; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "Backend container не ответил за 30 секунд. Проверьте: make docker-logs"; \
+	exit 1
+
+docker-clean: docker-stop
+	-$(DOCKER) rmi $(DOCKER_IMAGE) >/dev/null 2>&1
 
 test:
 	$(MAKE) lint

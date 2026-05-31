@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE := .env
 
@@ -103,12 +104,14 @@ MAGENTA := \033[0;35m
 BOLD := \033[1m
 NC := \033[0m
 
-.PHONY: help init pull download-model run stop restart logs shell info test bench clean clean-all
+.PHONY: help init deploy-local deploy-cloud pull download-model run stop restart logs shell status info test bench clean clean-all
 
 help:
 	@echo "vLLM — локальный OpenAI-совместимый LLM-сервер"
 	@echo ""
 	@echo "  make init          Создать .env из .env.example"
+	@echo "  make deploy-local  Полный локальный запуск: init, pull, run"
+	@echo "  make deploy-cloud  Проверить external LLM endpoint config"
 	@echo "  make pull          Скачать Docker-образ"
 	@echo "  make download-model  Скачать модель в кэш без запуска сервера"
 	@echo "  make run           Запустить vLLM-сервер на $(VLLM_HOST):$(VLLM_PORT)"
@@ -128,6 +131,17 @@ help:
 init:
 	@test -f .env || cp .env.example .env
 	@echo "vLLM/.env готов — отредактируйте модель и порт при необходимости"
+
+deploy-local: init pull run
+
+deploy-cloud:
+	@test -n "$(LLM_BASE_URL)" || { echo "LLM_BASE_URL не задан"; exit 1; }
+	@test -n "$(LLM_MODEL)" || { echo "LLM_MODEL не задан"; exit 1; }
+	@if echo "$(LLM_BASE_URL)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "LLM_BASE_URL выглядит локальным, а DEPLOYMENT=cloud ожидает external LLM endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud LLM config OK: $(LLM_BASE_URL), model=$(LLM_MODEL)"
 
 pull:
 	@echo "=== Скачивание Docker-образа: $(VLLM_IMAGE) ==="
@@ -183,6 +197,9 @@ logs:
 
 shell:
 	@docker exec -it "$(VLLM_CONTAINER_NAME)" bash
+
+status:
+	@docker ps -a --filter "name=$(VLLM_CONTAINER_NAME)" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 info:
 	@echo "=== Система ==="

@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := /opt/local/bin:$(PATH)
 
 ENV_FILE ?= .env
 
@@ -19,12 +20,14 @@ SEARXNG_TEST_QUERY ?= site:cbr.ru key rate
 CONFIG_DIR := $(abspath config)
 SETTINGS_FILE := config/settings.yml
 
-.PHONY: help init render-config pull run stop restart logs shell ps wait test test-json test-allowed curl-examples clean
+.PHONY: help init deploy-local deploy-cloud render-config pull run stop restart logs shell ps status wait test test-json test-allowed curl-examples clean
 
 help:
 	@echo "SearXNG — внутренний self-hosted search-сервис ПрофИИта"
 	@echo ""
 	@echo "  make init           Создать .env и сгенерировать SEARXNG_SECRET_KEY при необходимости"
+	@echo "  make deploy-local   Полный локальный запуск: init, pull, run, wait"
+	@echo "  make deploy-cloud   Проверить external SearXNG endpoint"
 	@echo "  make pull           Скачать Docker image"
 	@echo "  make run            Запустить SearXNG на $(SEARXNG_BASE_URL)"
 	@echo "  make stop           Остановить и удалить контейнер"
@@ -53,6 +56,16 @@ init:
 	fi
 	@$(MAKE) render-config
 	@echo "searxng/.env готов"
+
+deploy-local: init pull run wait
+
+deploy-cloud:
+	@test -n "$(SEARXNG_BASE_URL)" || { echo "SEARXNG_BASE_URL не задан"; exit 1; }
+	@if echo "$(SEARXNG_BASE_URL)" | grep -Eq 'localhost|127\.0\.0\.1|host\.docker\.internal'; then \
+		echo "SEARXNG_BASE_URL выглядит локальным, а DEPLOYMENT=cloud ожидает external/internal managed endpoint."; \
+		exit 1; \
+	fi
+	@echo "Cloud SearXNG config OK: $(SEARXNG_BASE_URL)"
 
 render-config:
 	@./scripts/render_config.sh
@@ -91,6 +104,8 @@ shell:
 
 ps:
 	docker ps -a --filter "name=$(SEARXNG_CONTAINER_NAME)" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+status: ps
 
 wait:
 	@./scripts/wait_for_searxng.sh

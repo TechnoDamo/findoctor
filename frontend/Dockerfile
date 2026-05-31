@@ -1,6 +1,6 @@
 FROM node:20.11.0-alpine AS deps
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM node:20.11.0-alpine AS builder
@@ -15,7 +15,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_DEFAULT_CURRENCY=$NEXT_PUBLIC_DEFAULT_CURRENCY \
     NEXT_PUBLIC_DEFAULT_TIMEZONE=$NEXT_PUBLIC_DEFAULT_TIMEZONE
 COPY --from=deps /app/node_modules ./node_modules
-COPY frontend ./
+COPY . ./
 RUN npm run build
 
 FROM node:20.11.0-alpine AS runtime
