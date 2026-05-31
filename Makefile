@@ -17,173 +17,212 @@ DOCKER ?= $(shell command -v docker 2>/dev/null || { test -x /opt/local/bin/dock
 DOCKER_COMPOSE ?= $(DOCKER) compose
 COMPOSE_FILE ?= docker-compose.yml
 
-ENTITY ?= core
-DEPLOYMENT ?= local
+postgres ?= local
+ragflow  ?= local
+searxng  ?= local
+graylog  ?= local
+tei      ?= none
+vllm     ?= none
+whisper  ?= none
 
 BACKEND_PYTEST := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/pytest),./.venv/bin/pytest,pytest)
 BACKEND_RUFF := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/ruff),./.venv/bin/ruff,ruff)
 BACKEND_PYTHON := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/python),./.venv/bin/python,python3)
 
-.PHONY: help deploy-system stop-system status-system logs-system
+.PHONY: help deploy-system stop-system status-system logs-system stop-all
 .PHONY: init init-core init-recommendations init-observability init-voice
 .PHONY: pull pull-recommendations pull-ai-local
-.PHONY: local-up local-up-core local-up-recommendations local-up-ai local-down local-down-recommendations
 .PHONY: compose-build compose-up-core compose-up-app compose-down compose-logs compose-ps
-.PHONY: deploy-local-core deploy-local-rag deploy-local-ai deploy-hybrid-llm-local-rag deploy-cloud-ai deploy-full-local deploy-observability deploy-down
-.PHONY: hybrid-up-recommendations cloud-check cloud-recommendations-check
-.PHONY: wait wait-recommendations status
+.PHONY: cloud-check cloud-recommendations-check
 .PHONY: backend-run frontend-run frontend-build frontend-install backend-test backend-test-recommendations backend-lint backend-compile
 .PHONY: recommendations-test recommendations-smoke recommendations-curl
-.PHONY: logs-ragflow logs-searxng logs-tei logs-vllm logs-backend
-.PHONY: stop-ragflow stop-searxng stop-tei stop-vllm docs-check doctor
+.PHONY: docs-check doctor
+
+# Presets
+.PHONY: preset-core preset-hybrid preset-fully-local preset-cloud
 
 help:
-	@echo "ПрофИИт — корневой deployment dispatcher"
+	@echo "ПрофИИт — корневой per-component deployment dispatcher"
 	@echo ""
-	@echo "Канонический интерфейс:"
-	@echo "  make deploy-system ENTITY=<entity> DEPLOYMENT=<local|cloud|hybrid>"
-	@echo "  make stop-system   ENTITY=<entity>"
-	@echo "  make status-system ENTITY=<entity>"
-	@echo "  make logs-system   ENTITY=<entity>"
+	@echo "  make deploy-system [component=local|cloud|none ...]"
+	@echo "  make deploy-system core | hybrid | fully-local | cloud"
 	@echo ""
-	@echo "Entities:"
-	@echo "  core              PostgreSQL + backend + frontend"
-	@echo "  system            core + recommendations"
-	@echo "  full              core + recommendations + vllm + graylog"
-	@echo "  postgres          PostgreSQL"
-	@echo "  backend           FastAPI backend"
-	@echo "  frontend          Next.js frontend"
-	@echo "  recommendations   TEI + RAGFlow + SearXNG"
-	@echo "  ragflow           RAGFlow"
-	@echo "  searxng/search    SearXNG"
-	@echo "  tei/embeddings    Text Embeddings Inference"
-	@echo "  vllm/llm          local OpenAI-compatible LLM"
-	@echo "  whisper/stt       local STT proxy"
-	@echo "  graylog/observability Graylog stack"
+	@echo "Компоненты и флаги:"
+	@echo "  backend / frontend   всегда Docker (флаги не требуются)"
+	@echo "  postgres=local|cloud  [default: local]"
+	@echo "  ragflow=local|cloud|none  [default: local]"
+	@echo "  searxng=local|cloud|none  [default: local]"
+	@echo "  graylog=local|cloud|none  [default: local]"
+	@echo "  tei=local|none       [default: none]"
+	@echo "  vllm=local|none      [default: none]"
+	@echo "  whisper=local|none   [default: none]"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make deploy-system ENTITY=postgres DEPLOYMENT=local"
-	@echo "  make deploy-system ENTITY=backend DEPLOYMENT=local"
-	@echo "  make deploy-system ENTITY=recommendations DEPLOYMENT=cloud"
-	@echo "  make deploy-system ENTITY=core DEPLOYMENT=local"
-	@echo "  make deploy-system ENTITY=ai DEPLOYMENT=hybrid"
+	@echo "Пресеты:"
+	@echo "  make deploy-system core          postgres=local, инфра=none, AI=none"
+	@echo "  make deploy-system hybrid        cloud LLM + local RAG/search"
+	@echo "  make deploy-system fully-local   всё локально"
+	@echo "  make deploy-system cloud         всё cloud (только валидация env)"
 	@echo ""
-	@echo "Compatibility aliases still exist: make local-up-core, make deploy-local-core, make backend-test, make docs-check."
+	@echo "Остановка / статус / логи:"
+	@echo "  make stop-system   COMPONENTS=\"postgres ragflow vllm\""
+	@echo "  make stop-system   COMPONENTS=all"
+	@echo "  make status-system COMPONENTS=\"backend ragflow\""
+	@echo "  make logs-system   COMPONENT=backend"
+	@echo ""
+	@echo "Примеры:"
+	@echo "  make deploy-system                                        # дефолт"
+	@echo "  make deploy-system vllm=local whisper=local               # + AI локально"
+	@echo "  make deploy-system ragflow=cloud searxng=cloud            # RAG/search облачно"
+	@echo "  make deploy-system graylog=none                           # без Graylog"
+	@echo "  make deploy-system core                                   # только backend+frontend+postgres"
+	@echo ""
 
+# ----------------------------------------------------------------------
+# deploy-system
+# ----------------------------------------------------------------------
 deploy-system:
-	@case "$(ENTITY):$(DEPLOYMENT)" in \
-		core:local) \
-			$(MAKE) -C $(DB_DIR) deploy-local && \
-			$(MAKE) -C $(BACKEND_DIR) deploy-local && \
-			$(MAKE) -C $(FRONTEND_DIR) deploy-local ;; \
-		core:cloud) \
-			$(MAKE) -C $(DB_DIR) deploy-cloud && \
-			$(MAKE) -C $(BACKEND_DIR) deploy-cloud && \
-			$(MAKE) -C $(FRONTEND_DIR) deploy-cloud ;; \
-		system:local) \
-			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local && \
-			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
-		system:cloud) \
-			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=cloud && \
-			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=cloud ;; \
-		full:local) \
-			$(MAKE) deploy-system ENTITY=system DEPLOYMENT=local && \
-			$(MAKE) deploy-system ENTITY=vllm DEPLOYMENT=local && \
-			$(MAKE) deploy-system ENTITY=graylog DEPLOYMENT=local ;; \
-		postgres:local|db:local) $(MAKE) -C $(DB_DIR) deploy-local ;; \
-		postgres:cloud|db:cloud) $(MAKE) -C $(DB_DIR) deploy-cloud ;; \
-		backend:local) $(MAKE) -C $(BACKEND_DIR) deploy-local ;; \
-		backend:cloud) $(MAKE) -C $(BACKEND_DIR) deploy-cloud ;; \
-		frontend:local) $(MAKE) -C $(FRONTEND_DIR) deploy-local ;; \
-		frontend:cloud) $(MAKE) -C $(FRONTEND_DIR) deploy-cloud ;; \
-		recommendations:local|rag:local) \
-			$(MAKE) -C $(TEI_DIR) deploy-local && \
-			$(MAKE) -C $(SEARXNG_DIR) deploy-local && \
-			$(MAKE) -C $(RAGFLOW_DIR) deploy-local ;; \
-		recommendations:cloud|rag:cloud) $(MAKE) cloud-recommendations-check ;; \
-		ai:local) \
-			$(MAKE) deploy-system ENTITY=vllm DEPLOYMENT=local && \
-			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
-		ai:cloud) \
-			$(MAKE) deploy-system ENTITY=core DEPLOYMENT=cloud && \
-			$(MAKE) cloud-check && \
-			$(MAKE) cloud-recommendations-check ;; \
-		ai:hybrid) \
-			$(MAKE) cloud-check && \
-			$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local ;; \
-		ragflow:local) $(MAKE) -C $(RAGFLOW_DIR) deploy-local ;; \
-		ragflow:cloud) $(MAKE) -C $(RAGFLOW_DIR) deploy-cloud ;; \
-		searxng:local|search:local) $(MAKE) -C $(SEARXNG_DIR) deploy-local ;; \
-		searxng:cloud|search:cloud) $(MAKE) -C $(SEARXNG_DIR) deploy-cloud ;; \
-		tei:local|embeddings:local) $(MAKE) -C $(TEI_DIR) deploy-local ;; \
-		tei:cloud|embeddings:cloud) $(MAKE) -C $(TEI_DIR) deploy-cloud ;; \
-		vllm:local|llm:local) $(MAKE) -C $(VLLM_DIR) deploy-local ;; \
-		vllm:cloud|llm:cloud) $(MAKE) cloud-check ;; \
-		whisper:local|stt:local) $(MAKE) -C $(WHISPER_DIR) deploy-local ;; \
-		whisper:cloud|stt:cloud) $(MAKE) cloud-check ;; \
-		graylog:local|observability:local) $(MAKE) -C $(GRAYLOG_DIR) deploy-local ;; \
-		graylog:cloud|observability:cloud) $(MAKE) -C $(GRAYLOG_DIR) deploy-cloud ;; \
-		full:cloud) \
-			echo "full deployment не поддерживает cloud-режим."; \
-			echo "Используйте system:cloud для core+recommendations или разверните компоненты отдельно."; \
-			exit 1 ;; \
-		*) \
-			echo "Unknown deployment matrix: ENTITY=$(ENTITY), DEPLOYMENT=$(DEPLOYMENT)"; \
-			echo "Run: make help"; \
-			exit 1 ;; \
+	@echo "=== Core: backend + frontend ==="
+	$(MAKE) -C $(BACKEND_DIR) deploy-local
+	$(MAKE) -C $(FRONTEND_DIR) deploy-local
+	@echo ""
+	@echo "=== postgres ($(postgres)) ==="
+	@case "$(postgres)" in \
+		local) $(MAKE) -C $(DB_DIR) deploy-local ;; \
+		cloud) $(MAKE) -C $(DB_DIR) deploy-cloud ;; \
+		*) echo "Unknown flag: postgres=$(postgres)"; exit 1 ;; \
 	esac
-
-stop-system:
-	@case "$(ENTITY)" in \
-		core) $(MAKE) -C $(FRONTEND_DIR) stop; $(MAKE) -C $(BACKEND_DIR) stop; $(MAKE) -C $(DB_DIR) stop ;; \
-		system) $(MAKE) stop-system ENTITY=core; $(MAKE) stop-system ENTITY=recommendations ;; \
-		full) $(MAKE) stop-system ENTITY=system; $(MAKE) stop-system ENTITY=vllm; $(MAKE) stop-system ENTITY=graylog ;; \
-		postgres|db) $(MAKE) -C $(DB_DIR) stop ;; \
-		backend) $(MAKE) -C $(BACKEND_DIR) stop ;; \
-		frontend) $(MAKE) -C $(FRONTEND_DIR) stop ;; \
-		recommendations|rag) $(MAKE) -C $(RAGFLOW_DIR) stop; $(MAKE) -C $(SEARXNG_DIR) stop; $(MAKE) -C $(TEI_DIR) stop ;; \
-		ragflow) $(MAKE) -C $(RAGFLOW_DIR) stop ;; \
-		searxng|search) $(MAKE) -C $(SEARXNG_DIR) stop ;; \
-		tei|embeddings) $(MAKE) -C $(TEI_DIR) stop ;; \
-		vllm|llm) $(MAKE) -C $(VLLM_DIR) stop ;; \
-		whisper|stt) $(MAKE) -C $(WHISPER_DIR) stop ;; \
-		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) stop ;; \
-		*) echo "Unknown entity: $(ENTITY)"; exit 1 ;; \
+	@echo ""
+	@echo "=== ragflow ($(ragflow)) ==="
+	@case "$(ragflow)" in \
+		local) $(MAKE) -C $(RAGFLOW_DIR) deploy-local ;; \
+		cloud) $(MAKE) -C $(RAGFLOW_DIR) deploy-cloud ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: ragflow=$(ragflow)"; exit 1 ;; \
 	esac
-
-status-system:
-	@case "$(ENTITY)" in \
-		core) $(MAKE) -C $(DB_DIR) status; $(MAKE) -C $(BACKEND_DIR) status; $(MAKE) -C $(FRONTEND_DIR) status ;; \
-		system) $(MAKE) status-system ENTITY=core; $(MAKE) status-system ENTITY=recommendations ;; \
-		postgres|db) $(MAKE) -C $(DB_DIR) status ;; \
-		backend) $(MAKE) -C $(BACKEND_DIR) status ;; \
-		frontend) $(MAKE) -C $(FRONTEND_DIR) status ;; \
-		recommendations|rag) $(MAKE) -C $(TEI_DIR) status; $(MAKE) -C $(SEARXNG_DIR) status; $(MAKE) -C $(RAGFLOW_DIR) status ;; \
-		ragflow) $(MAKE) -C $(RAGFLOW_DIR) status ;; \
-		searxng|search) $(MAKE) -C $(SEARXNG_DIR) status ;; \
-		tei|embeddings) $(MAKE) -C $(TEI_DIR) status ;; \
-		vllm|llm) $(MAKE) -C $(VLLM_DIR) status ;; \
-		whisper|stt) $(MAKE) -C $(WHISPER_DIR) status ;; \
-		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) status ;; \
-		*) echo "Unknown entity: $(ENTITY)"; exit 1 ;; \
+	@echo ""
+	@echo "=== searxng ($(searxng)) ==="
+	@case "$(searxng)" in \
+		local) $(MAKE) -C $(SEARXNG_DIR) deploy-local ;; \
+		cloud) $(MAKE) -C $(SEARXNG_DIR) deploy-cloud ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: searxng=$(searxng)"; exit 1 ;; \
 	esac
-
-logs-system:
-	@case "$(ENTITY)" in \
-		postgres|db) $(MAKE) -C $(DB_DIR) logs ;; \
-		backend) $(MAKE) -C $(BACKEND_DIR) logs ;; \
-		frontend) $(MAKE) -C $(FRONTEND_DIR) logs ;; \
-		ragflow) $(MAKE) -C $(RAGFLOW_DIR) logs ;; \
-		searxng|search) $(MAKE) -C $(SEARXNG_DIR) logs ;; \
-		tei|embeddings) $(MAKE) -C $(TEI_DIR) logs ;; \
-		vllm|llm) $(MAKE) -C $(VLLM_DIR) logs ;; \
-		whisper|stt) $(MAKE) -C $(WHISPER_DIR) logs ;; \
-		graylog|observability) $(MAKE) -C $(GRAYLOG_DIR) logs ;; \
-		*) echo "logs-system supports one concrete service entity, got ENTITY=$(ENTITY)"; exit 1 ;; \
+	@echo ""
+	@echo "=== graylog ($(graylog)) ==="
+	@case "$(graylog)" in \
+		local) $(MAKE) -C $(GRAYLOG_DIR) deploy-local ;; \
+		cloud) $(MAKE) -C $(GRAYLOG_DIR) deploy-cloud ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: graylog=$(graylog)"; exit 1 ;; \
+	esac
+	@echo ""
+	@echo "=== tei / embeddings ($(tei)) ==="
+	@case "$(tei)" in \
+		local) $(MAKE) -C $(TEI_DIR) deploy-local ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: tei=$(tei) (valid: local, none)"; exit 1 ;; \
+	esac
+	@echo ""
+	@echo "=== vllm / LLM ($(vllm)) ==="
+	@case "$(vllm)" in \
+		local) $(MAKE) -C $(VLLM_DIR) deploy-local ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: vllm=$(vllm) (valid: local, none)"; exit 1 ;; \
+	esac
+	@echo ""
+	@echo "=== whisper / STT ($(whisper)) ==="
+	@case "$(whisper)" in \
+		local) $(MAKE) -C $(WHISPER_DIR) deploy-local ;; \
+		none) echo "skipped" ;; \
+		*) echo "Unknown flag: whisper=$(whisper) (valid: local, none)"; exit 1 ;; \
 	esac
 
 # ----------------------------------------------------------------------
-# Compatibility aliases
+# Presets
+# ----------------------------------------------------------------------
+preset-core:
+	$(MAKE) deploy-system postgres=local ragflow=none searxng=none graylog=none tei=none vllm=none whisper=none
+
+preset-hybrid:
+	$(MAKE) deploy-system postgres=local ragflow=local searxng=local graylog=local tei=local vllm=none whisper=none
+
+preset-fully-local:
+	$(MAKE) deploy-system postgres=local ragflow=local searxng=local graylog=local tei=local vllm=local whisper=local
+
+preset-cloud:
+	$(MAKE) deploy-system postgres=cloud ragflow=cloud searxng=cloud graylog=cloud tei=none vllm=none whisper=none
+	@echo ""
+	$(MAKE) cloud-check
+	$(MAKE) cloud-recommendations-check
+
+# ----------------------------------------------------------------------
+# stop-system / status-system / logs-system
+# ----------------------------------------------------------------------
+stop-system:
+	@if [ -z "$(COMPONENTS)" ]; then \
+		echo "Usage: make stop-system COMPONENTS=\"postgres ragflow ...\" (or COMPONENTS=all)"; \
+		exit 1; \
+	fi
+	@for comp in $(COMPONENTS); do \
+		case "$$comp" in \
+			postgres) $(MAKE) -C $(DB_DIR) stop ;; \
+			backend)  $(MAKE) -C $(BACKEND_DIR) stop ;; \
+			frontend) $(MAKE) -C $(FRONTEND_DIR) stop ;; \
+			ragflow)  $(MAKE) -C $(RAGFLOW_DIR) stop ;; \
+			searxng)  $(MAKE) -C $(SEARXNG_DIR) stop ;; \
+			tei)      $(MAKE) -C $(TEI_DIR) stop ;; \
+			vllm)     $(MAKE) -C $(VLLM_DIR) stop ;; \
+			whisper)  $(MAKE) -C $(WHISPER_DIR) stop ;; \
+			graylog)  $(MAKE) -C $(GRAYLOG_DIR) stop ;; \
+			all)      $(MAKE) stop-system COMPONENTS="postgres backend frontend ragflow searxng tei vllm whisper graylog" ;; \
+			*) echo "Unknown component: $$comp"; exit 1 ;; \
+		esac; \
+	done
+
+stop-all:
+	$(MAKE) stop-system COMPONENTS=all
+
+status-system:
+	@if [ -z "$(COMPONENTS)" ]; then \
+		echo "Usage: make status-system COMPONENTS=\"postgres backend ...\" (or COMPONENTS=all)"; \
+		exit 1; \
+	fi
+	@for comp in $(COMPONENTS); do \
+		case "$$comp" in \
+			postgres) $(MAKE) -C $(DB_DIR) status ;; \
+			backend)  $(MAKE) -C $(BACKEND_DIR) status ;; \
+			frontend) $(MAKE) -C $(FRONTEND_DIR) status ;; \
+			ragflow)  $(MAKE) -C $(RAGFLOW_DIR) status ;; \
+			searxng)  $(MAKE) -C $(SEARXNG_DIR) status ;; \
+			tei)      $(MAKE) -C $(TEI_DIR) status ;; \
+			vllm)     $(MAKE) -C $(VLLM_DIR) status ;; \
+			whisper)  $(MAKE) -C $(WHISPER_DIR) status ;; \
+			graylog)  $(MAKE) -C $(GRAYLOG_DIR) status ;; \
+			all)      $(MAKE) status-system COMPONENTS="postgres backend frontend ragflow searxng tei vllm whisper graylog" ;; \
+			*) echo "Unknown component: $$comp"; exit 1 ;; \
+		esac; \
+	done
+
+logs-system:
+	@if [ -z "$(COMPONENT)" ]; then \
+		echo "Usage: make logs-system COMPONENT=backend"; \
+		exit 1; \
+	fi
+	@case "$(COMPONENT)" in \
+		postgres) $(MAKE) -C $(DB_DIR) logs ;; \
+		backend)  $(MAKE) -C $(BACKEND_DIR) logs ;; \
+		frontend) $(MAKE) -C $(FRONTEND_DIR) logs ;; \
+		ragflow)  $(MAKE) -C $(RAGFLOW_DIR) logs ;; \
+		searxng)  $(MAKE) -C $(SEARXNG_DIR) logs ;; \
+		tei)      $(MAKE) -C $(TEI_DIR) logs ;; \
+		vllm)     $(MAKE) -C $(VLLM_DIR) logs ;; \
+		whisper)  $(MAKE) -C $(WHISPER_DIR) logs ;; \
+		graylog)  $(MAKE) -C $(GRAYLOG_DIR) logs ;; \
+		*) echo "Unknown component: $(COMPONENT)"; exit 1 ;; \
+	esac
+
+# ----------------------------------------------------------------------
+# Init
 # ----------------------------------------------------------------------
 init: init-core init-recommendations init-observability init-voice
 
@@ -203,6 +242,9 @@ init-observability:
 init-voice:
 	@test ! -d $(WHISPER_DIR) || $(MAKE) -C $(WHISPER_DIR) init
 
+# ----------------------------------------------------------------------
+# Pull / wait
+# ----------------------------------------------------------------------
 pull: pull-recommendations
 
 pull-recommendations:
@@ -216,26 +258,51 @@ pull-ai-local:
 	$(MAKE) -C $(VLLM_DIR) pull
 	$(MAKE) pull-recommendations
 
-local-up: local-up-core local-up-recommendations
+# ----------------------------------------------------------------------
+# Compatibility aliases
+# ----------------------------------------------------------------------
+deploy-local-core:
+	$(MAKE) deploy-system postgres=local ragflow=none searxng=none graylog=none tei=none vllm=none whisper=none
 
-local-up-core:
-	$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local
+deploy-local-rag:
+	$(MAKE) deploy-system
 
-local-up-recommendations:
-	$(MAKE) deploy-system ENTITY=recommendations DEPLOYMENT=local
+deploy-local-ai:
+	$(MAKE) deploy-system vllm=local tei=local
 
-local-up-ai:
-	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=local
+deploy-hybrid-llm-local-rag:
+	$(MAKE) deploy-system tei=local
 
-hybrid-up-recommendations:
-	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=hybrid
+deploy-cloud-ai:
+	$(MAKE) deploy-system postgres=cloud ragflow=cloud searxng=cloud graylog=cloud tei=none vllm=none whisper=none
+	@echo ""
+	$(MAKE) cloud-check
+	$(MAKE) cloud-recommendations-check
 
-local-down: local-down-recommendations
-	$(MAKE) stop-system ENTITY=core
+deploy-full-local:
+	$(MAKE) deploy-system vllm=local tei=local whisper=local
 
+deploy-observability:
+	$(MAKE) -C $(GRAYLOG_DIR) deploy-local
+
+deploy-down:
+	$(MAKE) stop-system COMPONENTS=all
+
+# Old names kept for muscle memory
+local-up-core:     deploy-local-core
+local-up-recommendations: deploy-local-rag
+local-up-ai:       deploy-local-ai
+local-up:          deploy-local-rag
+hybrid-up-recommendations: deploy-hybrid-llm-local-rag
+local-down:        deploy-down
 local-down-recommendations:
-	$(MAKE) stop-system ENTITY=recommendations
+	$(MAKE) stop-system COMPONENTS="ragflow searxng tei"
+status:
+	$(MAKE) status-system COMPONENTS="postgres backend frontend ragflow searxng tei"
 
+# ----------------------------------------------------------------------
+# Docker compose helpers
+# ----------------------------------------------------------------------
 compose-build: init-core
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app build
 
@@ -254,37 +321,9 @@ compose-logs:
 compose-ps:
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app --profile core ps
 
-deploy-local-core:
-	$(MAKE) deploy-system ENTITY=core DEPLOYMENT=local
-
-deploy-local-rag:
-	$(MAKE) deploy-system ENTITY=system DEPLOYMENT=local
-
-deploy-local-ai:
-	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=local
-
-deploy-hybrid-llm-local-rag:
-	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=hybrid
-
-deploy-cloud-ai:
-	$(MAKE) deploy-system ENTITY=ai DEPLOYMENT=cloud
-
-deploy-observability:
-	$(MAKE) deploy-system ENTITY=graylog DEPLOYMENT=local
-
-deploy-full-local:
-	$(MAKE) deploy-system ENTITY=full DEPLOYMENT=local
-
-deploy-down:
-	$(MAKE) stop-system ENTITY=full
-
-wait: wait-recommendations
-
-wait-recommendations:
-	$(MAKE) -C $(TEI_DIR) wait
-	$(MAKE) -C $(RAGFLOW_DIR) wait
-	$(MAKE) -C $(SEARXNG_DIR) wait
-
+# ----------------------------------------------------------------------
+# Dev / test / checks
+# ----------------------------------------------------------------------
 backend-run:
 	$(MAKE) -C $(BACKEND_DIR) run
 
@@ -346,32 +385,32 @@ docs-check:
 	@echo "  searxng/README.md"
 	@echo "  tei/README.md"
 
-status:
-	$(MAKE) status-system ENTITY=system
-
+# ----------------------------------------------------------------------
+# Component-specific logs/stop (muscle memory shortcuts)
+# ----------------------------------------------------------------------
 logs-ragflow:
-	$(MAKE) logs-system ENTITY=ragflow
+	$(MAKE) logs-system COMPONENT=ragflow
 
 logs-searxng:
-	$(MAKE) logs-system ENTITY=searxng
+	$(MAKE) logs-system COMPONENT=searxng
 
 logs-tei:
-	$(MAKE) logs-system ENTITY=tei
+	$(MAKE) logs-system COMPONENT=tei
 
 logs-vllm:
-	$(MAKE) logs-system ENTITY=vllm
+	$(MAKE) logs-system COMPONENT=vllm
 
 logs-backend:
-	$(MAKE) logs-system ENTITY=backend
+	$(MAKE) logs-system COMPONENT=backend
 
 stop-ragflow:
-	$(MAKE) stop-system ENTITY=ragflow
+	$(MAKE) stop-system COMPONENTS=ragflow
 
 stop-searxng:
-	$(MAKE) stop-system ENTITY=searxng
+	$(MAKE) stop-system COMPONENTS=searxng
 
 stop-tei:
-	$(MAKE) stop-system ENTITY=tei
+	$(MAKE) stop-system COMPONENTS=tei
 
 stop-vllm:
-	$(MAKE) stop-system ENTITY=vllm
+	$(MAKE) stop-system COMPONENTS=vllm

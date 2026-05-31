@@ -35,41 +35,52 @@ Backend валидирует опасные настройки при старт
 
 ## Makefile Policy
 
-Корневой `Makefile` теперь работает как диспетчер deployment matrix. Основная команда одна:
+Корневой `Makefile` — **per-component deployment dispatcher**. Каждый компонент настраивается независимо:
 
 ```bash
-make deploy-system ENTITY=<entity> DEPLOYMENT=<local|cloud|hybrid>
+make deploy-system [postgres=local|cloud] [ragflow=local|cloud|none] [searxng=local|cloud|none] \
+                   [graylog=local|cloud|none] [tei=local|none] [vllm=local|none] [whisper=local|none]
 ```
 
-`ENTITY` отвечает за компонент системы, `DEPLOYMENT` — за способ размещения. Если выбран `local`, корень делегирует работу Makefile конкретной папки: `backend/`, `frontend/`, `db/`, `ragflow/`, `searxng/`, `tei/`, `vLLM/`, `whisper-server/`, `graylog/`. Если выбран `cloud`, локальный сервис не поднимается: команда проверяет, что backend/frontend или внешний endpoint настроены через env.
+`backend` и `frontend` деплоятся **всегда** (Docker контейнеры), флагов не требуют.
 
-Базовая матрица:
+### Таблица компонентов
 
-| Entity | Local | Cloud |
-| --- | --- | --- |
-| `postgres` / `db` | `db/deploy-local`: PostgreSQL container + Alembic migrations | Проверка managed `DATABASE_URL` |
-| `backend` | `backend/deploy-local`: backend Docker image/container | Проверка backend env для внешней инфраструктуры |
-| `frontend` | `frontend/deploy-local`: frontend Docker image/container | Проверка `NEXT_PUBLIC_API_URL` |
-| `core` | `postgres` + `backend` + `frontend` | Проверка cloud-конфигурации этих трёх сущностей |
-| `ragflow` | Локальный upstream RAGFlow compose | Проверка external/internal RAGFlow endpoint |
-| `searxng` / `search` | Локальный SearXNG container | Проверка external/internal search endpoint |
-| `tei` / `embeddings` | Локальный TEI container | Проверка external/internal embeddings endpoint |
-| `recommendations` | `tei` + `searxng` + `ragflow` локально | Проверка RAG/search env для backend |
-| `vllm` / `llm` | Локальный OpenAI-compatible vLLM | Проверка cloud/external LLM env |
-| `whisper` / `stt` | Локальный whisper.cpp proxy | Проверка cloud/external STT env |
-| `graylog` / `observability` | Локальный Graylog stack | Проверка external log endpoint |
-| `system` | `core` + `recommendations` | Cloud checks для core + recommendations |
-| `full` | `system` + `vllm` + `graylog` | Не используется как cloud-сценарий |
+| Компонент | Флаги | Дефолт | `local` | `cloud` | `none` |
+|-----------|-------|--------|---------|---------|--------|
+| backend | — | — | Docker контейнер | — | — |
+| frontend | — | — | Docker контейнер | — | — |
+| postgres | `local` `cloud` | **local** | контейнер PostgreSQL + Alembic миграции | проверка managed `DATABASE_URL` | — |
+| ragflow | `local` `cloud` `none` | **local** | upstream RAGFlow compose | проверка `RAGFLOW_BASE_URL`/`API_KEY`/`DATASET_ID` | пропустить |
+| searxng | `local` `cloud` `none` | **local** | локальный SearXNG контейнер | проверка `SEARXNG_BASE_URL` | пропустить |
+| graylog | `local` `cloud` `none` | **local** | локальный Graylog стек | проверка `GRAYLOG_HOST` | пропустить |
+| tei | `local` `none` | **none** | локальный TEI embeddings контейнер | — | пропустить |
+| vllm | `local` `none` | **none** | локальный OpenAI-совместимый vLLM | — | пропустить |
+| whisper | `local` `none` | **none** | локальный whisper.cpp сервер + прокси | — | пропустить |
 
-Остановка и диагностика используют тот же `ENTITY`:
+### Пресеты
+
+| Команда | Что делает |
+|---------|-----------|
+| `make deploy-system` | дефолт: инфраструктура локально, AI не трогаем |
+| `make deploy-system core` | только backend+frontend+postgres |
+| `make deploy-system hybrid` | cloud LLM + локальные RAG/search/embeddings |
+| `make deploy-system fully-local` | всё локально (включая vLLM, TEI, whisper) |
+| `make deploy-system cloud` | всё cloud: только валидация env, ничего не деплоится |
+
+### Остановка / статус / логи
+
+Компоненты указываются через `COMPONENTS` (множественный) или `COMPONENT` (один):
 
 ```bash
-make stop-system ENTITY=backend
-make status-system ENTITY=core
-make logs-system ENTITY=ragflow
+make stop-system   COMPONENTS="postgres ragflow vllm"
+make stop-system   COMPONENTS=all
+make status-system COMPONENTS="backend ragflow"
+make logs-system   COMPONENT=backend
+make logs-system   COMPONENT=vllm
 ```
 
-Старые команды (`make local-up-core`, `make deploy-local-core`, `make deploy-local-ai`) оставлены как совместимые алиасы, но новая политика должна идти через `deploy-system`.
+Совместимые алиасы (`make deploy-local-core`, `make deploy-full-local`) оставлены для muscle memory.
 
 ## Режимы Деплоя
 
@@ -84,65 +95,38 @@ Backend и frontend dockerized:
 - [`frontend/Dockerfile`](../frontend/Dockerfile) — production Next.js build;
 - [`docker-compose.yml`](../docker-compose.yml) — root compose для `postgres`, `backend`, `frontend`.
 
-### 1. Локальное Ядро
+### 1. Дефолтный Режим
 
-Используйте этот режим для разработки backend, базы данных и frontend без RAG/search-рекомендаций.
-
-```bash
-make deploy-system ENTITY=core DEPLOYMENT=local
-```
-
-Это поднимает:
-
-- PostgreSQL container;
-- backend container;
-- frontend container.
-
-Если нужен backend без frontend:
+Инфраструктура локально (postgres, ragflow, searxng, graylog) + backend + frontend. AI-модели (vllm, tei, whisper) не трогаем.
 
 ```bash
-make deploy-system ENTITY=postgres DEPLOYMENT=local
-make deploy-system ENTITY=backend DEPLOYMENT=local
+make deploy-system
 ```
 
-Тесты backend:
+### 2. Локальное Ядро
+
+Только backend, frontend и postgres. Без рекомендаций и AI.
 
 ```bash
-make backend-test
+make deploy-system core
 ```
 
-### 2. Локальные Рекомендации
+### 3. Локальные Рекомендации
 
-Используйте этот режим, когда RAGFlow, SearXNG и TEI запускаются локально.
-
-```bash
-make deploy-system ENTITY=recommendations DEPLOYMENT=local
-```
-
-После запуска создайте в RAGFlow сервисный API-ключ и dataset, затем заполните:
+Дефолтный режим уже включает ragflow, searxng. После запуска настройте API-ключ и dataset:
 
 ```env
 # backend/.env
-RECOMMENDATIONS_ENABLED=true
 RAGFLOW_BASE_URL=http://localhost:9380
 RAGFLOW_API_KEY=...
 RAGFLOW_DATASET_ID=...
 SEARXNG_BASE_URL=http://localhost:8201
 ```
 
-Проверка:
+### 4. Полностью Локальный AI
 
 ```bash
-make backend-test-recommendations
-make recommendations-test
-```
-
-### 3. Полностью Локальный AI
-
-Используйте этот режим, когда LLM inference и embeddings работают локально.
-
-```bash
-make deploy-system ENTITY=ai DEPLOYMENT=local
+make deploy-system vllm=local tei=local whisper=local
 ```
 
 Настройте backend:
@@ -150,133 +134,57 @@ make deploy-system ENTITY=ai DEPLOYMENT=local
 ```env
 LLM_BASE_URL=http://localhost:8100/v1
 LLM_MODEL=Qwen/Qwen2.5-1.5B-Instruct
-RAGFLOW_EMBEDDING_BASE_URL=http://host.docker.internal:8200/v1
 ```
 
-Если backend запущен в Docker container, используйте адрес хоста Docker:
+### 5. Гибридный Режим
 
-```env
-LLM_BASE_URL=http://host.docker.internal:8100/v1
-RAGFLOW_BASE_URL=http://host.docker.internal:9380
-SEARXNG_BASE_URL=http://host.docker.internal:8201
-```
-
-Конкретная LLM-модель выбирается в `vLLM/.env`.
-
-### 4. Гибридный Режим
-
-Используйте этот режим, когда LLM/STT/TTS находятся в облаке или в RouterAI-compatible провайдере, а RAG/search/embeddings остаются локальными.
+Cloud LLM + локальные RAG/search/embeddings:
 
 ```bash
-make deploy-system ENTITY=ai DEPLOYMENT=hybrid
+make deploy-system tei=local
 ```
 
-Настройте backend:
+### 6. Облачные Сервисы
 
-```env
-LLM_BASE_URL=https://routerai.ru/api/v1
-LLM_API_KEY=...
-LLM_MODEL=...
-
-RECOMMENDATIONS_ENABLED=true
-RAGFLOW_BASE_URL=http://localhost:9380
-RAGFLOW_API_KEY=...
-RAGFLOW_DATASET_ID=...
-SEARXNG_BASE_URL=http://localhost:8201
-```
-
-Проверка:
+Всё через cloud — только валидация env, ничего локально не деплоится:
 
 ```bash
-make cloud-check
-make cloud-recommendations-check
+make deploy-system cloud
 ```
 
-### 5. Облачные И Управляемые Сервисы
-
-Используйте этот режим, когда backend работает с внешними endpoint для LLM, RAGFlow, SearXNG-compatible поиска или управляемых аналогов.
-
-Локальные recommendation-контейнеры в этом режиме запускать не нужно. Настройте:
-
-```env
-RECOMMENDATIONS_ENABLED=true
-LLM_BASE_URL=https://...
-LLM_API_KEY=...
-LLM_MODEL=...
-
-RAGFLOW_BASE_URL=https://internal-ragflow.example
-RAGFLOW_API_KEY=...
-RAGFLOW_DATASET_ID=...
-
-SEARXNG_BASE_URL=https://internal-search.example
-```
-
-Проверьте форму env-конфига:
+### 7. Full Local Demo
 
 ```bash
-make cloud-check
-make cloud-recommendations-check
+make deploy-system vllm=local tei=local whisper=local
 ```
-
-Правило безопасности: RAGFlow и SearXNG должны оставаться приватными/internal сервисами. Фронтенд никогда не должен получать их API-ключи или прямые URL.
-
-Docker-вариант:
-
-Для проверки cloud-конфигурации через новую матрицу:
-
-```bash
-make deploy-system ENTITY=ai DEPLOYMENT=cloud
-make deploy-system ENTITY=recommendations DEPLOYMENT=cloud
-```
-
-### 6. Full Local Demo
-
-Используйте для максимально автономного демо на машине с Docker и достаточными ресурсами:
-
-```bash
-make deploy-system ENTITY=full DEPLOYMENT=local
-```
-
-Поднимает:
-
-- vLLM;
-- TEI;
-- RAGFlow;
-- SearXNG;
-- Graylog;
-- PostgreSQL;
-- backend;
-- frontend.
-
-Это самый тяжелый режим. Для ноутбука без GPU обычно лучше использовать `deploy-hybrid-llm-local-rag`: LLM/STT/TTS в cloud/external API, RAG/search/embeddings локально.
 
 ## Корневые Make-Команды
 
-Новый основной интерфейс:
+Дефолтный запуск:
 
 ```bash
-make deploy-system ENTITY=postgres DEPLOYMENT=local
-make deploy-system ENTITY=backend DEPLOYMENT=local
-make deploy-system ENTITY=frontend DEPLOYMENT=local
-make deploy-system ENTITY=recommendations DEPLOYMENT=local
-make deploy-system ENTITY=ai DEPLOYMENT=hybrid
+make deploy-system
+```
+
+Переопределение компонентов:
+
+```bash
+make deploy-system vllm=local whisper=local
+make deploy-system ragflow=cloud searxng=none
 ```
 
 Статус, логи, остановка:
 
 ```bash
-make status-system ENTITY=core
-make logs-system ENTITY=backend
-make stop-system ENTITY=recommendations
+make status-system COMPONENTS="backend ragflow"
+make logs-system COMPONENT=backend
+make stop-system COMPONENTS="ragflow searxng"
+make stop-system COMPONENTS=all
 ```
-
-Совместимые алиасы старого слоя оставлены для скриптов и muscle memory: `make local-up-core`, `make deploy-local-core`, `make deploy-local-ai`, `make deploy-full-local`, `make deploy-down`.
-
-Проверка:
 
 ```bash
 make doctor
-make status
+make status-system COMPONENTS="backend postgres"
 make backend-test
 make backend-test-recommendations
 make recommendations-test
@@ -301,11 +209,11 @@ npm run build
 Логи:
 
 ```bash
-make logs-system ENTITY=backend
-make logs-system ENTITY=ragflow
-make logs-system ENTITY=searxng
-make logs-system ENTITY=tei
-make logs-system ENTITY=vllm
+make logs-system COMPONENT=backend
+make logs-system COMPONENT=ragflow
+make logs-system COMPONENT=searxng
+make logs-system COMPONENT=tei
+make logs-system COMPONENT=vllm
 ```
 
 ## Первый Запуск Рекомендаций
@@ -313,7 +221,7 @@ make logs-system ENTITY=vllm
 Для первого локального запуска recommendation-стека:
 
 ```bash
-make deploy-system ENTITY=recommendations DEPLOYMENT=local
+make deploy-system
 ```
 
 Затем:
@@ -328,10 +236,8 @@ make deploy-system ENTITY=recommendations DEPLOYMENT=local
 
 ### Локальный STT (whisper-server)
 
-Для локального распознавания речи требуется инициализировать git-сабмодуль whisper.cpp:
-
 ```bash
-make deploy-system ENTITY=whisper DEPLOYMENT=local
+make deploy-system whisper=local
 ```
 
 Команда `make init` в whisper-server автоматически выполнит `git submodule update --init`.
@@ -342,20 +248,20 @@ make deploy-system ENTITY=whisper DEPLOYMENT=local
 Если локальный recommendation-стек падает из-за уже существующего контейнера:
 
 ```bash
-make stop-system ENTITY=recommendations
-make deploy-system ENTITY=recommendations DEPLOYMENT=local
+make stop-system COMPONENTS="ragflow searxng tei"
+make deploy-system
 ```
 
 Если падают API-тесты RAGFlow:
 
 - проверьте `RAGFLOW_API_KEY`;
 - проверьте `RAGFLOW_DATASET_ID`;
-- запустите `make logs-system ENTITY=ragflow`;
+- запустите `make logs-system COMPONENT=ragflow`;
 - запустите `cd ragflow && make curl-examples`.
 
 Если падают embeddings:
 
-- запустите `make logs-system ENTITY=tei`;
+- запустите `make logs-system COMPONENT=tei`;
 - попробуйте более легкую модель `TEI_MODEL_ID`;
 - проверьте, что RAGFlow использует `/v1` в конце TEI base URL.
 

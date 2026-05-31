@@ -189,43 +189,75 @@ Auth работает через Bearer JWT и серверные сессии �
 
 ## Деплой системы
 
-Корневой [`Makefile`](Makefile) управляет всеми основными режимами запуска: локальное ядро, локальные рекомендации, fully local AI, гибридный режим и cloud/external AI endpoints.
-
-Базовые команды:
+Корневой [`Makefile`](Makefile) — per-component deployment: каждый компонент системы настраивается независимо флагом `local`, `cloud` или `none`.
 
 ```bash
-make help
-make doctor
-make init
+make deploy-system [postgres=local|cloud] [ragflow=local|cloud|none] [searxng=local|cloud|none] \
+                   [graylog=local|cloud|none] [tei=local|none] [vllm=local|none] [whisper=local|none]
 ```
 
-Основные профили:
+**backend** и **frontend** деплоятся всегда (Docker контейнеры), флагов не требуют.
 
-| Сценарий | Что запускает | Команда |
-| --- | --- | --- |
-| Локальное ядро | PostgreSQL + backend + frontend в Docker | `make deploy-system ENTITY=core DEPLOYMENT=local` |
-| Локальные рекомендации | TEI + RAGFlow + SearXNG локально | `make deploy-system ENTITY=recommendations DEPLOYMENT=local` |
-| Fully local AI | Core + vLLM + TEI/RAGFlow/SearXNG локально | `make deploy-system ENTITY=ai DEPLOYMENT=local` |
-| Hybrid AI | Cloud/external LLM + локальные RAG/search/embeddings | `make deploy-system ENTITY=ai DEPLOYMENT=hybrid` |
-| Cloud AI | Core cloud-проверка + внешние AI/RAG endpoints | `make deploy-system ENTITY=ai DEPLOYMENT=cloud` |
-| Полная система | Core + рекомендации локально | `make deploy-system ENTITY=system DEPLOYMENT=local` |
-| Full local demo | vLLM, TEI, RAGFlow, SearXNG, Graylog, PostgreSQL, backend, frontend | `make deploy-system ENTITY=full DEPLOYMENT=local` |
+### Таблица компонентов и значений по умолчанию
 
-Совместимые алиасы: `make deploy-local-core`, `make deploy-local-ai`, `make deploy-hybrid-llm-local-rag`, `make deploy-cloud-ai`, `make deploy-full-local`.
+| Компонент | Флаги | Дефолт | `local` | `cloud` | `none` |
+|-----------|-------|--------|---------|---------|--------|
+| backend | — | — | Docker контейнер | — | — |
+| frontend | — | — | Docker контейнер | — | — |
+| postgres | `local` `cloud` | **local** | контейнер + миграции | проверка `DATABASE_URL` | — |
+| ragflow  | `local` `cloud` `none` | **local** | upstream RAGFlow compose | проверка `RAGFLOW_BASE_URL`/`API_KEY`/`DATASET_ID` | пропустить |
+| searxng  | `local` `cloud` `none` | **local** | SearXNG контейнер | проверка `SEARXNG_BASE_URL` | пропустить |
+| graylog  | `local` `cloud` `none` | **local** | Graylog стек | проверка `GRAYLOG_HOST` | пропустить |
+| tei      | `local` `none` | **none** | TEI embeddings контейнер | — | пропустить |
+| vllm     | `local` `none` | **none** | локальный OpenAI-совместимый vLLM | — | пропустить |
+| whisper  | `local` `none` | **none** | whisper.cpp сервер + прокси | — | пропустить |
+
+### Пресеты
+
+| Команда | Что делает |
+|---------|-----------|
+| `make deploy-system` | всё по умолчанию (инфра локально, AI не трогаем) |
+| `make deploy-system core` | только backend+frontend+postgres |
+| `make deploy-system hybrid` | cloud LLM + локальные RAG/search/embeddings |
+| `make deploy-system fully-local` | всё локально (включая vLLM, TEI, whisper) |
+| `make deploy-system cloud` | всё cloud (валидация env, ничего не деплоится) |
+
+### Примеры
+
+```bash
+make deploy-system                                 # инфра локально
+make deploy-system vllm=local whisper=local        # + AI модели локально
+make deploy-system ragflow=cloud searxng=cloud     # RAG/search в облаке
+make deploy-system graylog=none                    # без Graylog
+```
+
+### Остановка / статус / логи
+
+```bash
+make stop-system   COMPONENTS="postgres ragflow vllm"
+make stop-system   COMPONENTS=all
+make status-system COMPONENTS="backend frontend"
+make logs-system   COMPONENT=backend
+make logs-system   COMPONENT=vllm
+```
 
 Локальная разработка приложения:
 
 ```bash
-make deploy-system ENTITY=core DEPLOYMENT=local   # PostgreSQL + backend + frontend
-make backend-run                                     # FastAPI dev server (порт 8000)
-make frontend-install                                # npm install
-make frontend-run                                    # Next.js dev server (порт 3000)
+make init                        # подготовить все .env файлы
+make doctor                      # диагностика окружения
+make deploy-system core          # backend + frontend + postgres
+make backend-run                 # FastAPI dev server (порт 8000)
+make frontend-install            # npm install
+make frontend-run                # Next.js dev server (порт 3000)
 ```
 
 Локальные recommendation-сервисы:
 
 ```bash
-make deploy-system ENTITY=recommendations DEPLOYMENT=local
+make init-recommendations
+make pull-recommendations
+make deploy-system               # + рекомендации (ragflow, searxng)
 make recommendations-test
 ```
 
@@ -234,14 +266,13 @@ Fully local AI:
 ```bash
 make init
 make pull-ai-local
-make deploy-system ENTITY=ai DEPLOYMENT=local
+make deploy-system vllm=local tei=local whisper=local
 ```
 
 Остановка:
 
 ```bash
-make local-down
-make deploy-down
+make stop-system COMPONENTS=all
 ```
 
 Перед включением рекомендаций backend должен получить обязательные env-переменные:
