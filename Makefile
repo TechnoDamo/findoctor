@@ -48,7 +48,7 @@ help:
 	@echo "  make deploy-system core | hybrid | fully-local | cloud"
 	@echo ""
 	@echo "Компоненты и флаги:"
-	@echo "  backend / frontend   всегда Docker (флаги не требуются)"
+	@echo "  backend               всегда Docker (флаг не требуется)"
 	@echo "  postgres=local|cloud  [default: local]"
 	@echo "  ragflow=local|cloud|none  [default: local]"
 	@echo "  searxng=local|cloud|none  [default: local]"
@@ -74,7 +74,7 @@ help:
 	@echo "  make deploy-system vllm=local whisper=local               # + AI локально"
 	@echo "  make deploy-system ragflow=cloud searxng=cloud            # RAG/search облачно"
 	@echo "  make deploy-system graylog=none                           # без Graylog"
-	@echo "  make deploy-system core                                   # только backend+frontend+postgres"
+	@echo "  make deploy-system core                                   # только backend+postgres"
 	@echo ""
 
 # ----------------------------------------------------------------------
@@ -88,9 +88,8 @@ deploy-system:
 		*) echo "Unknown flag: postgres=$(postgres)"; exit 1 ;; \
 	esac
 	@echo ""
-	@echo "=== Core: backend + frontend ==="
+	@echo "=== Core: backend ==="
 	$(MAKE) -C $(BACKEND_DIR) deploy-local
-	$(MAKE) -C $(FRONTEND_DIR) deploy-local
 	@echo ""
 	@echo "=== ragflow ($(ragflow)) ==="
 	@case "$(ragflow)" in \
@@ -174,7 +173,7 @@ stop-system:
 			vllm)     $(MAKE) -C $(VLLM_DIR) stop ;; \
 			whisper)  $(MAKE) -C $(WHISPER_DIR) stop ;; \
 			graylog)  $(MAKE) -C $(GRAYLOG_DIR) stop ;; \
-			all)      $(MAKE) stop-system COMPONENTS="postgres backend frontend ragflow searxng tei vllm whisper graylog" ;; \
+			all)      $(MAKE) stop-system COMPONENTS="postgres backend ragflow searxng tei vllm whisper graylog" ;; \
 			*) echo "Unknown component: $$comp"; exit 1 ;; \
 		esac; \
 	done
@@ -198,7 +197,7 @@ status-system:
 			vllm)     $(MAKE) -C $(VLLM_DIR) status ;; \
 			whisper)  $(MAKE) -C $(WHISPER_DIR) status ;; \
 			graylog)  $(MAKE) -C $(GRAYLOG_DIR) status ;; \
-			all)      $(MAKE) status-system COMPONENTS="postgres backend frontend ragflow searxng tei vllm whisper graylog" ;; \
+			all)      $(MAKE) status-system COMPONENTS="postgres backend ragflow searxng tei vllm whisper graylog" ;; \
 			*) echo "Unknown component: $$comp"; exit 1 ;; \
 		esac; \
 	done
@@ -228,8 +227,7 @@ init: init-core init-recommendations init-observability init-voice
 
 init-core:
 	$(MAKE) -C $(BACKEND_DIR) init-env
-	$(MAKE) -C $(FRONTEND_DIR) init
-	@echo "Env-файлы ядра готовы (backend/.env и frontend/.env)"
+	@echo "Env-файлы ядра готовы (backend/.env)"
 
 init-recommendations:
 	$(MAKE) -C $(TEI_DIR) init
@@ -298,7 +296,7 @@ local-down:        deploy-down
 local-down-recommendations:
 	$(MAKE) stop-system COMPONENTS="ragflow searxng tei"
 status:
-	$(MAKE) status-system COMPONENTS="postgres backend frontend ragflow searxng tei"
+	$(MAKE) status-system COMPONENTS="postgres backend ragflow searxng tei"
 
 # ----------------------------------------------------------------------
 # Docker compose helpers
@@ -310,7 +308,7 @@ compose-up-core: init-core
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile core up -d postgres
 
 compose-up-app: init-core
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app up -d --build postgres backend frontend
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app up -d --build postgres backend
 
 compose-down:
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --profile app --profile core down
