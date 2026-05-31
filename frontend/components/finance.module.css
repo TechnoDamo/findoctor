@@ -44,31 +44,37 @@
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  height: 40px;
+  gap: 12px;
+  min-height: 40px;
   margin-bottom: 27px;
 }
 
 .headerLeft {
-  display: inline-flex;
-  align-items: center;
-  gap: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(10px, 2.8vw, 15px);
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .headerTitle {
   margin: 0;
-  font-size: 24px;
-  line-height: 1;
+  font-size: clamp(20px, 6vw, 24px);
+  line-height: 1.08;
   font-weight: 700;
   letter-spacing: 0;
   color: #333333;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .headerRight {
   display: inline-flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: clamp(10px, 2.8vw, 14px);
+  flex-shrink: 0;
 }
 
 .circleAction {
@@ -420,15 +426,15 @@
 }
 
 .bottomSheetModal {
-  width: min(100%, 430px);
+  width: min(calc(100vw - 16px), 560px);
   min-height: 170px;
   background: #f4f4f5;
   border-radius: 28px 28px 0 0;
   border: 1px solid #d8d8da;
   border-bottom: none;
-  padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  padding: 12px clamp(14px, 4vw, 22px) calc(16px + env(safe-area-inset-bottom));
   overflow-y: auto;
-  max-height: min(92dvh, 920px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
 }
 
 .bottomSheetHandle {
@@ -454,13 +460,13 @@
 
 .cushionSheet,
 .cushionModal {
-  width: min(100%, 402px);
-  min-height: 710px;
-  max-height: calc(100dvh - 164px);
+  width: 100%;
+  min-height: clamp(320px, 76dvh, 710px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
   background: #ffffff;
   border: none;
   border-radius: 20px 20px 0 0;
-  padding: 13px 21px calc(40px + env(safe-area-inset-bottom));
+  padding: 13px clamp(18px, 4.6vw, 24px) calc(40px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -990,6 +996,40 @@
   text-align: left;
 }
 
+.editExpenseBackdrop {
+  background: rgba(0, 0, 0, 0.43);
+}
+
+.editExpenseSheet {
+  width: min(100vw, 402px);
+  height: 385px;
+  min-height: 385px;
+  max-height: calc(100dvh - 489px);
+  background: #ffffff;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 19px calc(18px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.editExpenseHandle {
+  width: 86px;
+  height: 8px;
+  border-radius: 999px;
+  background: #d9d9d9;
+  margin: 0 auto 37px;
+}
+
+.editExpenseTitle {
+  margin: 0 0 31px;
+  text-align: left;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
 .expensesSheetBackdrop {
   background: rgba(20, 20, 20, 0.45);
 }
@@ -998,7 +1038,9 @@
   background: #ffffff;
   border: none;
   border-radius: 18px 18px 0 0;
-  padding: 6px 22px calc(18px + env(safe-area-inset-bottom));
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  padding: 6px clamp(16px, 4.5vw, 24px) calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
 }
 
 .expensesSheetHandle {
@@ -1012,6 +1054,107 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.editExpenseForm {
+  gap: 0;
+}
+
+.expenseSelectStack {
+  width: 100%;
+}
+
+.expenseSelectStack + .expenseSelectStack {
+  margin-top: 15px;
+}
+
+.selectPill {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 0 21px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fieldLabel {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #949090;
+}
+
+.selectValueWrap {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.fieldValue {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.selectChevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: #444444;
+}
+
+.textFieldsCard {
+  width: 100%;
+  height: 112px;
+  margin-top: 34px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 17px 22px 16px;
+  box-sizing: border-box;
+}
+
+.inputLabel {
+  display: block;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #949090;
+}
+
+.textInput {
+  width: 100%;
+  height: 28px;
+  margin-top: 13px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  color: #444444;
+  padding: 0;
+}
+
+.fieldDivider {
+  width: 100%;
+  height: 1px;
+  margin: 15px 0 16px;
+  background: #d9d9d9;
 }
 
 .expenseSheetSelectRow {
@@ -1089,7 +1232,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 6px;
+  margin-top: 24px;
 }
 
 .sheetSaveButton,
@@ -1110,8 +1253,13 @@
 }
 
 .sheetSaveButton {
-  background: #ef9a9c;
+  width: 183px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffa7a7;
   color: #444444;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .sheetDeleteButton {

@@ -3,15 +3,26 @@
   width: 100%;
   background: #fdfdfd;
   color: #444444;
-  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .content {
-  width: min(100%, 402px);
+  width: 100%;
+  max-width: 402px;
+  min-height: 1150px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 77px) clamp(16px, 5.7vw, 23px) calc(40px + env(safe-area-inset-bottom));
+  padding: calc(env(safe-area-inset-top) + 77px) 23px calc(env(safe-area-inset-bottom) + 14px);
   box-sizing: border-box;
-  overflow-x: hidden;
+}
+
+.header {
+  margin-bottom: 34px;
+}
+
+.headerTitle {
+  color: #444444;
 }
 
 .summaryCard {
@@ -19,24 +30,25 @@
   height: 161px;
   border-radius: 25px;
   background: #f3f3f3;
-  padding: 16px 25px 18px;
+  padding: 15px 24px 18px 18px;
   box-sizing: border-box;
 }
 
 .summaryLabel {
   margin: 0;
   font-size: 16px;
-  line-height: 1.2;
-  font-weight: 600;
+  line-height: 1;
+  font-weight: 700;
   color: #949090;
 }
 
 .summaryValue {
-  margin: 6px 0 0;
+  margin: -10px 0 0;
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
   color: #444444;
+  white-space: nowrap;
 }
 
 .summaryValue strong {
@@ -48,156 +60,256 @@
 .summaryValue span {
   font-size: 24px;
   line-height: 1;
-  color: #444444;
+  font-weight: 400;
+  color: #949090;
 }
 
 .summaryDivider {
   width: 100%;
   height: 1px;
-  margin: 15px 0 13px;
+  margin: 21px 0 22px;
   background: #d9d9d9;
 }
 
 .reminderCard {
-  margin-top: 22px;
   width: 100%;
   height: 66px;
+  margin-top: 21px;
   border-radius: 25px;
   background: #f3f3f3;
-  padding: 0 21px 0 25px;
+  padding: 0 22px 0 26px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.reminderText {
+.reminderLabel {
   margin: 0;
   font-size: 16px;
-  line-height: 1.2;
+  line-height: 1;
   font-weight: 700;
   color: #444444;
 }
 
-.actionsSection {
-  margin-top: 24px;
-}
-
-.actionsTitle {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.14;
-  font-weight: 700;
-  color: #333333;
-}
-
-.actionsRow {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.actionButton {
-  min-height: 56px;
-  border: 0;
-  border-radius: 25px;
-  background: #f3f3f3;
-  color: #444444;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
-}
-
-.actionButton:active {
-  background: #ebebeb;
-}
-
-.toggleButton {
-  width: 45px;
-  height: 24px;
+.reminderSwitch {
+  width: 44px;
+  height: 20px;
   border: 0;
   border-radius: 999px;
+  background: #ffa7a7;
+  padding: 1px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.reminderSwitch:active {
+  transform: scale(0.98);
+  filter: brightness(0.97);
+}
+
+.reminderSwitch[aria-checked="false"] {
+  justify-content: flex-start;
   background: #d9d9d9;
-  padding: 1px;
-  box-sizing: border-box;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
 }
 
-.toggleButtonEnabled {
-  width: 45px;
-  height: 24px;
-  border: 0;
+.reminderSwitchThumb {
+  width: 27px;
+  height: 18px;
   border-radius: 999px;
-  background: #f29d9d;
-  padding: 1px;
-  box-sizing: border-box;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
+  background: #fdfdfd;
 }
 
-.toggleThumb,
-.toggleThumbEnabled {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: #aeaeae;
+.recommendationSection {
+  margin-top: 36px;
 }
 
-.toggleThumbEnabled {
-  transform: translateX(20px);
-}
-
-.recommendationsSection {
-  margin-top: 24px;
-}
-
-.recommendationsTitle {
+.sectionTitle {
   margin: 0;
   font-size: 21px;
-  line-height: 1.14;
+  line-height: 1.15;
   font-weight: 700;
-  color: #333333;
+  color: #444444;
 }
 
-.recommendationsCard {
-  margin-top: 17px;
+.recommendationCard {
+  margin-top: 22px;
   width: 100%;
-  height: 218px;
+  min-height: 170px;
   border-radius: 25px;
   background: #f3f3f3;
-  padding: 24px 20px;
+  padding: 25px 19px 17px 18px;
   box-sizing: border-box;
 }
 
-.recommendationsText {
+.recommendationText {
   margin: 0;
+  max-width: 318px;
   font-size: 16px;
   line-height: 1.5;
-  font-weight: 500;
+  font-weight: 600;
+  color: #000000;
+}
+
+.detailsLink {
+  margin-top: 12px;
+  margin-left: auto;
+  width: 183px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffa7a7;
   color: #444444;
-  max-width: 306px;
+  text-decoration: none;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.detailsLink:active {
+  transform: scale(0.99);
+  filter: brightness(0.97);
+}
+
+.operationsSection {
+  margin-top: 34px;
+}
+
+.operationsSectionIncome {
+  margin-top: 44px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.addButton {
+  width: 49px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: #ffa7a7;
+  color: #444444;
+  font-size: 31px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.addButton:active {
+  transform: scale(0.98);
+  filter: brightness(0.97);
+}
+
+.operationsList {
+  margin-top: 21px;
+  display: grid;
+  gap: 12px;
+}
+
+.operationCard {
+  width: 100%;
+  height: 74px;
+  border: 0;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 12px 21px 12px 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.operationCard:active {
+  transform: scale(0.995);
+  filter: brightness(0.98);
+}
+
+.operationText {
+  min-width: 0;
+}
+
+.operationType {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #949090;
+}
+
+.operationName {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #444444;
+}
+
+.operationAmount {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #444444;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.operationAmount strong {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.operationAmount span {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #666666;
 }
 
 .backdrop {
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0, 0, 0, 0.34);
 }
 
 .sheet {
-  width: min(100%, 402px);
-  min-height: 381px;
+  width: 100%;
+  min-height: clamp(320px, 68dvh, 560px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
   border: 0;
   border-radius: 18px 18px 0 0;
   background: #ffffff;
-  padding: 0 19px calc(24px + env(safe-area-inset-bottom));
-  max-height: min(92dvh, 867px);
+  padding: 0 clamp(16px, 4.2vw, 22px) calc(24px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.pickerSheet {
+  width: 100%;
+  min-height: clamp(220px, 52dvh, 420px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  background: #ffffff;
+  padding: 0 clamp(16px, 4.2vw, 22px) calc(20px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .sheetHandle {
@@ -217,7 +329,7 @@
   color: #444444;
 }
 
-.fieldPillButton {
+.selectPill {
   width: 100%;
   height: 56px;
   border: 0;
@@ -230,32 +342,35 @@
   justify-content: space-between;
   text-align: left;
   cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-.fieldPillButton + .fieldPillButton {
+.selectPill + .selectPill {
   margin-top: 16px;
 }
 
-.fieldPillButton:active {
-  background: #ebebeb;
+.selectPill:active {
+  transform: scale(0.995);
+  filter: brightness(0.98);
 }
 
-.fieldLabel {
+.selectLabel {
   font-size: 16px;
   line-height: 1;
   font-weight: 600;
   color: #949090;
 }
 
-.fieldValue {
+.selectValue {
   font-size: 16px;
   line-height: 1;
   font-weight: 700;
   color: #444444;
 }
 
-.textFieldsCard {
-  margin-top: 34px;
+.inputCard {
+  margin-top: 26px;
   width: 100%;
   height: 112px;
   border-radius: 25px;
@@ -264,11 +379,11 @@
   box-sizing: border-box;
 }
 
-.fieldDivider {
+.inputDivider {
   width: 100%;
   height: 1px;
-  background: #d9d9d9;
   margin: 16px 0 15px;
+  background: #d9d9d9;
 }
 
 .textInput {
@@ -287,13 +402,58 @@
   color: #949090;
 }
 
-@media (max-width: 374px) {
+.saveButton {
+  margin-top: 22px;
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 25px;
+  background: #ffa7a7;
+  color: #444444;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.saveButton:active {
+  transform: scale(0.99);
+  filter: brightness(0.97);
+}
+
+.optionList {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.optionButton {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 18px;
+  background: #f3f3f3;
+  padding: 0 18px;
+  box-sizing: border-box;
+  text-align: left;
+  color: #444444;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.optionButton:active {
+  transform: scale(0.995);
+  filter: brightness(0.98);
+}
+
+@media (max-width: 390px) {
   .content {
     padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .reminderCard {
     padding-right: 16px;
   }
 }

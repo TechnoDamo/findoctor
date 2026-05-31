@@ -1,11 +1,10 @@
 .financeScreen {
-  min-height: 100dvh;
+  height: 100dvh;
   width: 100%;
   background: #fdfdfd;
   color: #444444;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .contentWrap {
@@ -19,7 +18,8 @@
 }
 
 .header {
-  height: 40px;
+  min-height: 40px;
+  height: auto;
   margin-bottom: 0;
 }
 
@@ -143,34 +143,52 @@
   left: 15px;
   top: 142px;
   width: 118px;
-  height: 28px;
+  max-width: 188px;
+  min-height: 28px;
   border-radius: 14.5px;
   background: #ffffff;
-  text-align: center;
-  display: flex;
+  text-align: left;
+  display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
-  padding-left: 6px;
-  white-space: nowrap;
-  line-height: 28px;
+  row-gap: 3px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  cursor: text;
 }
 
-.balancePill strong {
-  display: inline-block;
+.balanceInput {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+  width: 1px;
+  min-width: 1px;
+  min-height: 1em;
   font-size: 16px;
-  line-height: 1;
+  line-height: 1.1;
   font-weight: 700;
   color: #444444;
-  vertical-align: middle;
+  font-family: inherit;
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.balanceInput:focus-visible {
+  outline: none;
 }
 
 .balancePill span {
-  display: inline-block;
+  display: inline-flex;
   font-size: 16px;
   line-height: 1;
   font-weight: 600;
   color: #949090;
-  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .dailySpendButton {
@@ -309,7 +327,7 @@
 .consultantButton {
   width: 218px;
   height: 71px;
-  margin: 78px auto 0;
+  margin: 48px auto 0;
   border-radius: 20px;
   background: #ffa7a7;
   color: #444444;

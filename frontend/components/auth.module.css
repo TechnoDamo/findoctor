@@ -31,15 +31,15 @@
 
 .brandSubtitle {
   margin: 2px 0 0;
-  font-size: 38px;
-  line-height: 1.08;
+  font-size: 17px;
+  line-height: 1.1;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .formTitle {
   margin: 64px 0 14px;
-  font-size: 37px;
+  font-size: 23px;
   line-height: 1;
   font-weight: 700;
 }
@@ -56,7 +56,7 @@
   outline: 0;
   background: transparent;
   padding: 21px 0 15px;
-  font-size: 30px;
+  font-size: 17px;
   line-height: 1;
   color: var(--auth-color-text);
   font-family: inherit;
@@ -75,7 +75,7 @@
   margin-top: 20px;
   text-align: center;
   color: var(--auth-color-danger);
-  font-size: 34px;
+  font-size: 19px;
   line-height: 1;
   text-decoration: none;
 }
@@ -140,9 +140,10 @@
 
 .agreementText {
   margin: 0;
+  max-width: 210px;
   color: var(--auth-color-muted);
-  font-size: 24px;
-  line-height: 1.05;
+  font-size: 12px;
+  line-height: 1.1;
   letter-spacing: -0.01em;
 }
 
@@ -150,19 +151,19 @@
   margin: 20px 0 0;
   min-height: 28px;
   color: #d84f4f;
-  font-size: 19px;
+  font-size: 14px;
   line-height: 1.1;
 }
 
 .submitButton {
   margin: 34px auto 0;
   width: 255px;
-  height: 56px;
+  height: 40px;
   border: 0;
   border-radius: 24px;
   background: var(--auth-color-accent);
   color: var(--auth-color-text);
-  font-size: 34px;
+  font-size: 20px;
   font-weight: 700;
   font-family: inherit;
   line-height: 1;
@@ -178,43 +179,4 @@
 .submitButton:active {
   background: var(--auth-color-accent-active);
   transform: scale(0.99);
-}
-
-@media (max-width: 420px) {
-  .brandTitle {
-    font-size: 42px;
-  }
-
-  .brandSubtitle {
-    font-size: 17px;
-    line-height: 1.1;
-  }
-
-  .formTitle {
-    font-size: 23px;
-  }
-
-  .field {
-    font-size: 17px;
-  }
-
-  .switchLink {
-    font-size: 19px;
-  }
-
-  .agreementText {
-    max-width: 210px;
-    font-size: 12px;
-    line-height: 1.1;
-  }
-
-  .submitButton {
-    width: 255px;
-    height: 40px;
-    font-size: 20px;
-  }
-
-  .errorMessage {
-    font-size: 14px;
-  }
 }

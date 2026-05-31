@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -54,7 +54,7 @@ type SheetState =
 
 type FormErrors = Record<string, string>;
 
-const categoryOptions = ["Дети", "Подписки", "Жилье", "Транспорт", "Здоровье"];
+const categoryOptions = ["Дети", "Подписки", "Жилье", "Транспорт", "Здоровье", "Еда", "Развлечения", "Другое"];
 const expenseTypeOptions: ExpenseType[] = ["Обязательные расходы", "Переменные расходы"];
 
 const initialExpenses: ExpenseItem[] = [
@@ -145,6 +145,23 @@ function getRecommendation(totalExpensesRub: number, incomeRub: number) {
   }
 
   return "Расходная нагрузка заметная. Стоит оптимизировать подписки и крупные обязательные платежи.";
+}
+
+function pickOptionWithPrompt(title: string, options: readonly string[], currentValue: string) {
+  const promptText = `${title}\n\n${options.map((option, index) => `${index + 1}. ${option}`).join("\n")}\n\nТекущее: ${currentValue}\nВведите номер:`;
+  const raw = window.prompt(promptText);
+
+  if (raw === null) {
+    return null;
+  }
+
+  const index = Number.parseInt(raw.trim(), 10);
+
+  if (!Number.isFinite(index) || index < 1 || index > options.length) {
+    return null;
+  }
+
+  return options[index - 1];
 }
 
 export function ExpensesPage() {
@@ -488,77 +505,88 @@ export function ExpensesPage() {
         title={
           isExpenseSheet ? (sheet?.mode === "edit" ? "Редактировать расход" : "Добавить расход") : sheet?.mode === "edit" ? "Редактировать кредит" : "Добавить кредит"
         }
-        backdropClassName={styles.expensesSheetBackdrop}
-        sheetClassName={styles.expensesSheet}
-        handleClassName={styles.expensesSheetHandle}
-        titleClassName={styles.expensesSheetTitle}
+        backdropClassName={isExpenseSheet ? styles.editExpenseBackdrop : styles.expensesSheetBackdrop}
+        sheetClassName={isExpenseSheet ? styles.editExpenseSheet : styles.expensesSheet}
+        handleClassName={isExpenseSheet ? styles.editExpenseHandle : styles.expensesSheetHandle}
+        titleClassName={isExpenseSheet ? styles.editExpenseTitle : styles.expensesSheetTitle}
       >
         {isExpenseSheet ? (
           <form
-            className={styles.expenseSheetForm}
+            className={clsx(styles.expenseSheetForm, styles.editExpenseForm)}
             onSubmit={(event) => {
               event.preventDefault();
               submitExpense();
             }}
           >
-            <div className={styles.expenseSheetSelectRow}>
-              <label className={styles.expenseSheetLabel} htmlFor="expense-category">
-                Категория
-              </label>
-              <select
-                id="expense-category"
-                className={styles.expenseSheetSelect}
-                value={expenseForm.category}
-                onChange={(event) => setExpenseForm((current) => ({ ...current, category: event.target.value }))}
+            <div className={styles.expenseSelectStack}>
+              <button
+                type="button"
+                className={styles.selectPill}
+                onClick={() => {
+                  const nextValue = pickOptionWithPrompt("Выберите категорию", categoryOptions, expenseForm.category);
+
+                  if (!nextValue) {
+                    return;
+                  }
+
+                  setExpenseForm((current) => ({ ...current, category: nextValue }));
+                }}
+                aria-label="Выбрать категорию"
               >
-                {categoryOptions.map((option) => (
-                  <option value={option} key={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                <span className={styles.fieldLabel}>Категория</span>
+                <span className={styles.selectValueWrap}>
+                  <span className={styles.fieldValue}>{expenseForm.category}</span>
+                  <ChevronDown className={styles.selectChevron} aria-hidden="true" />
+                </span>
+              </button>
             </div>
             {errors.category ? <p className={styles.formError}>{errors.category}</p> : null}
 
-            <div className={styles.expenseSheetSelectRow}>
-              <label className={styles.expenseSheetLabel} htmlFor="expense-type">
-                Тип расхода
-              </label>
-              <select
-                id="expense-type"
-                className={styles.expenseSheetSelect}
-                value={expenseForm.expenseType}
-                onChange={(event) => setExpenseForm((current) => ({ ...current, expenseType: event.target.value as ExpenseType }))}
+            <div className={styles.expenseSelectStack}>
+              <button
+                type="button"
+                className={styles.selectPill}
+                onClick={() => {
+                  const nextValue = pickOptionWithPrompt("Выберите тип расхода", expenseTypeOptions, expenseForm.expenseType);
+
+                  if (!nextValue) {
+                    return;
+                  }
+
+                  setExpenseForm((current) => ({ ...current, expenseType: nextValue as ExpenseType }));
+                }}
+                aria-label="Выбрать тип расхода"
               >
-                {expenseTypeOptions.map((option) => (
-                  <option value={option} key={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                <span className={styles.fieldLabel}>Тип расхода</span>
+                <span className={styles.selectValueWrap}>
+                  <span className={styles.fieldValue}>{expenseForm.expenseType}</span>
+                  <ChevronDown className={styles.selectChevron} aria-hidden="true" />
+                </span>
+              </button>
             </div>
             {errors.expenseType ? <p className={styles.formError}>{errors.expenseType}</p> : null}
 
-            <div className={styles.expenseSheetInputGroup}>
-              <label className={styles.expenseSheetInputLabel} htmlFor="expense-description">
+            <div className={styles.textFieldsCard}>
+              <label className={styles.inputLabel} htmlFor="expense-description">
                 Описание
               </label>
               <input
                 id="expense-description"
-                className={styles.expenseSheetInput}
+                className={styles.textInput}
                 value={expenseForm.description}
                 onChange={(event) => setExpenseForm((current) => ({ ...current, description: event.target.value }))}
               />
 
-              <div className={styles.expenseSheetInputDivider} />
+              <div className={styles.fieldDivider} />
 
-              <label className={styles.expenseSheetInputLabel} htmlFor="expense-monthly-amount">
+              <label className={styles.inputLabel} htmlFor="expense-monthly-amount">
                 Сумма в мес
               </label>
               <input
                 id="expense-monthly-amount"
-                className={styles.expenseSheetInput}
+                className={styles.textInput}
                 inputMode="numeric"
+                pattern="[0-9]*"
                 value={expenseForm.monthlyAmount}
                 onChange={(event) => setExpenseForm((current) => ({ ...current, monthlyAmount: event.target.value }))}
               />

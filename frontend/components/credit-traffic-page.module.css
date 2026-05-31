@@ -262,8 +262,10 @@
   background: #ffffff;
   border: none;
   border-radius: 18px 18px 0 0;
-  min-height: 220px;
-  padding: 6px 22px calc(18px + env(safe-area-inset-bottom));
+  min-height: clamp(220px, 34dvh, 320px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+  padding: 6px clamp(16px, 4.5vw, 24px) calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
 }
 
 .modalHandle {
@@ -316,13 +318,13 @@
 }
 
 .creditSheet {
-  width: min(100%, 402px);
-  min-height: 641px;
-  max-height: calc(100dvh - 233px);
+  width: 100%;
+  min-height: clamp(360px, 76dvh, 700px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
   background: #ffffff;
   border: 0;
   border-radius: 20px 20px 0 0;
-  padding: 14px 19px calc(24px + env(safe-area-inset-bottom));
+  padding: 14px clamp(16px, 4.2vw, 22px) calc(24px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   overflow-y: auto;
 }

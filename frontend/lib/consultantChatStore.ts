@@ -42,7 +42,11 @@ function readState(): ConsultantChatState {
 
     const conversationId = typeof parsed.conversationId === "string" ? parsed.conversationId : null;
     const messages = Array.isArray(parsed.messages)
-      ? parsed.messages.filter((message) => message && typeof message.text === "string")
+      ? parsed.messages.filter(
+          (message) =>
+            message &&
+            (typeof message.text === "string" || (typeof message.imageUrl === "string" && message.imageUrl.length > 0)),
+        )
       : [];
 
     return {

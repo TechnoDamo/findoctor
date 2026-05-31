@@ -18,9 +18,9 @@
 }
 
 .headerZone {
-  height: 137px;
+  min-height: 0;
   background: #ffffff;
-  padding: 77px 23px 20px;
+  padding: calc(env(safe-area-inset-top) + 20px) 23px 18px;
   box-sizing: border-box;
 }
 

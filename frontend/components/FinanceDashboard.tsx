@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { FinanceHeader } from "@/components/FinanceHeader";
@@ -29,6 +29,8 @@ const summary = {
   points: financeMetrics.points,
   balanceRub: financeMetrics.balanceRub,
 };
+const BALANCE_PILL_MIN_WIDTH = 118;
+const BALANCE_PILL_MAX_WIDTH = 188;
 
 const incomeExpenseRows: FinanceRow[] = [
   { id: "income", href: financeRoutes.income, icon: "/icons/finance/income.svg", label: "Доходы", amountRub: financeMetrics.incomeRub },
@@ -72,8 +74,64 @@ function FinanceRowAction({ row }: { row: FinanceRow }) {
 export function FinanceDashboard() {
   const [isCushionOpen, setIsCushionOpen] = useState(false);
   const [notifyEnabled, setNotifyEnabled] = useState(true);
+  const [balanceValue, setBalanceValue] = useState(() => numberFormatter.format(summary.balanceRub));
+  const balanceInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const balancePillRef = useRef<HTMLLabelElement | null>(null);
+  const balanceSuffixRef = useRef<HTMLSpanElement | null>(null);
+  const balanceMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cushionStats = useMemo(() => getCushionStats(financeMetrics), []);
   const [autoTopUpValue, setAutoTopUpValue] = useState(() => formatRub(cushionStats.autoTopUpRub));
+
+  const syncBalanceInputSize = useCallback(() => {
+    const input = balanceInputRef.current;
+    const pill = balancePillRef.current;
+    const suffix = balanceSuffixRef.current;
+    if (!input || !pill || !suffix) {
+      return;
+    }
+
+    const computedPillStyles = window.getComputedStyle(pill);
+    const computedInputStyles = window.getComputedStyle(input);
+    const paddingLeft = Number.parseFloat(computedPillStyles.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(computedPillStyles.paddingRight) || 0;
+    const horizontalPadding = paddingLeft + paddingRight;
+    const gap = Number.parseFloat(computedPillStyles.columnGap || computedPillStyles.gap) || 0;
+    const suffixWidth = suffix.offsetWidth;
+    const letterSpacing = computedInputStyles.letterSpacing === "normal" ? 0 : Number.parseFloat(computedInputStyles.letterSpacing) || 0;
+    const text = balanceValue;
+    const canvas = balanceMeasureCanvasRef.current ?? document.createElement("canvas");
+    balanceMeasureCanvasRef.current = canvas;
+    const context = canvas.getContext("2d");
+    let contentWidth = 1;
+    if (context) {
+      context.font = `${computedInputStyles.fontWeight} ${computedInputStyles.fontSize} ${computedInputStyles.fontFamily}`;
+      const measuredTextWidth = Math.ceil(context.measureText(text).width);
+      const spacingWidth = text.length > 1 ? Math.ceil((text.length - 1) * letterSpacing) : 0;
+      contentWidth = Math.max(1, measuredTextWidth + spacingWidth);
+    }
+
+    const maxInputWidth = BALANCE_PILL_MAX_WIDTH - horizontalPadding - gap - suffixWidth;
+    const targetInputWidth = Math.max(1, Math.min(contentWidth, maxInputWidth));
+    const targetPillWidth = Math.max(
+      BALANCE_PILL_MIN_WIDTH,
+      Math.min(BALANCE_PILL_MAX_WIDTH, targetInputWidth + suffixWidth + gap + horizontalPadding),
+    );
+    const finalInputWidth = Math.max(1, targetPillWidth - horizontalPadding - gap - suffixWidth);
+
+    pill.style.width = `${targetPillWidth}px`;
+    input.style.width = `${finalInputWidth}px`;
+    input.style.height = "0px";
+    input.style.height = `${input.scrollHeight}px`;
+  }, [balanceValue]);
+
+  useEffect(() => {
+    syncBalanceInputSize();
+  }, [balanceValue, syncBalanceInputSize]);
+
+  useEffect(() => {
+    window.addEventListener("resize", syncBalanceInputSize);
+    return () => window.removeEventListener("resize", syncBalanceInputSize);
+  }, [syncBalanceInputSize]);
   const controlRows: FinanceRow[] = [
     { id: "credit-traffic", href: financeRoutes.creditTraffic, icon: "/icons/finance/traffic.svg", label: "Кредитный светофор" },
     { id: "savings", href: financeRoutes.savings, icon: "/icons/finance/savings.svg", label: "Копилка", amountRub: 50000 },
@@ -117,10 +175,17 @@ export function FinanceDashboard() {
           <p className={styles.balanceCaption}>Общий баланс</p>
 
           <div className={styles.summaryBottomRow}>
-            <span className={styles.balancePill}>
-              <strong>{numberFormatter.format(summary.balanceRub)}</strong>
-              <span>руб</span>
-            </span>
+            <label ref={balancePillRef} className={styles.balancePill}>
+              <textarea
+                ref={balanceInputRef}
+                className={styles.balanceInput}
+                value={balanceValue}
+                onChange={(event) => setBalanceValue(event.target.value.replace(/\n/g, ""))}
+                aria-label="Общий баланс"
+                rows={1}
+              />
+              <span ref={balanceSuffixRef}>руб</span>
+            </label>
             <Link className={styles.dailySpendButton} href={financeRoutes.daySpending}>
               <span>
                 Потратил
