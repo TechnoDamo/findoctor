@@ -333,51 +333,93 @@ SEARXNG_BASE_URL=http://localhost:8201
 
 ## Тестирование
 
-Backend тестируется как интеграционный API-сервис: FastAPI вызывается через `httpx`, а данные пишутся в реальную PostgreSQL test DB. Это проверяет миграции, SQL, авторизацию, OpenAPI parity и user isolation.
+Проект использует двухуровневую модель тестирования: быстрый backend-gate для разработки и глобальный системный тест для полной валидации production-readiness.
 
-Быстрый backend gate:
+### Быстрый Backend Gate
+
+Backend тестируется как интеграционный API-сервис: FastAPI вызывается через `httpx` (ASGI transport), данные проходят через реальную PostgreSQL test DB. Проверяется каждая миграция, SQL-запрос, авторизация, OpenAPI parity и кросс-пользовательская изоляция.
 
 ```bash
-make backend-lint
-make backend-compile
-make backend-test
+make backend-lint                    # ruff — стиль и статический анализ
+make backend-compile                 # compileall — синтаксическая целостность
+make backend-test                    # pytest — 150+ интеграционных тестов
 ```
 
-То же из директории backend:
+Одной командой из директории `backend/`:
 
 ```bash
-cd backend
-make test
+cd backend && make test              # lint + compile + db-reset + pytest
 ```
 
-Recommendation/AI checks:
+Дополнительные проверки:
 
 ```bash
-make backend-test-recommendations
-make recommendations-test
-make recommendations-smoke
-make recommendations-curl
+make backend-test-recommendations    # тесты recommendation planner/tools
+make recommendations-test            # smoke-тесты TEI, RAGFlow, SearXNG
+make recommendations-smoke           # backend + recommendations одним прогоном
+make recommendations-curl            # curl-примеры для ручной отладки
 ```
 
-Frontend checks:
+### Глобальное Системное Тестирование
+
+`make global-test` — полный сквозной прогон, доказывающий работоспособность всех компонентов системы в связке. Использует оркестратор `scripts/global-test.sh` и Python-скрипт `scripts/api_smoke.py`.
 
 ```bash
-cd frontend
-npm audit --audit-level=moderate
-npm run build
+make global-test
+```
+
+**Фазы тестирования:**
+
+| Фаза | Проверка | Детали |
+|------|---------|--------|
+| **Phase 1 — Pre-flight** | Доступность всех сервисов | Docker daemon, PostgreSQL (pg_isready), backend (health endpoint), RAGFlow (API), SearXNG (JSON search), LLM provider, env-переменные рекомендаций |
+| **Phase 2 — Reset** | Чистое состояние | Удаление тестовых пользователей, сброс тестовой БД (`findoctor_test`), очистка RAGFlow dataset |
+| **Phase 3 — Setup** | Наполнение данными | Засев 5 финансовых сценариев (72 месяца истории каждый), загрузка тестовых документов в RAGFlow, индексация |
+| **Phase 4 — Backend Suite** | Статические проверки + unit-тесты | `ruff lint` → `compileall` → `pytest -v --tb=short` (150+ тестов) → OpenAPI contract parity check |
+| **Phase 5 — API E2E** | Живые запросы к 5 пользователям | Авторизация (login, refresh, logout, token invalidation), профиль `/me`, CRUD счетов, дашборд с аналитикой, 2 типа рекомендаций на пользователя, AI-чат (простой и agentic), кросс-пользовательская изоляция, инвалидация токенов |
+| **Phase 6 — Summary** | Итоговый отчёт | Passed/Failed/Skipped по всем фазам, длительность, exit code |
+
+**5 тестовых пользователей:**
+
+| Пользователь | Сценарий | Проверяемые типы рекомендаций |
+|-------------|---------|---------------------------|
+| Алексей Стабильный | Высокий доход, инвестпортфель, резерв | `income`, `about_me` |
+| Ирина Фрилансер | Нерегулярный доход, налоговый долг | `income`, `expenses` |
+| Павел Восстановление | Кредитки, автокредит, выход из долгов | `debt_traffic_light`, `about_me` |
+| Елена Семейная | Ипотека, дети, семейный бюджет | `about_me`, `income` |
+| Николай Рантье | Пенсия, рента, дивиденды | `income`, `about_me` |
+
+**Требования для полного прогона:**
+
+- `backend/.env` с `RECOMMENDATIONS_ENABLED=true`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`
+- `RAGFLOW_API_KEY`, `RAGFLOW_DATASET_ID` (создаются через `make -C ragflow setup`)
+- SearXNG на `localhost:8201`
+- RAGFlow на `localhost:9380`
+
+При отсутствии LLM/RAG-конфигурации AI-тесты корректно пропускаются (SKIP), а инфраструктурные и API-тесты выполняются в полном объёме.
+
+**Вывод теста — доказательный:** каждая проверка логирует HTTP-метод, URL, статус-код, тело ответа и результат верификации. Формат:
+
+```
+  REQ: POST /api/v1/recommendations?type=income
+  RES: 200 (4.2s)
+  BODY: {"recommendation":"Алексей, ваш доход стабилен — 185 000 ₽/мес...","status":"complete",...}
+  VERIFY: status=complete ✓  toolResults returned ✓  Russian text ✓
+  PASS  income recommendation (4.2s)
 ```
 
 Проверяемые сценарии:
 
-- регистрация, логин, refresh, logout;
+- регистрация, логин, refresh, logout, инвалидация токенов;
 - CRUD счетов, операций, переводов, активов, обязательств, целей и тегов;
 - атомарность переводов через `transfer + debit transaction + credit transaction`;
 - платежи по обязательствам и связь с транзакциями;
-- dashboard, cash-flow, net-worth и snapshots;
-- AI chat, диалоги, текстовый и голосовой сценарии;
-- recommendation planner/tools/finalizer;
-- фильтрация поиска по [`ragflow/allowed_resources.txt`](ragflow/allowed_resources.txt);
+- dashboard, cash-flow, net-worth и daily snapshots;
+- AI chat: текстовый режим, agentic-режим (planner → tools → finalizer);
+- recommendation planner/tools/finalizer pipeline;
+- RAGFlow retrieval (векторный поиск + LLM-переранжирование);
+- SearXNG web search с фильтрацией по [`ragflow/allowed_resources.txt`](ragflow/allowed_resources.txt);
 - OpenAPI parity между FastAPI routes и [`api-contract/openapi.yaml`](api-contract/openapi.yaml);
-- cross-user authorization: чужие ресурсы возвращают `404`.
+- кросс-пользовательская изоляция: чужой ресурс → `404`.
 
 Подробнее: [`backend/TESTING.md`](backend/TESTING.md), готовность к демо: [`docs/hackathon-readiness.md`](docs/hackathon-readiness.md).

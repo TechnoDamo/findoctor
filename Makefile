@@ -36,7 +36,7 @@ BACKEND_PYTHON := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/python),./.venv/bin/p
 .PHONY: cloud-check cloud-recommendations-check
 .PHONY: backend-run frontend-run frontend-build frontend-install backend-test backend-test-recommendations backend-lint backend-compile
 .PHONY: recommendations-test recommendations-smoke recommendations-curl
-.PHONY: docs-check doctor
+.PHONY: docs-check doctor global-test
 
 # Presets
 .PHONY: preset-core preset-hybrid preset-fully-local preset-cloud
@@ -368,6 +368,9 @@ cloud-recommendations-check:
 
 doctor:
 	@./scripts/doctor.sh
+
+global-test:
+	@./scripts/global-test.sh
 
 docs-check:
 	@echo "Доступная документация:"
