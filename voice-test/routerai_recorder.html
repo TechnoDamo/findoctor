@@ -281,6 +281,10 @@
         <section class="stack">
           <h2>Text Voiceover</h2>
           <label>
+            TTS API
+            <select id="ttsProvider"></select>
+          </label>
+          <label>
             TTS model
             <select id="ttsModel"></select>
           </label>
@@ -297,6 +301,14 @@
             <input id="ttsMaxTokens" type="number" min="1" step="1" value="120" />
           </label>
           <label>
+            Silero sample rate
+            <select id="sileroSampleRate"></select>
+          </label>
+          <label class="row">
+            <input id="sileroSsml" type="checkbox" style="width: auto" />
+            Treat text as Silero SSML
+          </label>
+          <label>
             System prompt
             <textarea id="ttsSystemPrompt">You are a text-to-speech voiceover engine. Speak exactly the user's text verbatim. Do not answer, rewrite, summarize, translate, add introductions, or add closing remarks.</textarea>
           </label>
@@ -310,6 +322,10 @@
 
         <section class="stack">
           <h2>Speech To Text</h2>
+          <label>
+            STT API
+            <select id="sttProvider"></select>
+          </label>
           <label>
             Audio file
             <select id="audioSelect"></select>
@@ -350,6 +366,10 @@
           <summary>Full body</summary>
           <pre id="response"></pre>
         </details>
+        <details>
+          <summary>Full request body</summary>
+          <pre id="requestBody"></pre>
+        </details>
       </section>
     </main>
 
@@ -379,9 +399,14 @@
         $("response").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
       }
 
-      function setResult(content, body) {
+      function setRequestBody(value) {
+        $("requestBody").textContent = typeof value === "string" ? value : JSON.stringify(value || "", null, 2);
+      }
+
+      function setResult(content, body, requestBody) {
         $("responseContent").textContent = content || "";
         setResponse(body);
+        setRequestBody(requestBody || "");
       }
 
       function fillSelect(select, items, getValue, getLabel) {
@@ -450,9 +475,51 @@
 
       async function loadModels() {
         state.models = await apiJson("/models");
-        fillSelect($("ttsModel"), state.models.tts, (m) => m.id, optionText);
-        fillSelect($("sttModel"), state.models.stt, (m) => m.id, optionText);
-        fillSelect($("voice"), state.models.voices, (v) => v, (v) => v);
+        fillSelect($("ttsProvider"), state.models.providers, (p) => p.id, (p) => p.name);
+        fillSelect($("sttProvider"), state.models.providers, (p) => p.id, (p) => p.name);
+        $("ttsProvider").value = "openai-compatible";
+        $("sttProvider").value = "openai-compatible";
+        updateTtsModels();
+        updateSttModels();
+      }
+
+      function selectedTtsModel() {
+        return state.models.tts.find((model) => model.id === $("ttsModel").value && (model.provider || "openai-compatible") === $("ttsProvider").value);
+      }
+
+      function selectedSttModel() {
+        return state.models.stt.find((model) => model.id === $("sttModel").value && (model.provider || "openai-compatible") === $("sttProvider").value);
+      }
+
+      function updateTtsModels() {
+        const provider = $("ttsProvider").value;
+        const models = state.models.tts.filter((model) => (model.provider || "openai-compatible") === provider);
+        fillSelect($("ttsModel"), models, (m) => m.id, optionText);
+        updateTtsControls();
+      }
+
+      function updateTtsControls() {
+        const provider = $("ttsProvider").value;
+        const model = selectedTtsModel();
+        const voices = provider === "silero" ? model?.voices || [] : state.models.voices;
+        fillSelect($("voice"), voices, (v) => v, (v) => v);
+        const rates = provider === "silero" ? model?.sampleRates || [48000] : [];
+        fillSelect($("sileroSampleRate"), rates, (v) => String(v), (v) => `${v} Hz`);
+        $("ttsMaxTokens").disabled = provider === "silero";
+        $("ttsSystemPrompt").disabled = provider === "silero";
+        $("ttsLanguage").disabled = provider === "silero";
+        $("sileroSampleRate").disabled = provider !== "silero";
+        $("sileroSsml").disabled = provider !== "silero";
+      }
+
+      function updateSttModels() {
+        const provider = $("sttProvider").value;
+        const models = state.models.stt.filter((model) => (model.provider || "openai-compatible") === provider);
+        fillSelect($("sttModel"), models, (m) => m.id, optionText);
+        const isSilero = provider === "silero";
+        $("sttPrompt").disabled = isSilero;
+        $("sttMaxTokens").disabled = isSilero;
+        $("sttLanguage").disabled = isSilero;
       }
 
       async function loadRecordings() {
@@ -474,7 +541,7 @@
 
       function updateSelectedAudio() {
         const name = $("audioSelect").value;
-        const recording = state.recordings.find((item) => item.name === name);
+        const recording = state.recordings.find((item) => item.id === name);
         if (!recording) {
           $("selectedAudio").removeAttribute("src");
           $("audioInfo").textContent = "No recording selected.";
@@ -546,6 +613,9 @@
       });
 
       $("audioSelect").addEventListener("change", updateSelectedAudio);
+      $("ttsProvider").addEventListener("change", updateTtsModels);
+      $("ttsModel").addEventListener("change", updateTtsControls);
+      $("sttProvider").addEventListener("change", updateSttModels);
 
       $("sendTts").addEventListener("click", async () => {
         $("sendTts").disabled = true;
@@ -556,15 +626,18 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               model: $("ttsModel").value,
+              provider: $("ttsProvider").value,
               voice: $("voice").value,
               text: $("ttsText").value,
               systemPrompt: $("ttsSystemPrompt").value,
               language: $("ttsLanguage").value,
               maxTokens: $("ttsMaxTokens").value,
+              sampleRate: $("sileroSampleRate").value,
+              ssml: $("sileroSsml").checked,
             }),
           });
           $("ttsOutput").src = result.files.wavUrl;
-          setResult(result.text || "(No text content returned)", result);
+          setResult(result.text || "(No text content returned)", result, result.requestBody);
           await loadRecordings();
           $("audioSelect").value = result.files.wavRef;
           updateSelectedAudio();
@@ -585,14 +658,17 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               model: $("sttModel").value,
+              provider: $("sttProvider").value,
               audioFile: $("audioSelect").value,
               prompt: $("sttPrompt").value,
-              language: $("sttLanguage").value,
+              language: $("sttProvider").value === "silero" ? selectedSttModel()?.language : $("sttLanguage").value,
               maxTokens: $("sttMaxTokens").value,
+              version: selectedSttModel()?.version,
+              format: selectedSttModel()?.format,
             }),
           });
           $("transcript").textContent = result.transcript || "(No transcript extracted)";
-          setResult(result.transcript || "(No transcript extracted)", result);
+          setResult(result.transcript || "(No transcript extracted)", result, result.requestBody);
         } catch (error) {
           setResult(error.message, error.message);
         } finally {

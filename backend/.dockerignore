@@ -1,0 +1,12 @@
+.env
+.venv
+.pytest_cache
+__pycache__
+*.py[cod]
+.coverage
+htmlcov
+.ruff_cache
+*.log
+tests
+test_runner.py
+test_smoke_test.py

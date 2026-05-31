@@ -1,0 +1,9 @@
+# Allowed external resources for FinDoctor recommendation RAG/search.
+# One URL or domain per line. Blank lines and comments are ignored.
+# Backend ПрофИИта должен применять этот allowlist перед search, fetch или ingestion.
+
+https://www.cbr.ru/
+https://www.nalog.gov.ru/
+https://www.gosuslugi.ru/
+https://journal.tinkoff.ru/
+https://www.banki.ru/

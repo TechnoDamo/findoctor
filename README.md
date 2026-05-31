@@ -1,0 +1,425 @@
+# ПрофИИт
+
+ПрофИИт — умная ИТ-платформа для учёта личных финансов и персональных финансовых рекомендаций.
+
+Приложение собирает финансовую картину пользователя в единую модель: счета, операции, переводы, активы, обязательства, цели и регулярные платежи. На основе этих данных система показывает аналитику, помогает оценивать долговую нагрузку, планировать накопления и подбирать релевантные советы, программы господдержки, налоговые вычеты и партнёрские финансовые продукты.
+
+**Для обеспечения релеватнтных рекомендаций используется RAG и веб-поиск по списку разрешенных источников**
+
+## Содержание
+
+- [Описание бизнес функционала](#описание-функционала)
+  - [Учет личных финансов](#учет-личных-финансов)
+  - [AI-чат с голосовым режимом](#ai-чат-c-голосовым-режимом)
+  - [Коммерческие и некоммерческие рекомендации для пользователей](#рекомендации)
+- [Архитектура системы](#архитектура-системы)
+  - [Высокоуровневая схема](#высокоуровневая-схема)
+  - [API контракт](#api)
+  - [Диаграммы последовательности для основных процессов](#диаграммы-последовательности-для-основных-процессов)
+  - [База данных](#база-данных)
+  - [Дальнейшее развитие](#дальнейшее-развитие)
+- [Деплой системы](#деплой-системы)
+- [Структура репозитория](#структура-репозитория)
+  - [Документация](#документация)
+  - [Текущий статус](#текущий-статус)
+- [Тестирование системы](#тестирование)
+
+## Описание функционала
+
+### Учет личных финансов
+
+ПрофИИт хранит реальные движения денег как транзакции, а остальные сущности описывают контекст этих движений. Такой подход позволяет одновременно вести операционный учёт, строить аналитику и безопасно передавать агрегированный финансовый контекст в AI-сценарии.
+
+Основные возможности:
+
+- учёт банковских счетов, карт, наличных, брокерских счетов, криптокошельков и других мест хранения денег;
+- ведение доходов, расходов и переводов между своими счетами;
+- учёт регулярных операций: зарплаты, аренды, подписок, платежей по долгам;
+- учёт активов: недвижимости, автомобилей, инвестиций, бизнеса, криптоактивов и другого имущества;
+- учёт обязательств: кредитов, ипотеки, кредитных карт, рассрочек, налоговых и неформальных долгов;
+- связывание платежей по обязательствам с реальными транзакциями и разделение платежа на тело долга, проценты и комиссии;
+- постановка финансовых целей и отслеживание прогресса;
+- пользовательские теги, категории, merchants и финансовые организации для нормализации данных;
+- ежедневные аналитические снимки: кэш, активы, обязательства, чистый капитал, доходы, расходы и savings rate.
+
+Подробное описание доменной модели: [`db/descriptions.md`](db/descriptions.md).
+
+### AI-чат c голосовым режимом
+
+Встроенный AI-чат работает как финансовый ассистент. Пользователь может отправить текстовое или голосовое сообщение, а backend сохранит диалог, соберёт доступный финансовый контекст и вернёт ответ в текстовом виде, аудиоформате или в обоих форматах.
+
+Ассистент может использовать:
+
+1. Финансовые данные пользователя: счета, операции, активы, обязательства, цели, аналитику и долговую нагрузку.
+2. Базу знаний с программами господдержки, субсидиями, налоговыми вычетами и финансовыми материалами.
+3. Партнёрские или внешние финансовые предложения, если они доступны в разрешённых источниках.
+
+Текстовый режим использует endpoint `POST /api/v1/ai/chat/messages`. Голосовой режим использует `POST /api/v1/ai/chat/audio`: аудио проходит через STT, затем текст обрабатывается LLM, после чего при необходимости ответ озвучивается через TTS. Провайдеры STT/LLM/TTS настраиваются через OpenAI-compatible API: это может быть облачный endpoint или локальная инфраструктура.
+
+Для пунктов 2 и 3 используется recommendation pipeline: Planner LLM решает, нужны ли RAG или поиск, backend вызывает только разрешённые инструменты, а Finalizer LLM формирует итоговый ответ на основе найденных evidence. RAG работает через [`ragflow/`](ragflow/), поиск — через [`searxng/`](searxng/), embeddings — через [`tei/`](tei/). Разрешённые внешние источники перечислены в [`ragflow/allowed_resources.txt`](ragflow/allowed_resources.txt).
+
+![AI-чат полный конвейер](diagrams/ai-chat-full-pipeline.png)
+
+Исходник sequence-диаграммы: [`diagrams/ai-chat-full-pipeline.puml`](diagrams/ai-chat-full-pipeline.puml). Эксперименты с STT/TTS и аудиомоделями находятся в [`voice-test/`](voice-test/), локальный STT-сервер — в [`whisper-server/`](whisper-server/).
+
+Подробнее: [`backend/docs/ai-chat.md`](backend/docs/ai-chat.md).
+
+### Рекомендации
+
+Рекомендационный контур используется в AI-чате и в отдельном продуктовом endpoint `POST /api/v1/recommendations?type=...`. Он нужен для сценариев, где ответ должен учитывать не только данные пользователя, но и проверяемые документы или разрешённые внешние источники.
+
+Поддерживаемые типы рекомендаций:
+
+- `income` — анализ доходов и советы по усилению доходной части;
+- `expenses` — анализ расходов и рекомендации по оптимизации;
+- `debt_traffic_light` — кредитный светофор и оценка долговой нагрузки;
+- `credit_decision` — оценка конкретного кредита с учётом суммы, срока, платежа, ставки и цели;
+- `about_me` — общий финансовый портрет пользователя;
+- `savings_goal` — зарезервированный сценарий для анализа конкретной цели накопления.
+
+Поток обработки:
+
+1. Product service или AI-chat service формирует вопрос, тип рекомендации и финансовый контекст.
+2. Planner LLM возвращает строгий JSON-план с нужными инструментами.
+3. Backend выполняет только разрешённые tools: user-scoped SQL-запросы, RAGFlow retrieval и SearXNG search.
+4. Search-результаты фильтруются через allowlist из [`ragflow/allowed_resources.txt`](ragflow/allowed_resources.txt).
+5. Finalizer LLM формирует русскоязычный ответ с фактами, анализом, советом, статусом и evidence.
+6. API возвращает нормализованный ответ для UI и `toolResults` для проверяемости.
+
+![Исполнение инструментов рекомендаций](diagrams/agentic-tool-execution.png)
+
+Исходник sequence-диаграммы: [`diagrams/agentic-tool-execution.puml`](diagrams/agentic-tool-execution.puml).
+
+Подробнее: [`backend/docs/recommendations.md`](backend/docs/recommendations.md), примеры ответов: [`backend/docs/recommendation_examples.md`](backend/docs/recommendation_examples.md).
+
+## Архитектура системы
+
+### Высокоуровневая схема
+
+![Архитектура системы](diagrams/system_design.png)
+
+Центральный компонент системы — FastAPI backend. Он обслуживает клиентский API, управляет транзакциями, обращается к PostgreSQL, оркестрирует AI/voice/recommendation-сценарии и скрывает от frontend все секреты внешних сервисов.
+
+Основные компоненты:
+
+- [`frontend/`](frontend/) — Next.js-приложение для пользовательского интерфейса.
+- [`backend/`](backend/) — FastAPI API, сервисный слой, репозитории, AI/recommendation orchestration.
+- [`db/`](db/) — DBML-схема, описание модели, локальный PostgreSQL и инструкции по БД.
+- [`api-contract/`](api-contract/) — OpenAPI-контракт клиентского API.
+- [`ragflow/`](ragflow/) — self-hosted RAG-сервис для retrieval по базе знаний.
+- [`searxng/`](searxng/) — self-hosted поисковый сервис для discovery по разрешённым ресурсам.
+- [`tei/`](tei/) — локальный Text Embeddings Inference server для embeddings.
+- [`vLLM/`](vLLM/) — локальный LLM inference для fully local AI-сценариев.
+- [`whisper-server/`](whisper-server/) — локальный STT-сервер.
+- [`graylog/`](graylog/) — агрегатор логов для наблюдаемости.
+
+Backend-слои:
+
+- `api/routes` — HTTP endpoints, валидация входа/выхода, OpenAPI-совместимые схемы;
+- `services` — сценарии приложения и транзакционные границы;
+- `repositories` — явный SQL и отображение строк БД в Python-структуры;
+- `db` — пул подключений, транзакционные помощники, SQL-запросы;
+- `clients` — адаптеры внешних и OpenAI-compatible провайдеров;
+- `services/recommendations` — planner -> tools -> finalizer pipeline.
+
+### API
+
+Клиентский контракт: [`api-contract/openapi.yaml`](api-contract/openapi.yaml).
+
+Основные группы endpoints:
+
+- Auth и профиль: регистрация, логин, refresh, logout, текущий пользователь.
+- Reference data: типы счетов, активов, долгов, категории, merchants, institutions.
+- CRUD пользовательских объектов: accounts, transactions, transfers, recurring transactions, assets, liabilities, liability payments, goals, tags.
+- Imports: идемпотентный импорт операций.
+- Analytics: dashboard, cash-flow, net-worth, daily snapshots.
+- AI Chat: текстовый чат, голосовой чат, диалоги и сообщения.
+- Recommendations: единый продуктовый endpoint `POST /api/v1/recommendations?type=...`.
+
+Auth работает через Bearer JWT и серверные сессии в `auth_sessions`. Все пользовательские финансовые запросы выполняются с фильтрацией по текущему пользователю; чужие UUID должны возвращать `404`, а не раскрывать факт существования ресурса.
+
+### Диаграммы последовательности для основных процессов
+
+В [`diagrams/`](diagrams/) находятся PNG и PlantUML-исходники, а в [`docs/architecture-uml.md`](docs/architecture-uml.md) — Mermaid-версии основных сценариев.
+
+Ключевые диаграммы:
+
+- [`diagrams/system_design.png`](diagrams/system_design.png) — компонентная архитектура системы.
+- [`diagrams/functionality.png`](diagrams/functionality.png) — карта продуктовых возможностей.
+- [`diagrams/ERD.png`](diagrams/ERD.png) — entity-relationship диаграмма базы данных.
+- [`diagrams/ai-chat-full-pipeline.png`](diagrams/ai-chat-full-pipeline.png) — полный AI-chat pipeline.
+- [`diagrams/agentic-tool-execution.png`](diagrams/agentic-tool-execution.png) — исполнение recommendation tools.
+- [`docs/ai-chat-flow.puml`](docs/ai-chat-flow.puml) — дополнительный PlantUML flow AI-чата.
+
+### База данных
+
+![ERD](diagrams/ERD.png)
+
+Схема описана в двух формах:
+
+- [`db/schema.dbml`](db/schema.dbml) — компактная DBML-схема для визуализации.
+- [`backend/migrations/versions/`](backend/migrations/versions/) — исполняемая история изменений через Alembic.
+
+Ключевые принципы:
+
+- реальные движения денег хранятся в `transactions`;
+- `transfers` связывает две transaction legs: списание и зачисление;
+- `recurring_transactions` хранит шаблоны, но не заменяет фактические операции;
+- `assets` и `liabilities` участвуют в расчёте чистого капитала;
+- `liability_payments` связывает платежи по долгам с реальными транзакциями;
+- `daily_financial_snapshots` — производная read model для графиков, отчётов и AI-аналитики;
+- изменения структуры БД должны попадать и в Alembic-миграции, и в `db/schema.dbml`.
+
+Подробное описание таблиц: [`db/descriptions.md`](db/descriptions.md). Локальный PostgreSQL, backup и restore: [`db/deployment.md`](db/deployment.md).
+
+### Дальнейшее развитие
+
+Ближайшие направления развития:
+
+- сделать архитектуру более async-friendly для повышения проивзодительности
+- проработать систему с точки зрения безопасности и сохранности данных (backup политики и.т.п)
+- довести клиентские dashboard flows и формы ввода финансовых данных;
+- реализовать фоновые пересчёты `daily_financial_snapshots`;
+- расширить импорт операций из банковских выписок и внешних интеграций;
+- добавить сценарии по конкретным целям накопления;
+- подготовить production deployment manifests и секреты для управляемой инфраструктуры;
+- расширить наблюдаемость: метрики AI-вызовов, latency, tool usage, качество retrieval и ошибки провайдеров.
+
+Ключевые инженерные решения уже зафиксированы в [`backend/STACK.md`](backend/STACK.md): Python 3.12+, FastAPI, Pydantic v2, PostgreSQL, Alembic, явный SQL без ORM для прикладной персистентности, транзакции на уровне service/use-case.
+
+## Деплой системы
+
+Корневой [`Makefile`](Makefile) — per-component deployment: каждый компонент системы настраивается независимо флагом `local`, `cloud` или `none`.
+
+```bash
+make deploy-system [postgres=local|cloud] [ragflow=local|cloud|none] [searxng=local|cloud|none] \
+                   [graylog=local|cloud|none] [tei=local|none] [vllm=local|none] [whisper=local|none]
+```
+
+**backend** и **frontend** деплоятся всегда (Docker контейнеры), флагов не требуют.
+
+### Таблица компонентов и значений по умолчанию
+
+| Компонент | Флаги | Дефолт | `local` | `cloud` | `none` |
+|-----------|-------|--------|---------|---------|--------|
+| backend | — | — | Docker контейнер | — | — |
+| frontend | — | — | Docker контейнер | — | — |
+| postgres | `local` `cloud` | **local** | контейнер + миграции | проверка `DATABASE_URL` | — |
+| ragflow  | `local` `cloud` `none` | **local** | upstream RAGFlow compose | проверка `RAGFLOW_BASE_URL`/`API_KEY`/`DATASET_ID` | пропустить |
+| searxng  | `local` `cloud` `none` | **local** | SearXNG контейнер | проверка `SEARXNG_BASE_URL` | пропустить |
+| graylog  | `local` `cloud` `none` | **local** | Graylog стек | проверка `GRAYLOG_HOST` | пропустить |
+| tei      | `local` `none` | **none** | TEI embeddings контейнер | — | пропустить |
+| vllm     | `local` `none` | **none** | локальный OpenAI-совместимый vLLM | — | пропустить |
+| whisper  | `local` `none` | **none** | whisper.cpp сервер + прокси | — | пропустить |
+
+### Пресеты
+
+| Команда | Что делает |
+|---------|-----------|
+| `make deploy-system` | всё по умолчанию (инфра локально, AI не трогаем) |
+| `make deploy-system core` | только backend+frontend+postgres |
+| `make deploy-system hybrid` | cloud LLM + локальные RAG/search/embeddings |
+| `make deploy-system fully-local` | всё локально (включая vLLM, TEI, whisper) |
+| `make deploy-system cloud` | всё cloud (валидация env, ничего не деплоится) |
+
+### Примеры
+
+```bash
+make deploy-system                                 # инфра локально
+make deploy-system vllm=local whisper=local        # + AI модели локально
+make deploy-system ragflow=cloud searxng=cloud     # RAG/search в облаке
+make deploy-system graylog=none                    # без Graylog
+```
+
+### Остановка / статус / логи
+
+```bash
+make stop-system   COMPONENTS="postgres ragflow vllm"
+make stop-system   COMPONENTS=all
+make status-system COMPONENTS="backend frontend"
+make logs-system   COMPONENT=backend
+make logs-system   COMPONENT=vllm
+```
+
+Локальная разработка приложения:
+
+```bash
+make init                        # подготовить все .env файлы
+make doctor                      # диагностика окружения
+make deploy-system core          # backend + frontend + postgres
+make backend-run                 # FastAPI dev server (порт 8000)
+make frontend-install            # npm install
+make frontend-run                # Next.js dev server (порт 3000)
+```
+
+Локальные recommendation-сервисы:
+
+```bash
+make init-recommendations
+make pull-recommendations
+make deploy-system               # + рекомендации (ragflow, searxng)
+make recommendations-test
+```
+
+Fully local AI:
+
+```bash
+make init
+make pull-ai-local
+make deploy-system vllm=local tei=local whisper=local
+```
+
+Остановка:
+
+```bash
+make stop-system COMPONENTS=all
+```
+
+Перед включением рекомендаций backend должен получить обязательные env-переменные:
+
+```env
+RECOMMENDATIONS_ENABLED=true
+RAGFLOW_BASE_URL=http://localhost:9380
+RAGFLOW_API_KEY=...
+RAGFLOW_DATASET_ID=...
+SEARXNG_BASE_URL=http://localhost:8201
+```
+
+Для backend в Docker локальные сервисы хоста обычно указываются через `host.docker.internal`.
+
+Подробные профили, production safety gate и env-примеры: [`docs/deployment.md`](docs/deployment.md).
+## Структура репозитория
+
+```text
+.
+├── api-contract/          # OpenAPI/Swagger YAML
+├── backend/               # Python/FastAPI backend, Alembic-миграции
+├── db/                    # DBML-схема, описание модели, локальный PostgreSQL
+├── diagrams/              # Визуальные схемы (PNG + PlantUML)
+├── docs/                  # Проектная документация
+├── frontend/              # Next.js фронтенд
+├── graylog/               # Агрегатор логов
+├── ragflow/               # Self-hosted RAG-сервис
+├── scripts/               # Служебные скрипты
+├── searxng/               # Self-hosted поисковый сервис
+├── tei/                   # Локальный embedding inference
+├── vLLM/                  # Локальный LLM inference
+├── voice-test/            # Прототипы голосового ввода/вывода
+├── whisper-server/        # Локальный STT-сервер
+├── docker-compose.yml     # Основной compose-файл
+├── Makefile               # Корневые команды деплоя
+└── render.yaml            # Конфигурация облачного деплоя
+```
+
+### Документация
+
+| Документ | Содержание |
+| --- | --- |
+| [`api-contract/openapi.yaml`](api-contract/openapi.yaml) | Полный клиентский OpenAPI/Swagger-контракт |
+| [`backend/STACK.md`](backend/STACK.md) | Backend-стек, правила транзакций, SQL-подход, тестирование |
+| [`backend/TESTING.md`](backend/TESTING.md) | Test gate, fixtures, cross-user authorization |
+| [`backend/docs/ai-chat.md`](backend/docs/ai-chat.md) | AI-чат: архитектура, STT/LLM/TTS, голосовой режим |
+| [`backend/docs/recommendations.md`](backend/docs/recommendations.md) | Recommendation planner/RAG/search архитектура |
+| [`backend/docs/recommendation_examples.md`](backend/docs/recommendation_examples.md) | Примеры planner JSON и финальных ответов |
+| [`backend/docs/ragflow_dataset_setup.md`](backend/docs/ragflow_dataset_setup.md) | Настройка RAGFlow dataset и TEI embedding |
+| [`backend/migrations/README.md`](backend/migrations/README.md) | Контекст по миграциям |
+| [`db/schema.dbml`](db/schema.dbml) | DBML-схема таблиц, enum, индексов и связей |
+| [`db/descriptions.md`](db/descriptions.md) | Подробное описание доменной модели |
+| [`db/deployment.md`](db/deployment.md) | Локальный PostgreSQL, backup/restore |
+| [`docs/architecture-uml.md`](docs/architecture-uml.md) | UML/Mermaid диаграммы и deployment-комбинации |
+| [`docs/deployment.md`](docs/deployment.md) | Профили деплоя: local, hybrid, fully local AI, cloud |
+| [`docs/hackathon-readiness.md`](docs/hackathon-readiness.md) | План демо, проверки, границы системы |
+
+
+## Тестирование
+
+Проект использует двухуровневую модель тестирования: быстрый backend-gate для разработки и глобальный системный тест для полной валидации production-readiness.
+
+### Быстрый Backend Gate
+
+Backend тестируется как интеграционный API-сервис: FastAPI вызывается через `httpx` (ASGI transport), данные проходят через реальную PostgreSQL test DB. Проверяется каждая миграция, SQL-запрос, авторизация, OpenAPI parity и кросс-пользовательская изоляция.
+
+```bash
+make backend-lint                    # ruff — стиль и статический анализ
+make backend-compile                 # compileall — синтаксическая целостность
+make backend-test                    # pytest — 150+ интеграционных тестов
+```
+
+Одной командой из директории `backend/`:
+
+```bash
+cd backend && make test              # lint + compile + db-reset + pytest
+```
+
+Дополнительные проверки:
+
+```bash
+make backend-test-recommendations    # тесты recommendation planner/tools
+make recommendations-test            # smoke-тесты TEI, RAGFlow, SearXNG
+make recommendations-smoke           # backend + recommendations одним прогоном
+make recommendations-curl            # curl-примеры для ручной отладки
+```
+
+### Глобальное Системное Тестирование
+
+`make global-test` — полный сквозной прогон, доказывающий работоспособность всех компонентов системы в связке. Использует оркестратор `scripts/global-test.sh` и Python-скрипт `scripts/api_smoke.py`.
+
+```bash
+make global-test
+```
+
+**Фазы тестирования:**
+
+| Фаза | Проверка | Детали |
+|------|---------|--------|
+| **Phase 1 — Pre-flight** | Доступность всех сервисов | Docker daemon, PostgreSQL (pg_isready), backend (health endpoint), RAGFlow (API), SearXNG (JSON search), LLM provider, env-переменные рекомендаций |
+| **Phase 2 — Reset** | Чистое состояние | Удаление тестовых пользователей, сброс тестовой БД (`findoctor_test`), очистка RAGFlow dataset |
+| **Phase 3 — Setup** | Наполнение данными | Засев 5 финансовых сценариев (72 месяца истории каждый), загрузка тестовых документов в RAGFlow, индексация |
+| **Phase 4 — Backend Suite** | Статические проверки + unit-тесты | `ruff lint` → `compileall` → `pytest -v --tb=short` (150+ тестов) → OpenAPI contract parity check |
+| **Phase 5 — API E2E** | Живые запросы к 5 пользователям | Авторизация (login, refresh, logout, token invalidation), профиль `/me`, CRUD счетов, дашборд с аналитикой, 2 типа рекомендаций на пользователя, AI-чат (простой и agentic), кросс-пользовательская изоляция, инвалидация токенов |
+| **Phase 6 — Summary** | Итоговый отчёт | Passed/Failed/Skipped по всем фазам, длительность, exit code |
+
+**5 тестовых пользователей:**
+
+| Пользователь | Сценарий | Проверяемые типы рекомендаций |
+|-------------|---------|---------------------------|
+| Алексей Стабильный | Высокий доход, инвестпортфель, резерв | `income`, `about_me` |
+| Ирина Фрилансер | Нерегулярный доход, налоговый долг | `income`, `expenses` |
+| Павел Восстановление | Кредитки, автокредит, выход из долгов | `debt_traffic_light`, `about_me` |
+| Елена Семейная | Ипотека, дети, семейный бюджет | `about_me`, `income` |
+| Николай Рантье | Пенсия, рента, дивиденды | `income`, `about_me` |
+
+**Требования для полного прогона:**
+
+- `backend/.env` с `RECOMMENDATIONS_ENABLED=true`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`
+- `RAGFLOW_API_KEY`, `RAGFLOW_DATASET_ID` (создаются через `make -C ragflow setup`)
+- SearXNG на `localhost:8201`
+- RAGFlow на `localhost:9380`
+
+При отсутствии LLM/RAG-конфигурации AI-тесты корректно пропускаются (SKIP), а инфраструктурные и API-тесты выполняются в полном объёме.
+
+**Вывод теста — доказательный:** каждая проверка логирует HTTP-метод, URL, статус-код, тело ответа и результат верификации. Формат:
+
+```
+  REQ: POST /api/v1/recommendations?type=income
+  RES: 200 (4.2s)
+  BODY: {"recommendation":"Алексей, ваш доход стабилен — 185 000 ₽/мес...","status":"complete",...}
+  VERIFY: status=complete ✓  toolResults returned ✓  Russian text ✓
+  PASS  income recommendation (4.2s)
+```
+
+Проверяемые сценарии:
+
+- регистрация, логин, refresh, logout, инвалидация токенов;
+- CRUD счетов, операций, переводов, активов, обязательств, целей и тегов;
+- атомарность переводов через `transfer + debit transaction + credit transaction`;
+- платежи по обязательствам и связь с транзакциями;
+- dashboard, cash-flow, net-worth и daily snapshots;
+- AI chat: текстовый режим, agentic-режим (planner → tools → finalizer);
+- recommendation planner/tools/finalizer pipeline;
+- RAGFlow retrieval (векторный поиск + LLM-переранжирование);
+- SearXNG web search с фильтрацией по [`ragflow/allowed_resources.txt`](ragflow/allowed_resources.txt);
+- OpenAPI parity между FastAPI routes и [`api-contract/openapi.yaml`](api-contract/openapi.yaml);
+- кросс-пользовательская изоляция: чужой ресурс → `404`.
+
+Подробнее: [`backend/TESTING.md`](backend/TESTING.md), готовность к демо: [`docs/hackathon-readiness.md`](docs/hackathon-readiness.md).

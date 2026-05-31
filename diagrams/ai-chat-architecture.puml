@@ -1,0 +1,57 @@
+@startuml
+title AI-чат — Архитектура системы
+
+actor Фронтенд
+
+rectangle "API-слой" {
+    [Роутер /ai/chat]
+    [Схемы AiChat]
+}
+
+rectangle "Сервис чата" {
+    [send_message()]
+    [send_voice_message()]
+    [_run_agent()]
+    [_run_llm()]
+    [STT + TTS]
+}
+
+rectangle Оркестратор {
+    [run_recommendation_flow()]
+    [_run_planner()]
+    [_execute_tools()]
+    [_run_finalizer()]
+}
+
+rectangle Инструменты {
+    [user_data_tool]
+    [ragflow.py]
+    [search.py]
+    [source_policy.py]
+}
+
+database PostgreSQL {
+    [счета]
+    [транзакции]
+    [активы]
+    [обязательства]
+    [аналитика]
+    [справочники]
+}
+
+cloud "LLM-провайдеры" {
+    [Planner LLM]
+    [Finalizer LLM]
+    [STT-модель]
+    [TTS-модель]
+}
+
+Фронтенд --> API-слой : HTTP
+API-слой --> "Сервис чата"
+"Сервис чата" --> Оркестратор : agentic
+"Сервис чата" --> "LLM-провайдеры" : прямой LLM
+Оркестратор --> Инструменты
+Оркестратор --> "LLM-провайдеры"
+Инструменты --> PostgreSQL : запросы
+
+@enduml

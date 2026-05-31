@@ -29,12 +29,12 @@ fi
 TTS_MODELS=()
 while IFS= read -r model_id; do
   TTS_MODELS+=("$model_id")
-done < <(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); for (const x of m.tts) console.log(x.id)' "$MODEL_FILE")
+done < <(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); for (const x of m.tts.filter(x => (x.provider || "openai-compatible") === "openai-compatible")) console.log(x.id)' "$MODEL_FILE")
 
 STT_MODELS=()
 while IFS= read -r model_id; do
   STT_MODELS+=("$model_id")
-done < <(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); for (const x of m.stt) console.log(x.id)' "$MODEL_FILE")
+done < <(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); for (const x of m.stt.filter(x => (x.provider || "openai-compatible") === "openai-compatible")) console.log(x.id)' "$MODEL_FILE")
 
 VOICES=()
 while IFS= read -r voice_id; do
