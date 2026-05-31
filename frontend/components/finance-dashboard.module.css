@@ -13,7 +13,7 @@
   max-width: 402px;
   min-height: 874px;
   margin: 0 auto;
-  padding: 77px 23px 51px;
+  padding: 77px 23px 30px;
   box-sizing: border-box;
   display: block;
 }
@@ -70,6 +70,8 @@
   left: 20px;
   top: 50px;
   color: #444444;
+  display: flex;
+  gap: 10px;
   white-space: nowrap;
 }
 
@@ -89,7 +91,7 @@
 .pointsPill {
   position: absolute;
   left: 246px;
-  top: 42px;
+  top: 25px;
   width: 92px;
   height: 37px;
   border-radius: 15px;
@@ -97,6 +99,10 @@
   text-align: center;
   white-space: nowrap;
   line-height: 37px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 5px;
 }
 
 .pointsPill strong {
@@ -141,6 +147,10 @@
   border-radius: 14.5px;
   background: #ffffff;
   text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 6px;
   white-space: nowrap;
   line-height: 28px;
 }

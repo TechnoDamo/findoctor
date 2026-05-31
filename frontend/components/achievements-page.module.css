@@ -1,0 +1,107 @@
+.page {
+  min-height: 100dvh;
+  width: 100%;
+  background: #fdfdfd;
+  color: #444444;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.content {
+  width: 100%;
+  max-width: 402px;
+  margin: 0 auto;
+  padding: 77px 23px 48px;
+  box-sizing: border-box;
+}
+
+.headerTitle {
+  color: #444444;
+}
+
+.achievementsList {
+  margin-top: 59px;
+}
+
+.achievementCard {
+  width: 100%;
+  height: 129px;
+  border-radius: 25px;
+  background: #f3f3f3;
+  padding: 21px 26px 20px 25px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 41px;
+  column-gap: 16px;
+  align-items: center;
+}
+
+.achievementCard:not(:last-child) {
+  margin-bottom: 8px;
+}
+
+.achievementCard:nth-child(2) {
+  margin-bottom: 9px;
+}
+
+.achievementCard:nth-child(3) {
+  margin-bottom: 11px;
+}
+
+.achievementText {
+  min-width: 0;
+}
+
+.achievementTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #444444;
+}
+
+.achievementLevel {
+  margin: 2px 0 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #949090;
+}
+
+.achievementDescription {
+  margin: 21px 0 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #949090;
+  white-space: pre-line;
+}
+
+.achievementBadge {
+  width: 41px;
+  height: 41px;
+  border-radius: 50%;
+  justify-self: end;
+  align-self: center;
+}
+
+.achievementCard:nth-child(4) .achievementBadge {
+  transform: translateX(-8px);
+}
+
+.badgeBronze {
+  background: #e37601;
+}
+
+.badgeSilver {
+  background: #b2b2b2;
+}
+
+.badgeGold {
+  background: #ffcc00;
+}
+
+.badgeLocked {
+  background: rgba(215, 215, 215, 0.39);
+}

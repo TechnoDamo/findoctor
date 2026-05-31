@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 
+import { AchievementsPage } from "@/components/AchievementsPage";
+import { ConsultantAudioPage } from "@/components/ConsultantAudioPage";
+import { ConsultantTextPage } from "@/components/ConsultantTextPage";
 import { CreditTrafficPage } from "@/components/CreditTrafficPage";
 import { CushionModalPage } from "@/components/CushionModalPage";
 import { DaySpendingPage } from "@/components/DaySpendingPage";
 import { ExpensesPage } from "@/components/ExpensesPage";
-import { IncomePage } from "@/components/IncomePage";
 import { FinanceSectionPage } from "@/components/FinanceSectionPage";
-import { ConsultantAudioPage } from "@/components/ConsultantAudioPage";
-import { ConsultantTextPage } from "@/components/ConsultantTextPage";
+import { IncomePage } from "@/components/IncomePage";
 import { ProfilePage } from "@/components/ProfilePage";
 import { SavingsPage } from "@/components/SavingsPage";
 import { financeSectionsBySlug } from "@/lib/financeSections";
@@ -28,6 +29,10 @@ export default async function FinanceSectionRoute({ params, searchParams }: Fina
 
   if (section === "cushion_page") {
     return <CushionModalPage />;
+  }
+
+  if (section === "achievements_page") {
+    return <AchievementsPage />;
   }
 
   if (section === "expenses_page") {

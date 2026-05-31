@@ -85,10 +85,6 @@ const initialCredits: CreditItem[] = [
   },
 ];
 
-function formatRub(value: number) {
-  return `${numberFormatter.format(value)} руб`;
-}
-
 function parseNumber(raw: string) {
   const normalized = raw.replace(/\s+/g, "").replace(/,/g, ".");
 
@@ -174,6 +170,7 @@ export function ExpensesPage() {
   }, [credits, expenses]);
 
   const recommendationText = useMemo(() => getRecommendation(totalExpensesRub, incomeRub), [incomeRub, totalExpensesRub]);
+  const formattedIncomeRub = numberFormatter.format(incomeRub);
 
   function closeSheet() {
     setSheet(null);
@@ -395,8 +392,8 @@ export function ExpensesPage() {
   }
 
   return (
-    <main className={styles.financeScreen}>
-      <div className={clsx(styles.contentWrap, isSheetOpen && styles.expensesContentDimmed)}>
+    <main className={clsx(styles.financeScreen, styles.expensesPageScreen)}>
+      <div className={clsx(styles.contentWrap, styles.expensesPageContent, isSheetOpen && styles.expensesContentDimmed)}>
         <FinanceHeader title="Расходы" leftHref={financeRoutes.home} leftIcon="back" prizeHref={financeRoutes.achievements} logoutHref="/" />
 
         <section className={styles.expensesSummaryCard}>
@@ -410,11 +407,14 @@ export function ExpensesPage() {
 
           <div className={styles.expensesIncomePill}>
             <p className={styles.expensesIncomeLabel}>Доход</p>
-            <p className={styles.expensesIncomeValue}>{formatRub(incomeRub)}</p>
+            <p className={styles.expensesIncomeValue}>
+              <strong>{formattedIncomeRub}</strong>
+              <span>руб</span>
+            </p>
           </div>
         </section>
 
-        <section className={styles.expensesSection}>
+        <section className={clsx(styles.expensesSection, styles.expensesMainSection)}>
           <div className={styles.expensesSectionHeader}>
             <h2 className={styles.expensesSectionTitle}>Постоянные расходы</h2>
             <button className={styles.expensesAddButton} type="button" onClick={openCreateExpenseSheet} aria-label="Добавить расход">
@@ -426,8 +426,8 @@ export function ExpensesPage() {
             <div className={styles.expensesList}>
               {expenses.map((expense) => (
                 <button className={styles.expenseRowCard} type="button" key={expense.id} onClick={() => openEditExpenseSheet(expense.id)}>
-                  <span>{expense.description}</span>
-                  <span>
+                  <span className={styles.expenseName}>{expense.description}</span>
+                  <span className={styles.expenseAmount}>
                     <strong>{numberFormatter.format(expense.monthlyAmountRub)}</strong> руб
                   </span>
                 </button>
@@ -438,7 +438,7 @@ export function ExpensesPage() {
           )}
         </section>
 
-        <section className={styles.expensesSection}>
+        <section className={clsx(styles.expensesSection, styles.creditsSection)}>
           <div className={styles.expensesSectionHeader}>
             <h2 className={styles.expensesSectionTitle}>Кредиты</h2>
             <button className={styles.expensesAddButton} type="button" onClick={openCreateCreditSheet} aria-label="Добавить кредит">
@@ -451,8 +451,8 @@ export function ExpensesPage() {
               {credits.map((credit) => (
                 <button className={styles.creditCard} type="button" key={credit.id} onClick={() => openEditCreditSheet(credit.id)}>
                   <div className={styles.creditCardTop}>
-                    <span>Кредит {credit.bank}</span>
-                    <span>
+                    <span className={styles.creditTitle}>Кредит {credit.bank}</span>
+                    <span className={styles.creditAmount}>
                       <strong>{numberFormatter.format(credit.loanAmountRub)}</strong> руб
                     </span>
                   </div>
@@ -460,10 +460,10 @@ export function ExpensesPage() {
                   <div className={styles.creditCardDivider} />
 
                   <div className={styles.creditCardBottom}>
-                    <span>
+                    <span className={styles.creditPayment}>
                       <strong>{numberFormatter.format(credit.monthlyPaymentRub)}</strong> руб в мес
                     </span>
-                    <span>Осталось {credit.termMonths} мес</span>
+                    <span className={styles.creditTerm}>Осталось {credit.termMonths} мес</span>
                   </div>
                 </button>
               ))}
@@ -473,9 +473,11 @@ export function ExpensesPage() {
           )}
         </section>
 
-        <section className={styles.expensesSection}>
+        <section className={clsx(styles.expensesSection, styles.recommendationSection)}>
           <h2 className={styles.expensesSectionTitle}>Рекомендации</h2>
-          <div className={styles.expensesRecommendationCard}>{recommendationText}</div>
+          <article className={styles.expensesRecommendationCard}>
+            <p className={styles.expensesRecommendationText}>{recommendationText}</p>
+          </article>
         </section>
       </div>
 
