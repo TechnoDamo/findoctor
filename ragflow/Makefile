@@ -20,7 +20,7 @@ UPSTREAM_ENV        := $(UPSTREAM_DOCKER_DIR)/.env
         load-test-docs clear-dataset docs-list setup
 
 help:
-	@echo "RAGFlow — self-hosted RAG-сервис ФинДоктора"
+	@echo "RAGFlow — self-hosted RAG-сервис ПрофИИта"
 	@echo ""
 	@echo "Настройка:"
 	@echo "  make init         Создать .env из .env.example"

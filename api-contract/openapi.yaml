@@ -50,6 +50,8 @@ tags:
     description: Read models, snapshots, dashboard summaries, and derived series.
   - name: AI Chat
     description: Text and voice conversational AI with optional audio responses.
+  - name: Recommendations
+    description: Product-ready financial recommendation endpoint backed by user data, RAG, and controlled search.
   - name: Imports
     description: Idempotent data ingestion workflows.
 
@@ -249,6 +251,40 @@ paths:
           description: Conversation deleted
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /recommendations:
+    post:
+      tags: [Recommendations]
+      summary: Create a product financial recommendation
+      description: |
+        Runs one product recommendation flow selected by the required `type` query parameter.
+        The backend uses the AI recommendation pipeline with user-scoped financial data,
+        optional RAGFlow evidence, and controlled SearXNG search over allowed resources.
+
+        Active types are `income`, `expenses`, `debt_traffic_light`, `credit_decision`, and `about_me`.
+        `savings_goal` is reserved for the future savings-goal flow and currently returns validation error.
+      operationId: createRecommendation
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/RecommendationType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationRequest"
+      responses:
+        "200":
+          description: Product-ready Russian recommendation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /me:
     get:
@@ -2049,6 +2085,110 @@ components:
         audioOutputSeconds:
           type: [number, "null"]
           minimum: 0
+    RecommendationType:
+      type: string
+      enum:
+        - income
+        - expenses
+        - savings_goal
+        - debt_traffic_light
+        - credit_decision
+        - about_me
+      description: Product recommendation flow type.
+    CreditDecisionInput:
+      type: object
+      required: [amount, termMonths, monthlyPayment, interestRate, purpose, incomeStability]
+      properties:
+        amount:
+          type: string
+          description: Сумма кредита.
+        termMonths:
+          type: integer
+          exclusiveMinimum: 0
+          description: Срок кредита в месяцах.
+        monthlyPayment:
+          type: string
+          description: Ежемесячный платеж.
+        interestRate:
+          type: string
+          description: Процентная ставка.
+        purpose:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Цель кредита.
+        incomeStability:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Описание устойчивости дохода свободным текстом.
+    RecommendationRequest:
+      type: object
+      properties:
+        credit:
+          oneOf:
+            - $ref: "#/components/schemas/CreditDecisionInput"
+            - type: "null"
+          description: Required for `type=credit_decision`.
+        question:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Дополнительный вопрос или уточнение пользователя.
+        conversationId:
+          type: [string, "null"]
+          format: uuid
+    RecommendationSection:
+      type: object
+      required: [title, text]
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+    RecommendationResponse:
+      type: object
+      required: [type, title, analysis, advice, outputText]
+      properties:
+        type:
+          $ref: "#/components/schemas/RecommendationType"
+        title:
+          type: string
+        analysis:
+          type: string
+          description: User-friendly Russian analytics block.
+        advice:
+          type: string
+          description: User-friendly Russian advice block.
+        status:
+          type: [string, "null"]
+          description: Recommendation status when applicable.
+        facts:
+          type: array
+          items:
+            type: string
+        creditRatingImpact:
+          type: [string, "null"]
+        freeCashAfterCredit:
+          type: [string, "null"]
+        recommendedCredit:
+          type: [string, "null"]
+        notBeforeMonths:
+          type: [integer, "null"]
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecommendationSection"
+        outputText:
+          type: string
+          description: Full finalizer answer, preserved for display/debugging.
+        toolResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiToolResult"
+        usage:
+          oneOf:
+            - $ref: "#/components/schemas/AiUsage"
+            - type: "null"
     AiVoiceChatMultipartRequest:
       type: object
       required: [audio]

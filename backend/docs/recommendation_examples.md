@@ -1,6 +1,6 @@
 # Примеры Recommendation Flow
 
-Эти примеры задают ожидаемое поведение planner для recommendation-запросов ФинДоктора.
+Эти примеры задают ожидаемое поведение planner для recommendation-запросов ПрофИИта.
 
 Planner всегда возвращает строгий JSON:
 

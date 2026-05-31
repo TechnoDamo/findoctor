@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "Диагностика деплоя ФинДоктора"
+echo "Диагностика деплоя ПрофИИта"
 echo ""
 
 echo "Инструменты:"

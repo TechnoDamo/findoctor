@@ -16,6 +16,7 @@ from app.api.routes import (
     liabilities,
     liability_payments,
     me,
+    recommendations,
     recurring_transactions,
     reference,
     tags,
@@ -40,5 +41,6 @@ api_router.include_router(liability_payments.router, prefix="/liability-payments
 api_router.include_router(goals.router, prefix="/goals", tags=["Goals"])
 api_router.include_router(tags.router, prefix="/tags", tags=["Tags"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(recommendations.router, prefix="/recommendations", tags=["Recommendations"])
 api_router.include_router(ai_chat.router, prefix="/ai/chat", tags=["AI Chat"])
 api_router.include_router(imports.router, prefix="/transactions/import", tags=["Imports"])

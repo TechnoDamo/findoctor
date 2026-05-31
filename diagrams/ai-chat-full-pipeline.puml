@@ -1,0 +1,73 @@
+@startuml
+title AI-чат — Полный конвейер обработки запроса
+
+actor Клиент
+participant "API-роутер" as Route
+participant "Сервис чата" as Service
+database PostgreSQL
+participant Оркестратор
+participant "Инструмент\nuser_data" as UDT
+participant RAGFlow
+participant SearXNG
+participant "Planner\nLLM" as PLLM
+participant "Finalizer\nLLM" as FLLM
+
+Клиент -> Route : POST /ai/chat/messages
+activate Route
+
+Route -> Service : send_message()
+activate Service
+
+Service -> PostgreSQL : найти или создать диалог
+PostgreSQL --> Service : conversation_id
+
+Service -> PostgreSQL : сохранить сообщение пользователя
+PostgreSQL --> Service : ok
+
+Service -> Оркестратор : run_recommendation_flow()
+activate Оркестратор
+
+Оркестратор -> PLLM : запрос плана инструментов
+activate PLLM
+PLLM --> Оркестратор : RecommendationPlan
+deactivate PLLM
+
+Оркестратор -> UDT : запросы к данным пользователя
+activate UDT
+UDT -> PostgreSQL : query accounts
+PostgreSQL --> UDT : данные
+UDT -> PostgreSQL : query transactions
+PostgreSQL --> UDT : данные
+UDT -> PostgreSQL : query analytics
+PostgreSQL --> UDT : вычисления
+UDT --> Оркестратор : tool_results
+deactivate UDT
+
+Оркестратор -> RAGFlow : поиск в базе знаний
+activate RAGFlow
+RAGFlow --> Оркестратор : evidence
+deactivate RAGFlow
+
+Оркестратор -> SearXNG : поиск в интернете
+activate SearXNG
+SearXNG --> Оркестратор : evidence
+deactivate SearXNG
+
+Оркестратор -> FLLM : финализация ответа
+activate FLLM
+FLLM --> Оркестратор : финальный текст
+deactivate FLLM
+
+Оркестратор --> Service : текст + usage + tool_results
+deactivate Оркестратор
+
+Service -> PostgreSQL : сохранить ответ ассистента
+PostgreSQL --> Service : ok
+
+Service --> Route : AiChatResponse
+deactivate Service
+
+Route --> Клиент : 200 OK
+deactivate Route
+
+@enduml

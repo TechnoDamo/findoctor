@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 cat <<EOF
-# API-примеры TEI для ФинДоктора
+# API-примеры TEI для ПрофИИта
 
 export TEI_BASE_URL="${TEI_BASE_URL}"
 export TEI_MODEL_ID="${TEI_MODEL_ID}"

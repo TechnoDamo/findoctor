@@ -22,7 +22,7 @@ SETTINGS_FILE := config/settings.yml
 .PHONY: help init render-config pull run stop restart logs shell ps wait test test-json test-allowed curl-examples clean
 
 help:
-	@echo "SearXNG — внутренний self-hosted search-сервис ФинДоктора"
+	@echo "SearXNG — внутренний self-hosted search-сервис ПрофИИта"
 	@echo ""
 	@echo "  make init           Создать .env и сгенерировать SEARXNG_SECRET_KEY при необходимости"
 	@echo "  make pull           Скачать Docker image"

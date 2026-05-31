@@ -24,7 +24,7 @@ MODELS_DIR_ABS := $(abspath $(TEI_MODELS_DIR))
 .PHONY: help init pull run stop restart logs shell ps wait info test test-health test-embed test-openai test-similarity curl-examples clean clean-all
 
 help:
-	@echo "TEI — локальный embedding inference service ФинДоктора"
+	@echo "TEI — локальный embedding inference service ПрофИИта"
 	@echo ""
 	@echo "  make init           Создать .env"
 	@echo "  make pull           Скачать Docker image"

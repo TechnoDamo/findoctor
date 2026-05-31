@@ -1,0 +1,44 @@
+@startuml
+title Исполнение инструментов — Планировщик, Инструменты, Финализатор
+
+participant Оркестратор
+participant "Planner\nLLM" as PLLM
+database PostgreSQL
+participant "user_data\ntool" as UDT
+participant "RAGFlow\nAPI" as RAG
+participant "SearXNG\nAPI" as Search
+participant "Finalizer\nLLM" as FLLM
+
+Оркестратор -> PLLM : текст пользователя + финконтекст
+activate PLLM
+PLLM --> Оркестратор : RecommendationPlan
+deactivate PLLM
+
+Оркестратор -> UDT : execute_user_data_queries()
+activate UDT
+UDT -> PostgreSQL : запрос счетов
+PostgreSQL --> UDT : строки
+UDT -> PostgreSQL : запрос транзакций
+PostgreSQL --> UDT : строки
+UDT -> PostgreSQL : запрос аналитики
+PostgreSQL --> UDT : вычисления
+UDT -> UDT : агрегация (sum, count, avg, top_n)
+UDT --> Оркестратор : UserDataToolResult[]
+deactivate UDT
+
+Оркестратор -> RAG : retrieve_from_ragflow()
+activate RAG
+RAG --> Оркестратор : RecommendationEvidence[]
+deactivate RAG
+
+Оркестратор -> Search : search_searxng()
+activate Search
+Search --> Оркестратор : RecommendationEvidence[]
+deactivate Search
+
+Оркестратор -> FLLM : текст + evidence + user_data
+activate FLLM
+FLLM --> Оркестратор : финальный ответ
+deactivate FLLM
+
+@enduml

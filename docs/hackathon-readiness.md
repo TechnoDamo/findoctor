@@ -1,4 +1,4 @@
-# Хакатонная Готовность ФинДоктора
+# Хакатонная Готовность ПрофИИта
 
 Этот документ помогает быстро проверить проект перед сдачей, подготовить честный демо-сценарий и показать архитектуру так, чтобы она выглядела как цельный продукт, а не набор сервисов.
 
@@ -13,6 +13,7 @@
 - Полный backend test suite на реальной PostgreSQL test DB.
 - AI chat с conversation history.
 - Agentic recommendation flow: planner -> user_data/RAG/search tools -> finalizer.
+- Отдельный продуктовый endpoint `POST /api/v1/recommendations?type=...` для доходов, расходов, кредитного светофора, оценки кредита и общего финансового портрета.
 - Опциональный self-hosted RAG/search/embedding контур: RAGFlow, SearXNG, TEI.
 - Frontend production build проходит.
 - `npm audit --audit-level=moderate` проходит без findings.
@@ -27,6 +28,7 @@
 4. Пользователь спрашивает AI: "Можно ли мне досрочно погасить часть кредита без риска для подушки?"
 5. AI вызывает user-data tool, при необходимости RAG/search, и возвращает рекомендацию с аргументами.
 6. В ответе показываются `tool_results`, чтобы было видно: это не generic chatbot, а ассистент поверх финансового контекста.
+7. Для продуктового сценария можно вызвать `POST /api/v1/recommendations?type=credit_decision` с параметрами кредита и показать готовые поля `status`, `analysis`, `advice`, `facts`.
 
 ## Команды Перед Сдачей
 
@@ -52,7 +54,7 @@ make backend-test-recommendations
 
 Короткая формулировка:
 
-> ФинДоктор — это персональный финансовый ассистент, который соединяет учет личных финансов, аналитику и AI-рекомендации. В отличие от обычного чат-бота, он работает поверх структурированных пользовательских данных и может подкреплять советы внутренними расчетами, RAG-документами и контролируемым поиском.
+> ПрофИИт — это персональный финансовый ассистент, который соединяет учет личных финансов, аналитику и AI-рекомендации. В отличие от обычного чат-бота, он работает поверх структурированных пользовательских данных и может подкреплять советы внутренними расчетами, RAG-документами и контролируемым поиском.
 
 Технический акцент:
 
@@ -89,6 +91,7 @@ make backend-test-recommendations
 - `backend/app/db/queries/*.sql` — user-scoped SQL.
 - `backend/tests/test_authorization_boundaries.py` — cross-user isolation.
 - `backend/app/services/recommendations/orchestrator.py` — planner/tools/finalizer.
+- `backend/app/api/routes/recommendations.py` и `backend/app/services/product_recommendations.py` — продуктовый endpoint рекомендаций поверх того же AI-пайплайна.
 - `docs/architecture-uml.md` — архитектура, deployment-комбинации и sequence diagrams.
 - `backend/STACK.md` — backend engineering rules.
 - `backend/TESTING.md` — test gate и правила покрытия.

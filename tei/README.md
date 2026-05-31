@@ -1,6 +1,6 @@
 # TEI
 
-Внутренний локальный сервис embedding inference для ФинДоктора на базе Hugging Face Text Embeddings Inference.
+Внутренний локальный сервис embedding inference для ПрофИИта на базе Hugging Face Text Embeddings Inference.
 
 TEI дает OpenAI-compatible endpoint `/v1/embeddings` и native embedding endpoints. RAGFlow может использовать этот сервис как локальный embedding provider.
 
@@ -92,7 +92,7 @@ Native endpoint:
 curl -sS \
   -X POST "http://localhost:8200/embed" \
   -H "Content-Type: application/json" \
-  -d '{"inputs":["ФинДоктор проверяет cash flow перед рекомендациями."]}' \
+  -d '{"inputs":["ПрофИИт проверяет cash flow перед рекомендациями."]}' \
   | python3 -m json.tool
 ```
 
@@ -102,7 +102,7 @@ OpenAI-compatible endpoint:
 curl -sS \
   -X POST "http://localhost:8200/v1/embeddings" \
   -H "Content-Type: application/json" \
-  -d '{"model":"BAAI/bge-m3","input":["Smoke test embeddings ФинДоктора."]}' \
+  -d '{"model":"BAAI/bge-m3","input":["Smoke test embeddings ПрофИИта."]}' \
   | python3 -m json.tool
 ```
 

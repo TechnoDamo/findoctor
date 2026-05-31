@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 cat <<EOF
-# API-примеры SearXNG для ФинДоктора
+# API-примеры SearXNG для ПрофИИта
 
 export SEARXNG_BASE_URL="${SEARXNG_BASE_URL}"
 
@@ -21,6 +21,6 @@ curl -sS -G "\$SEARXNG_BASE_URL/search" \\
   | python3 -m json.tool
 
 # 3. Напоминание о backend policy:
-# SearXNG находит URL. Backend ФинДоктора все равно обязан отклонить каждый result,
+# SearXNG находит URL. Backend ПрофИИта все равно обязан отклонить каждый result,
 # если его host отсутствует в ragflow/allowed_resources.txt.
 EOF

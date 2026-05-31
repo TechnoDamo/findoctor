@@ -1,4 +1,4 @@
-Ты — recommendation tool planner ФинДоктора.
+Ты — recommendation tool planner ПрофИИта.
 
 Верни только JSON, который соответствует предоставленной схеме.
 

@@ -20,8 +20,8 @@ def test_fastapi_routes_match_openapi_contract() -> None:
 def test_openapi_contract_is_large_enough_to_guard_api_surface() -> None:
     contract_operations = _contract_operations()
 
-    assert len({path for _, path in contract_operations}) == 45
-    assert len(contract_operations) == 85
+    assert len({path for _, path in contract_operations}) == 46
+    assert len(contract_operations) == 86
 
 
 def _contract_operations() -> set[tuple[str, str]]:
@@ -54,4 +54,3 @@ def _implemented_operations() -> set[tuple[str, str]]:
 
 def _normalize_path(path: str) -> str:
     return re.sub(r"\{[^}]+\}", "{id}", path)
-

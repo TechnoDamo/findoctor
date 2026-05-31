@@ -1,8 +1,8 @@
 # SearXNG
 
-Внутренний self-hosted сервис поиска для ФинДоктора.
+Внутренний self-hosted сервис поиска для ПрофИИта.
 
-SearXNG нужен только для поиска новых URL. Он не решает, каким источникам можно доверять. Backend ФинДоктора обязан фильтровать каждый найденный URL через `ragflow/allowed_resources.txt`.
+SearXNG нужен только для поиска новых URL. Он не решает, каким источникам можно доверять. Backend ПрофИИта обязан фильтровать каждый найденный URL через `ragflow/allowed_resources.txt`.
 
 Интеграция backend описана в `../backend/docs/recommendations.md`.
 

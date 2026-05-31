@@ -37,7 +37,7 @@ There is no strong current public Silero Russian STT choice in the official mode
 Create a separate Python environment:
 
 ```bash
-cd /Users/damir/Documents/ФинДоктор/voice-test
+cd /Users/damir/Documents/ПрофИИт/voice-test
 python3 -m venv .venv-silero
 source .venv-silero/bin/activate
 pip install --upgrade pip
@@ -47,7 +47,7 @@ pip install fastapi uvicorn soundfile numpy torch torchaudio silero
 ## Start
 
 ```bash
-cd /Users/damir/Documents/ФинДоктор/voice-test
+cd /Users/damir/Documents/ПрофИИт/voice-test
 source .venv-silero/bin/activate
 uvicorn silero_api_server:app --host 127.0.0.1 --port 8790
 ```

@@ -31,7 +31,7 @@ BACKEND_PYTHON := $(if $(wildcard $(BACKEND_DIR)/.venv/bin/python),./.venv/bin/p
 .PHONY: stop-ragflow stop-searxng stop-tei stop-vllm docs-check doctor
 
 help:
-	@echo "Корневые команды ФинДоктора"
+	@echo "Корневые команды ПрофИИта"
 	@echo ""
 	@echo "  Настройка:"
 	@echo "    make init                         Подготовить env-файлы для всех локальных сервисов"

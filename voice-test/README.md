@@ -7,7 +7,7 @@ Local browser tool for testing RouterAI TTS and STT models.
 From this folder:
 
 ```bash
-cd /Users/damir/Documents/ФинДоктор/voice-test
+cd /Users/damir/Documents/ПрофИИт/voice-test
 export ROUTERAI_API_KEY="sk-gY63dt1jGYJUvi19vPH9HVT9cVtQRKGo"
 node routerai_recorder_server.js
 ```

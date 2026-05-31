@@ -1,4 +1,4 @@
-# Архитектура И UML-Сценарии ФинДоктора
+# Архитектура И UML-Сценарии ПрофИИта
 
 Документ описывает высокоуровневую архитектуру, deployment-комбинации и основные sequence flows. Диаграммы написаны в Mermaid, чтобы их можно было смотреть прямо в GitHub/GitLab/Markdown-рендерах.
 
@@ -143,6 +143,47 @@ sequenceDiagram
     S-->>A: search snippets
     A->>L: вопрос + chunks + snippets + policy
     L-->>A: grounded recommendation
+```
+
+## Sequence: Продуктовый Endpoint Рекомендаций
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Пользователь
+    participant F as Frontend / клиент
+    participant A as FastAPI /recommendations
+    participant S as Product recommendation service
+    participant P as Planner LLM
+    participant D as User Data Tool
+    participant DB as PostgreSQL
+    participant R as RAGFlow
+    participant X as SearXNG + allowlist
+    participant L as Finalizer LLM
+
+    U->>F: Выбирает тип анализа\nincome / expenses / debt_traffic_light / credit_decision / about_me
+    F->>A: POST /api/v1/recommendations?type=...
+    A->>A: JWT/session auth + validation
+    A->>S: build_recommendation(type, body, user)
+    S->>S: собрать product prompt\nи financial_context
+    S->>P: strict JSON план инструментов
+    P-->>S: user_data / rag / search requests
+    opt Нужны данные пользователя
+        S->>D: выполнить user-scoped analytics query
+        D->>DB: SELECT ... WHERE user_id = current_user
+        DB-->>D: счета, доходы, расходы, долги, цели
+        D-->>S: structured financial evidence
+    end
+    opt Нужны документы или внешние источники
+        S->>R: retrieval по dataset
+        R-->>S: RAG chunks
+        S->>X: search только по allowed resources
+        X-->>S: trusted snippets
+    end
+    S->>L: вопрос + данные + evidence + recommendation_endpoint.txt
+    L-->>S: русский продуктовый ответ с разделами
+    S-->>A: normalized RecommendationResponse
+    A-->>F: analysis, advice, status, facts, toolResults, usage
 ```
 
 ## Sequence: Голосовой Режим

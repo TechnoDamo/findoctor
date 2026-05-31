@@ -10,13 +10,13 @@ The global contract this follows is:
 Defined in:
 
 ```text
-/Users/damir/Documents/ФинДоктор/api-contract/openapi.yaml
+/Users/damir/Documents/ПрофИИт/api-contract/openapi.yaml
 ```
 
 ## Setup
 
 ```bash
-cd /Users/damir/Documents/ФинДоктор/voice-test/openai-voice-chat
+cd /Users/damir/Documents/ПрофИИт/voice-test/openai-voice-chat
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -32,7 +32,7 @@ OPENAI_COMPAT_API_KEY=sk-...
 ## Run
 
 ```bash
-cd /Users/damir/Documents/ФинДоктор/voice-test/openai-voice-chat
+cd /Users/damir/Documents/ПрофИИт/voice-test/openai-voice-chat
 source .venv/bin/activate
 uvicorn server:app --host 127.0.0.1 --port 8788
 ```
