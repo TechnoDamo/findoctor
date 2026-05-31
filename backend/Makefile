@@ -19,7 +19,7 @@ endif
 APP_HOST ?= 0.0.0.0
 APP_PORT ?= 8000
 POSTGRES_PORT ?= 5432
-DATABASE_URL ?= postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_DB)
+DATABASE_URL ?= postgresql+psycopg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/$(POSTGRES_DB)
 DOCKER ?= docker
 DOCKER_IMAGE ?= findoctor-backend:local
 DOCKER_CONTAINER ?= findoctor-backend
@@ -186,14 +186,14 @@ docker-shell:
 	$(DOCKER) exec -it $(DOCKER_CONTAINER) sh
 
 docker-smoke:
-	@for attempt in $$(seq 1 30); do \
+	@for attempt in $$(seq 1 60); do \
 		if curl -fsS http://localhost:$(DOCKER_HOST_PORT)/api/v1/reference/account-types >/dev/null; then \
 			echo "OK: backend container отвечает на /api/v1/reference/account-types"; \
 			exit 0; \
 		fi; \
 		sleep 1; \
 	done; \
-	echo "Backend container не ответил за 30 секунд. Проверьте: make docker-logs"; \
+	echo "Backend container не ответил за 60 секунд. Проверьте: make docker-logs"; \
 	exit 1
 
 docker-clean: docker-stop

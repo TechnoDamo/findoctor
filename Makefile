@@ -81,16 +81,16 @@ help:
 # deploy-system
 # ----------------------------------------------------------------------
 deploy-system:
-	@echo "=== Core: backend + frontend ==="
-	$(MAKE) -C $(BACKEND_DIR) deploy-local
-	$(MAKE) -C $(FRONTEND_DIR) deploy-local
-	@echo ""
 	@echo "=== postgres ($(postgres)) ==="
 	@case "$(postgres)" in \
 		local) $(MAKE) -C $(DB_DIR) deploy-local ;; \
 		cloud) $(MAKE) -C $(DB_DIR) deploy-cloud ;; \
 		*) echo "Unknown flag: postgres=$(postgres)"; exit 1 ;; \
 	esac
+	@echo ""
+	@echo "=== Core: backend + frontend ==="
+	$(MAKE) -C $(BACKEND_DIR) deploy-local
+	$(MAKE) -C $(FRONTEND_DIR) deploy-local
 	@echo ""
 	@echo "=== ragflow ($(ragflow)) ==="
 	@case "$(ragflow)" in \
